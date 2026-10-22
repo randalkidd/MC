@@ -4,6 +4,10 @@ Live at **https://randalkidd.github.io/mc/** · the original single-page Parcel 
 
 A static web app for zoning and subdivision review in unincorporated Maricopa County. It runs entirely in the browser (phone, tablet or any computer) and talks to the county's public GIS services directly. It needs no server and no browser extension.
 
+## Contact
+
+Questions, corrections or suggestions? Email the designer, Randal Kidd, at [randal.kidd@maricopa.gov](mailto:randal.kidd@maricopa.gov).
+
 **What it does**
 - **Parcel lookup.** Enter an APN and the app pulls:
   - the Assessor record
