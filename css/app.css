@@ -84,6 +84,18 @@ dialog::backdrop { background: rgb(0 0 0 / .4); }
 .toast { background: var(--ink); color: var(--bg); padding: .6rem .9rem; border-radius: 8px; font-size: .88rem; box-shadow: 0 6px 20px rgb(0 0 0 / .2); } .toast.error { background: var(--bad); color: #fff; } .toast.ok { background: var(--ok); color: #fff; }
 .foot { max-width: 1180px; margin: 0 auto; padding: 0 16px 2rem; color: var(--muted); font-size: .75rem; }
 @media print { .top, .tabs, .searchbar, .actions, .hint, .foot, #toasts, .maps, .map { display: none !important; } .report { border: 0; } body { background: #fff; } }
+/* Printing is always light, whatever theme is on screen. */
+@media print {
+  :root, :root[data-theme] {
+    color-scheme: light;
+    --bg: #ffffff; --surface: #ffffff; --ink: #131D28; --muted: #4f5d6b; --line: #D8DFE1; --soft: #e9eef0;
+    --accent: #c4500f; --accent-strong: #a8430b; --accent-ink: #ffffff;
+    --ok: #167a6f; --bad: #b42318; --yellow: #9a6100; --warn-bg: #fff4e0; --warn-line: #f0c27a; --note-bg: #e8f1f9; --note-line: #0070B9;
+  }
+  html, body { background: #fff !important; color: #131D28 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .card, .report { box-shadow: none !important; }
+  .chg, .warnico, .result.warn h3 { color: #9a6100 !important; }
+}
 
 .theme-btn { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 999px; width: 30px; height: 30px; cursor: pointer; font-size: .9rem; line-height: 1; }
 .theme-btn:hover { color: var(--accent); border-color: var(--accent); }

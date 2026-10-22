@@ -1,13 +1,13 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=8281ed8d';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=8281ed8d';
-import { settings, setSharedRelay } from './net.js?v=8281ed8d';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=8281ed8d';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=8281ed8d';
-import { CHECKLISTS } from './checklists.js?v=8281ed8d';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=8281ed8d';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=e21eaf80';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=e21eaf80';
+import { settings, setSharedRelay } from './net.js?v=e21eaf80';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=e21eaf80';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=e21eaf80';
+import { CHECKLISTS } from './checklists.js?v=e21eaf80';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=e21eaf80';
 let REF = null; // js/refdata.js (76 KB) loads the first time the Reference tab opens
-import { findPlatDoc } from './recorder.js?v=8281ed8d';
-import { loadAllSubdivisions } from './subdivisions.js?v=8281ed8d';
+import { findPlatDoc } from './recorder.js?v=e21eaf80';
+import { loadAllSubdivisions } from './subdivisions.js?v=e21eaf80';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -405,6 +405,13 @@ $('#rep-dl').addEventListener('click', () => download(`${S.R.apn}.md`, S.md));
 $('#rep-save').addEventListener('click', async () => {
   try { await writeFile(`data/parcels/${S.R.apn}.md`, S.md + '\n', `Parcel report ${S.R.apn} (${S.R.lookupDate})`); clearDirCache(); toast('Report saved to GitHub', 'ok'); } catch (e) { toast(e.message, 'error'); }
 });
+$('#rep-pdf').addEventListener('click', async (e) => {
+  const b = e.currentTarget; if (b.disabled || !S.md) return;
+  b.disabled = true; const label = b.textContent; b.textContent = 'Building PDF…';
+  try { const { reportPDF } = await import('./pdf.js?v=e21eaf80'); await reportPDF(S.md, { apn: S.R.apn }); toast('PDF saved', 'ok'); }
+  catch (err) { toast(`PDF failed: ${err.message}`, 'error'); }
+  finally { b.disabled = false; b.textContent = label; }
+});
 $('#rep-print').addEventListener('click', () => window.print());
 
 let leafletP = null;
@@ -708,7 +715,7 @@ async function renderSaved() {
 // ---------------- reference ----------------
 let refP = null;
 function renderReference() {
-  return (refP ||= import('./refdata.js?v=8281ed8d').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
+  return (refP ||= import('./refdata.js?v=e21eaf80').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
 }
 function fillReference() {
   const { DIRECTIVES, MCSR_QUICK, REG_DOCS, REG_LOOKUP } = REF;
