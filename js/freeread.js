@@ -3,8 +3,8 @@
 // scale, area table, coverage, legal description) plus the residence setbacks from the dimension text drawn around
 // the house. It returns the same shape as the Claude reader, so the rest of the page treats both the same. It never
 // marks an item deficient just because it couldn't find it.
-import { loadPdfjs } from './planviewer.js?v=b7c4fc2c';
-import { CHECKLISTS } from './checklists.js?v=b7c4fc2c';
+import { loadPdfjs } from './planviewer.js?v=91553d78';
+import { CHECKLISTS } from './checklists.js?v=91553d78';
 
 const PDFJS = './js/vendor/pdfjs-3.2.146/';
 const U = (s) => String(s ?? '').toUpperCase().replace(/\s+/g, ' ').trim();
@@ -134,9 +134,17 @@ export async function freeReadSitePlan(file, type) {
     if (parcel.lot || parcel.mcr) { const l = lines.find(x => /\bLOT\s+\d/.test(x.u) && (x.page === (lg && lg.label.page))) || (lg && lg.label); mark('parcel:subdivision', l); }
 
     // ---- scale / north / vicinity ----
-    const sc = first(/\bSCALE\s*[:\-]?\s*(1"\s*=\s*(\d+)'(?:\s*-\s*0")?|\d+\/\d+"\s*=\s*1'(?:\s*-\s*0")?|N\.?T\.?S\.?|NOT TO SCALE)/) || first(/\b(1\s*(?:"|IN(?:CH)?\.?)\s*=\s*(\d+)\s*(?:'|FT\.?|FEET))/);
+    // Scale: "SCALE: 1"=20'", "1 inch = 20 ft.", "H: 1"= 20'", or the same split across text pieces ("1 inch =" "20" "ft.").
+    const SCRX = /(1\s*(?:"|''|IN(?:CH)?\.?)\s*=\s*(\d+)\s*(?:'|FT\.?|FEET))/;
+    let sc = first(/\bSCALE\s*[:\-]?\s*(1\s*"\s*=\s*(\d+)\s*'(?:\s*-\s*0")?|\d+\/\d+"\s*=\s*1'(?:\s*-\s*0")?|N\.?T\.?S\.?|NOT TO SCALE)/) || first(SCRX);
+    if (!sc) for (const l of lines) { // join a line with its right-hand neighbours on the same baseline
+      if (!/^1\s*(?:"|IN(?:CH)?\.?)?\s*=?$|^1\s*(?:"|IN(?:CH)?)/.test(l.u)) continue;
+      const row = [l, ...lines.filter(x => same(x, l) && x !== l && Math.abs(x.across - l.across) < l.fs * 0.6 && x.start > l.start && x.start - l.end < l.fs * 6).sort((a, b) => a.start - b.start).slice(0, 4)];
+      const m = row.map(x => x.u).join(' ').match(SCRX); if (m) { sc = { l, m }; break; }
+    }
     if (sc) { plan.scale_stated = sc.m[1].replace(/\s+/g, ' '); plan.scale_is_standard = sc.m[2] ? STD_SCALE(sc.m[2]) : /\/\d+"\s*=\s*1'/.test(sc.m[1]) ? true : /N\.?T\.?S|NOT TO/.test(sc.m[1]) ? false : null; mark('plan:scale', sc.l); }
-    const gs = first(/GRAPHIC SCALE|SCALE BAR/); plan.scale_bar = gs ? true : null; if (gs) mark('plan:scale', gs.l);
+    const gs = (() => { for (const l of lines) { const c = l.u.replace(/[\s.]/g, ''); if (/GRAPHICSCALE|SCALEBAR|^\(?INFEET\)?$/.test(c)) return { l }; } return null; })();
+    plan.scale_bar = gs ? true : null; if (gs) mark('plan:scale', gs.l);
     const nv = first(/^(?:TRUE\s+)?NORTH$|^N$/); plan.north_arrow = nv ? true : null; if (nv) mark('plan:north_arrow', nv.l);
     const vm = first(/VICINITY MAP|LOCATION MAP/); plan.vicinity_map = vm ? true : null; if (vm) mark('plan:vicinity_map', vm.l);
     const inval = lines.filter(l => /\bFUTURE\b|NOT FOR CONSTRUCTION|FOR REFERENCE ONLY|PRELIMINARY - NOT/.test(l.u) && !/^\d+\.\s/.test(l.u));
@@ -203,7 +211,7 @@ export async function freeReadSitePlan(file, type) {
     const ids = new Set((CHECKLISTS[type] || CHECKLISTS.residential).items.map(i => i[0]));
     const checklist = []; const ck = (id, status, shows, correction) => ids.has(id) && checklist.push({ id, status, shows, ...(correction ? { correction } : {}) });
     if (sc) ck('c-scale', plan.scale_is_standard === false ? 'deficient' : plan.scale_is_standard ? 'ok' : 'verify', `Scale ${plan.scale_stated}${plan.scale_bar ? ' with graphic scale' : ''}`, plan.scale_is_standard === false ? 'Use a standard engineer/architect scale (1"=10\', 20\', 30\'…) with a scale bar.' : null);
-    else ck('c-scale', 'verify', plan.scale_bar ? 'Graphic scale found; written scale not found' : 'Scale not found in the PDF text');
+    else ck('c-scale', plan.scale_bar ? 'ok' : 'verify', plan.scale_bar ? 'Graphic scale shown (written ratio not found — confirm it is a standard engineer scale)' : 'Scale not found in the PDF text — check the drawing for a graphic scale');
     if (sc) mark('checklist:c-scale', sc.l); if (gs) mark('checklist:c-scale', gs.l);
     ck('c-north', plan.vicinity_map && plan.north_arrow ? 'ok' : 'verify', `${plan.north_arrow ? 'North arrow label found' : 'North arrow not found in text (it may be a graphic — look for it)'}; ${plan.vicinity_map ? 'vicinity map found' : 'vicinity map not found in text'}`);
     if (vm) mark('checklist:c-north', vm.l); if (nv) mark('checklist:c-north', nv.l);
