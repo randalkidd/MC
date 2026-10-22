@@ -34,7 +34,8 @@ Store the GitHub token **once** in the Cloudflare relay; each browser then only 
 2. Worker → **Settings → Variables and Secrets → Add**, Type **Secret**:
    - `GITHUB_TOKEN` = your `github_pat_…` token (repo `randalkidd/MC`, Contents: Read and write)
    - `SITE_KEY` = a passphrase you choose
-3. In each browser: site **⚙ Settings** → Relay URL + Passphrase → **Save settings** → **Test GitHub**.
+3. In the **first** browser: site **⚙ Settings** → Relay URL + Passphrase → **Save settings** → **Test GitHub**. On success the relay address is saved to `data/site-config.json` (address only, never the passphrase or token).
+4. In every **other** browser: just type the passphrase → **Save settings**. The relay address fills in automatically.
 
 The relay commits only files under `data/`, only for requests carrying the passphrase. When the token expires, replace `GITHUB_TOKEN` in Cloudflare — no browser needs touching.
 

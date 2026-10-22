@@ -30,7 +30,8 @@ export const gh = {
   get canWrite() { return !!(this.owner && this.repo && (this.token || this.viaRelay)); },
 };
 
-const relayUrl = () => (LS('mc.proxy') || '').trim().replace(/\/+$/, '');
+import { settings } from './net.js';
+const relayUrl = () => settings.proxy;
 
 async function relay(route, init = {}) {
   const r = await fetch(`${relayUrl()}${route}`, { ...init, headers: { 'X-MC-Key': gh.passphrase, ...(init.headers || {}) } });

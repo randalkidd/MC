@@ -1,6 +1,6 @@
 import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, normalizeApn } from './lookup.js';
 import { renderReportHTML, renderReportMD, findPlat } from './report.js';
-import { settings } from './net.js';
+import { settings, setSharedRelay } from './net.js';
 import { gh, readFile, writeFile, listDir, testAccess, storageWorks } from './github.js';
 import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js';
 import { CHECKLISTS } from './checklists.js';
@@ -302,15 +302,15 @@ function renderReference() {
 function renderSettings() {
   const off = !location.hostname.endsWith('github.io') && !/localhost|127\.0\.0\.1/.test(location.hostname);
   $('#st-host').hidden = !off;
-  $('#st-proxy').value = settings.proxy; $('#st-force').checked = settings.forceProxy;
+  $('#st-proxy').value = settings.localProxy || settings.sharedProxy; $('#st-force').checked = settings.forceProxy;
+  $('#st-relay-note').textContent = settings.sharedProxy ? (settings.localProxy && settings.localProxy !== settings.sharedProxy ? `This browser overrides the shared relay (${settings.sharedProxy}).` : '✓ Shared relay — filled in automatically on every browser.') : 'Not shared yet — after Test GitHub succeeds here, this address is saved for all your browsers.';
   $('#st-owner').value = gh.owner; $('#st-repo').value = gh.repo; $('#st-branch').value = gh.branch; $('#st-token').value = gh.token ? '••••••••' : ''; $('#st-pass').value = gh.passphrase ? '••••••••' : '';
   $('#gh-badge').textContent = gh.canWrite ? `✓ Saving to ${gh.owner}/${gh.repo}${gh.viaRelay ? ' (relay)' : ''}` : '⚙ Connect GitHub to save';
   $('#gh-badge').className = `badge ${gh.canWrite ? 'ok' : ''}`;
 }
 $('#st-save').addEventListener('click', () => {
-  settings.proxy = $('#st-proxy').value; settings.forceProxy = $('#st-force').checked;
+  { const v = $('#st-proxy').value.trim().replace(/\/+$/, ''); settings.proxy = v && v !== settings.sharedProxy ? v : ''; } settings.forceProxy = $('#st-force').checked;
   if (!storageWorks()) { toast('This browser is blocking site storage (private/incognito mode or an in-app browser), so the token cannot be kept. Open the site in regular Safari or Chrome.', 'error'); return; }
-  settings.proxy = $('#st-proxy').value;
   const pass = $('#st-pass').value; if (!pass.startsWith('••')) gh.passphrase = pass.trim();
   const tok = $('#st-token').value.trim();
   if (tok && !tok.startsWith('••') && !/^(github_pat_|ghp_)/.test(tok)) { toast('That does not look like a GitHub token — it should start with github_pat_', 'error'); return; }
@@ -322,12 +322,23 @@ $('#st-save').addEventListener('click', () => {
 });
 $('#st-forget').addEventListener('click', () => { gh.save({ owner: $('#st-owner').value, repo: $('#st-repo').value, branch: $('#st-branch').value, token: '' }); gh.passphrase = ''; renderSettings(); toast('Passphrase and token removed from this browser'); });
 $('#st-test-gis').addEventListener('click', async () => { const o = $('#st-test-out'); o.textContent = 'Testing county GIS…'; try { o.textContent = `County GIS reachable (${await ping()} ms).`; } catch (e) { o.textContent = e.message; } });
-$('#st-test-gh').addEventListener('click', async () => { const o = $('#st-test-out'); o.textContent = 'Testing GitHub…'; try { const r = await testAccess(); o.textContent = `${r.name}: ${r.canPush ? 'write access OK' : 'READ-ONLY — on GitHub, edit the token: Repository access must include randalkidd/MC and Contents must be Read and write'}${r.private ? ' (private repo — Pages needs a paid plan)' : ''}`; } catch (e) { o.textContent = e.message; } });
+$('#st-test-gh').addEventListener('click', async () => { const o = $('#st-test-out'); o.textContent = 'Testing GitHub…'; try { const r = await testAccess(); o.textContent = `${r.name}: ${r.canPush ? 'write access OK' : 'READ-ONLY — on GitHub, edit the token: Repository access must include randalkidd/MC and Contents must be Read and write'}${r.private ? ' (private repo — Pages needs a paid plan)' : ''}`; if (r.canPush && gh.viaRelay) { try { if (await shareRelayIfNeeded()) { o.textContent += ' · Relay address shared — other browsers now need only the passphrase.'; renderSettings(); } } catch (e) { o.textContent += ` · Couldn't share relay address: ${e.message}`; } } } catch (e) { o.textContent = e.message; } });
 
 $('#gh-badge').addEventListener('click', () => { showTab('p-settings'); setTimeout(() => $('#st-pass').focus(), 50); });
 
 // ---------------- init ----------------
-bindReview(); renderReview(); renderReference(); renderSettings(); classify();
+async function loadSharedConfig() {
+  try { const f = await readFile('data/site-config.json'); if (f.text) { const c = JSON.parse(f.text); setSharedRelay(c.relayUrl); } } catch {}
+  renderSettings();
+}
+// After a successful relay test, publish the relay address for every browser (address only — never the passphrase or token).
+async function shareRelayIfNeeded() {
+  if (!settings.localProxy || settings.localProxy === settings.sharedProxy) return false;
+  await writeFile('data/site-config.json', JSON.stringify({ relayUrl: settings.localProxy, updated: new Date().toISOString().slice(0, 10) }, null, 2) + '\n', 'Share relay address with all browsers');
+  setSharedRelay(settings.localProxy); return true;
+}
+
+bindReview(); renderReview(); renderReference(); renderSettings(); classify(); loadSharedConfig();
 loadDB().catch(e => { $('#db-source').textContent = `Could not load database: ${e.message}`; });
 const qApn = new URLSearchParams(location.search).get('apn');
 const hashTab = location.hash ? `p-${location.hash.slice(1)}` : null;

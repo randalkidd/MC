@@ -1,8 +1,12 @@
 // Network helpers: direct fetch first, optional relay (Cloudflare Worker) fallback for hosts that block cross-site requests.
 const LS = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { return null; } };
 
+let sharedRelay = ''; // from data/site-config.json in the repo (same for every browser)
+export function setSharedRelay(u) { sharedRelay = (u || '').trim().replace(/\/+$/, ''); }
 export const settings = {
-  get proxy() { return (LS('mc.proxy') || '').trim().replace(/\/+$/, ''); },
+  get localProxy() { return (LS('mc.proxy') || '').trim().replace(/\/+$/, ''); },
+  get sharedProxy() { return sharedRelay; },
+  get proxy() { return this.localProxy || sharedRelay; },
   set proxy(v) { LS('mc.proxy', v || null); },
   get forceProxy() { return LS('mc.forceProxy') === '1'; },
   set forceProxy(v) { LS('mc.forceProxy', v ? '1' : null); },

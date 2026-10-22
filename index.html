@@ -180,7 +180,7 @@
       <p id="st-host" class="warn" hidden>You're on a copy of the site that isn't the GitHub Pages address. Settings are stored per address, so use <a href="https://randalkidd.github.io/MC/">randalkidd.github.io/MC</a> and enter the token there.</p>
       <p class="sub">Saving to the subdivision database, parcel reports and reviews commits files to your repo through GitHub's API. Simplest: store the token once in the Cloudflare relay (secrets <code>GITHUB_TOKEN</code> + <code>SITE_KEY</code>) and type only the passphrase in each browser.</p>
       <div class="row3"><label>Owner<input id="st-owner"></label><label>Repository<input id="st-repo"></label><label>Branch<input id="st-branch" placeholder="main"></label></div>
-      <label>Passphrase <span class="sub">(recommended — the token lives once in your Cloudflare relay; needs the Relay URL below)</span><input id="st-pass" type="password" autocomplete="current-password" placeholder="Your SITE_KEY passphrase"></label>
+      <label>Passphrase <span class="sub">(the only thing each browser needs once the relay is shared)</span><input id="st-pass" type="password" autocomplete="current-password" placeholder="Your SITE_KEY passphrase"></label>
       <details><summary class="sub">Or paste a GitHub token directly in this browser instead</summary>
       <label>Token<input id="st-token" type="password" autocomplete="off" placeholder="github_pat_…"></label></details>
       <div class="actions"><button class="btn primary" id="st-save">Save settings</button><button class="btn ghost" id="st-test-gh">Test GitHub</button><button class="btn ghost" id="st-forget">Forget on this browser</button></div>
@@ -189,6 +189,7 @@
       <h2>Relay (optional)</h2>
       <p class="sub">County GIS usually answers this page directly. The EDMS septic search and Recorder don't allow cross-site requests, so they need a small relay. Deploy <code>worker/cors-proxy.js</code> to Cloudflare Workers (free) and paste its URL here.</p>
       <label>Relay URL<input id="st-proxy" placeholder="https://mc-relay.yourname.workers.dev"></label>
+      <p id="st-relay-note" class="sub"></p>
       <label class="rowc"><input type="checkbox" id="st-force"> Send all county requests through the relay</label>
       <div class="actions"><button class="btn ghost" id="st-test-gis">Test county GIS</button></div>
       <p id="st-test-out" class="status"></p>
