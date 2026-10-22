@@ -1,748 +1,201 @@
-<title>Parcel Lookup</title>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<style>
-/* Layout concept: a single-column civic-records sheet — a fixed input bar up top,
-   results unfold below as stacked "folio" sections mirroring the paper report template,
-   each with a tab-style label like a filed document. */
-:root{
-  --bg:#f4f1ea; --surface:#ffffff; --ink:#20291f; --muted:#5c6b57;
-  --line:#d8d2c2; --accent:#5b7553; --accent-ink:#f4f1ea;
-  --warn:#9a5b1f; --warn-bg:#f8e9d8; --bad:#8a2f2f; --bad-bg:#f6dede;
-  --mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
-  --serif: 'Fraunces', Georgia, serif;
-  --sans: 'Inter', -apple-system, 'Segoe UI', sans-serif;
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#1a1d17; --surface:#23271f; --ink:#e9e6da; --muted:#9aa492;
-    --line:#3a3f32; --accent:#9bc08a; --accent-ink:#13160f;
-    --warn:#e0a85f; --warn-bg:#3a2c18; --bad:#e08080; --bad-bg:#3a2020;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#1a1d17; --surface:#23271f; --ink:#e9e6da; --muted:#9aa492;
-  --line:#3a3f32; --accent:#9bc08a; --accent-ink:#13160f;
-  --warn:#e0a85f; --warn-bg:#3a2c18; --bad:#e08080; --bad-bg:#3a2020;
-  color-scheme: dark;
-}
-*{box-sizing:border-box;}
-body{
-  background:var(--bg); color:var(--ink); font-family:var(--sans);
-  padding-inline:16px; padding-block:20px; max-width:860px; margin:0 auto;
-}
-h1,h2,h3{font-family:var(--serif); font-weight:600; text-wrap:balance; margin:0;}
-.app-head{display:flex; flex-direction:column; gap:4px; margin-bottom:18px;}
-.app-head h1{font-size:1.65rem; letter-spacing:-0.01em;}
-.app-head p{margin:0; color:var(--muted); font-size:0.92rem; max-width:65ch;}
-
-.lookup-bar{
-  display:flex; gap:8px; flex-wrap:wrap; background:var(--surface); border:1px solid var(--line);
-  border-radius:10px; padding:14px; margin-bottom:22px;
-}
-.lookup-bar input{
-  flex:1; min-width:0; font-family:var(--mono); font-size:1rem; padding:10px 12px;
-  border:1px solid var(--line); border-radius:7px; background:var(--bg); color:var(--ink);
-}
-.lookup-bar input:focus{outline:2px solid var(--accent); outline-offset:1px;}
-.lookup-bar button{
-  font-family:var(--sans); font-weight:600; font-size:0.95rem; padding:10px 18px;
-  border:none; border-radius:7px; background:var(--accent); color:var(--accent-ink);
-  cursor:pointer; white-space:nowrap;
-}
-.lookup-bar button:disabled{opacity:0.55; cursor:default;}
-.lookup-bar .hint{width:100%; font-size:0.8rem; color:var(--muted);}
-
-.status-line{display:flex; align-items:center; gap:8px; font-size:0.88rem; color:var(--muted); margin-bottom:18px; min-height:1.2em;}
-.spinner{width:14px; height:14px; border-radius:50%; border:2px solid var(--line); border-top-color:var(--accent); animation:spin 0.8s linear infinite; flex:none;}
-@keyframes spin{to{transform:rotate(360deg);}}
-[hidden]{display:none !important;}
-
-.error-box{background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad); border-radius:8px; padding:12px 14px; font-size:0.9rem; margin-bottom:18px;}
-
-#results{display:flex; flex-direction:column; gap:16px;}
-.folio{background:var(--surface); border:1px solid var(--line); border-radius:10px; overflow:hidden;}
-.folio > .tab{
-  display:flex; align-items:baseline; justify-content:space-between; gap:10px;
-  padding:10px 16px; border-bottom:1px solid var(--line); background:color-mix(in srgb, var(--accent) 10%, var(--surface));
-}
-.folio > .tab h2{font-size:1.02rem; color:var(--ink);}
-.folio > .tab .num{font-family:var(--mono); font-size:0.75rem; color:var(--muted);}
-.folio > .body{padding:14px 16px;}
-
-table.kv{width:100%; border-collapse:collapse; font-size:0.9rem;}
-table.kv tr{border-bottom:1px solid var(--line);}
-table.kv tr:last-child{border-bottom:none;}
-table.kv td{padding:7px 4px; vertical-align:top;}
-table.kv td:first-child{color:var(--muted); width:38%; padding-right:10px;}
-table.kv td:last-child{font-family:var(--mono); font-size:0.87rem; word-break:break-word;}
-
-table.setbacks{width:100%; border-collapse:collapse; font-size:0.87rem; margin-top:4px;}
-table.setbacks th{text-align:left; font-size:0.72rem; letter-spacing:0.03em; text-transform:uppercase; color:var(--muted); padding:6px 8px; border-bottom:2px solid var(--line);}
-table.setbacks td{padding:6px 8px; border-bottom:1px solid var(--line); font-family:var(--mono);}
-.table-wrap{overflow-x:auto;}
-
-.district-heading{font-size:0.95rem; font-weight:600; margin:14px 0 2px;}
-.district-heading a{color:var(--accent);}
-
-a{color:var(--accent); text-decoration-thickness:1px;}
-.pill{display:inline-block; font-size:0.72rem; font-weight:600; letter-spacing:0.02em; padding:2px 9px; border-radius:99px; font-family:var(--sans);}
-.pill.ok{background:color-mix(in srgb, var(--accent) 22%, transparent); color:var(--accent);}
-.pill.warn{background:var(--warn-bg); color:var(--warn);}
-.pill.bad{background:var(--bad-bg); color:var(--bad);}
-.pill.na{background:var(--line); color:var(--muted);}
-
-.case-list{display:flex; flex-direction:column; gap:8px;}
-.case-item{display:flex; justify-content:space-between; gap:10px; font-size:0.87rem; padding:8px 10px; background:var(--bg); border:1px solid var(--line); border-radius:7px;}
-.case-item .left{display:flex; flex-direction:column; gap:2px; min-width:0;}
-.case-item .type{font-weight:600;}
-.case-item .meta{color:var(--muted); font-family:var(--mono); font-size:0.78rem;}
-.empty-note{color:var(--muted); font-size:0.87rem; font-style:italic;}
-
-.overlay-grid{display:flex; flex-wrap:wrap; gap:6px;}
-.overlay-chip{font-size:0.8rem; padding:4px 10px; border-radius:7px; background:var(--bg); border:1px solid var(--line);}
-.overlay-chip.hit{border-color:var(--warn); color:var(--warn); background:var(--warn-bg);}
-
-.note{font-size:0.84rem; color:var(--muted); margin-top:10px; line-height:1.5;}
-.note.flag{color:var(--warn); background:var(--warn-bg); padding:10px 12px; border-radius:7px; margin-top:12px;}
-.external-btn{
-  display:inline-flex; align-items:center; gap:6px; font-size:0.87rem; font-weight:600;
-  padding:8px 14px; border-radius:7px; background:var(--bg); border:1px solid var(--accent); color:var(--accent);
-  text-decoration:none; margin-top:8px;
-}
-.summary-list{margin:0; padding-left:1.2em; font-size:0.9rem; display:flex; flex-direction:column; gap:5px;}
-footer.credit{margin-top:28px; font-size:0.78rem; color:var(--muted); text-align:center;}
-</style>
-
-<div class="app-head">
-  <h1>Parcel Lookup</h1>
-  <p>Enter a Maricopa County parcel number (APN) to pull Assessor, zoning, overlay, case, floodplain and deed records live from the county's own GIS services.</p>
-</div>
-
-<div class="error-box" id="sandboxNotice" hidden>
-  <strong>This preview can't reach county servers.</strong> Claude's artifact preview only allows network requests to a small set of code-library hosts, so the live gis.maricopa.gov queries this page needs are blocked here with no server ever being contacted. Download the HTML file and open it directly in your own browser (double-click it, or drag it into a browser tab) — outside this preview, nothing blocks the request, and Maricopa County's GIS services already allow cross-site access.
-</div>
-
-<div class="lookup-bar">
-  <input id="apnInput" type="text" placeholder="e.g. 501-03-006J" autocomplete="off" spellcheck="false" />
-  <button id="lookupBtn">Look up</button>
-  <span class="hint">Dashes optional — "501-03-006J" and "5010300 6J" both work.</span>
-</div>
-
-<div class="status-line" id="statusLine" hidden>
-  <span class="spinner"></span>
-  <span id="statusText">Querying county GIS services…</span>
-</div>
-
-<div class="error-box" id="errorBox" hidden></div>
-
-<div id="results"></div>
-
-<footer class="credit">Live queries against gis.maricopa.gov (Assessor, PlanNet, PLSS, FEMA floodplain). Septic records and MCZO chapter text are linked out — see notes below each.</footer>
-
-<script>
-(function(){
-"use strict";
-
-var GIS = "https://gis.maricopa.gov";
-var RECORDER = "https://recorder.maricopa.gov/recording/document-details.html";
-var MCZO_PDF = "https://www.maricopa.gov/DocumentCenter/View/4785/P-18---Zoning-Ordinance-PDF?bidId=";
-
-/* ---------- MCZO Ch.5 static development-standards data (§502/504/506) ---------- */
-var RR_DISTRICTS = ["RU-190","RU-70","RU-43","R1-35","R1-18","R1-10","R1-8","R1-7","R1-6","R-2","R-3","R-4","R-5"];
-var RR = {
-  lotArea:     [190000,70000,43560,35000,18000,10000,8000,7000,6000,6000,6000,6000,6000],
-  lotWidth:    [300,250,145,145,120,80,80,70,60,60,60,60,60],
-  lotCoverage: ["10%","15%","25%","30%","35%","40%","45%","45%","50%","60%","60%","60%","60%"],
-  frontPrimary:[60,60,40,40,"10 or 18*","10 or 18*","10 or 18*","10 or 18*","10 or 18*",10,10,10,10],
-  sideStPrimary:[30,30,20,20,10,10,10,10,10,10,10,10,10],
-  sideIntPrimary:[30,30,20,20,10,7,7,5,5,5,5,5,5],
-  rearPrimary: [60,60,40,40,30,25,25,25,25,25,25,25,25],
-  heightPrimary:[35,35,35,35,35,35,35,35,35,35,40,40,40],
-  frontAccessory:[60,60,40,40,10,10,10,10,10,10,10,10,10],
-  sideStAccessory:[30,30,20,20,15,10,10,10,10,10,10,10,10],
-  sideIntAccessory:[3,3,3,3,3,3,3,3,3,3,3,3,3],
-  rearAccessory:["3 (detached ADU: 5)","3 (detached ADU: 5)","3 (detached ADU: 5)","3 (detached ADU: 5)","3 (detached ADU: 5)","3 (detached ADU: 5)","3 (detached ADU: 5)","3 (detached ADU: 5)","3 (detached ADU: 5)","3 (detached ADU: 5)","3 (detached ADU: 5)","3 (detached ADU: 5)","3 (detached ADU: 5)"],
-  heightAccessory:["Same as primary (ADU: 18 max in rear/side setback)","Same as primary (ADU: 18 max in rear/side setback)","Same as primary (ADU: 18 max in rear/side setback)","Same as primary (ADU: 18 max in rear/side setback)","Same as primary (ADU: 18 max in rear/side setback)","Same as primary (ADU: 18 max in rear/side setback)","Same as primary (ADU: 18 max in rear/side setback)","Same as primary (ADU: 18 max in rear/side setback)","Same as primary (ADU: 18 max in rear/side setback)","Same as primary (ADU: 18 max in rear/side setback)","Same as primary (ADU: 18 max in rear/side setback)","Same as primary (ADU: 18 max in rear/side setback)","Same as primary (ADU: 18 max in rear/side setback)"]
-};
-var COMM_DISTRICTS = ["C-O","C-S","C-1","C-2","C-3"];
-var COMM = {
-  lotArea:["12,000","217,800 (5 ac)","6,000","6,000","6,000"],
-  lotWidth:[60,"N/A",60,60,60],
-  lotCoverage:["35%","25%","60%","60%","60%"],
-  front:[10,10,10,10,10],
-  sideSt:[15,50,15,10,10],
-  sideInt:[5,50,"None req. / 10 (adj. Rural/Res.)","None req. / 10 (adj. Rural/Res.)","None req. / 10 (adj. Rural/Res.)"],
-  rear:[5,50,"None req. / 25 (adj. Rural/Res.)","None req. / 25 (adj. Rural/Res.)","None req. / 25 (adj. Rural/Res.)"],
-  height:["30 (15 within 20' of Rural/Res.)",40,40,40,40]
-};
-var IND_DISTRICTS = ["IND-1","IND-2","IND-3"];
-var IND = {
-  lotArea:["35,000","6,000","6,000"],
-  lotWidth:[150,60,60],
-  lotCoverage:["60%","60%","60%"],
-  front:[20,20,20],
-  sideSt:[10,10,10],
-  sideInt:["None req. / 10 (adj. Rural/Res.)","None req. / 10 (adj. Rural/Res.)","None req. / 10 (adj. Rural/Res.)"],
-  rear:[10,"10 / 25 (adj. Rural/Res.)","10 / 25 (adj. Rural/Res.)"],
-  height:[60,60,60]
-};
-
-function rrRow(zone){
-  var i = RR_DISTRICTS.indexOf(zone);
-  if(i<0) return null;
-  return {
-    section:"502", rows:[
-      ["Lot area minimum", RR.lotArea[i] + " sq ft"],
-      ["Lot width minimum", RR.lotWidth[i] + " ft"],
-      ["Lot coverage maximum", RR.lotCoverage[i]],
-      ["Front setback (primary)", RR.frontPrimary[i] + " ft"],
-      ["Side-street setback (primary)", RR.sideStPrimary[i] + " ft"],
-      ["Side-interior setback (primary)", RR.sideIntPrimary[i] + " ft"],
-      ["Rear setback (primary)", RR.rearPrimary[i] + " ft"],
-      ["Height maximum (primary)", RR.heightPrimary[i] + " ft"],
-      ["Front setback (accessory)", RR.frontAccessory[i] + " ft"],
-      ["Side-street setback (accessory)", RR.sideStAccessory[i] + " ft"],
-      ["Side-interior setback (accessory)", RR.sideIntAccessory[i] + " ft"],
-      ["Rear setback (accessory)", RR.rearAccessory[i]],
-      ["Height maximum (accessory)", RR.heightAccessory[i]],
-      ["Rear/side required yard coverage max", "Per §806"]
-    ],
-    note: zone.indexOf("R1-")===0 || zone==="RU-43" ? "* 10 ft minimum, but no less than 18 ft to the plane of a front-facing garage." : null
-  };
-}
-function commRow(zone){
-  var i = COMM_DISTRICTS.indexOf(zone);
-  if(i<0) return null;
-  return {section:"504", rows:[
-    ["Lot area minimum", COMM.lotArea[i] + " sq ft"],
-    ["Lot width minimum", COMM.lotWidth[i] === "N/A" ? "N/A" : COMM.lotWidth[i] + " ft"],
-    ["Lot coverage maximum", COMM.lotCoverage[i]],
-    ["Front setback (all structures)", COMM.front[i] + " ft"],
-    ["Side-street setback", COMM.sideSt[i] + " ft"],
-    ["Side-interior setback", COMM.sideInt[i] + (typeof COMM.sideInt[i]==="number" ? " ft" : "")],
-    ["Rear setback", COMM.rear[i] + (typeof COMM.rear[i]==="number" ? " ft" : "")],
-    ["Height maximum", COMM.height[i] + (typeof COMM.height[i]==="number" ? " ft" : "")]
-  ], note:null};
-}
-function indRow(zone){
-  var i = IND_DISTRICTS.indexOf(zone);
-  if(i<0) return null;
-  return {section:"506", rows:[
-    ["Lot area minimum", IND.lotArea[i] + " sq ft"],
-    ["Lot width minimum", IND.lotWidth[i] + " ft"],
-    ["Lot coverage maximum", IND.lotCoverage[i]],
-    ["Front setback (all structures)", IND.front[i] + " ft"],
-    ["Side-street setback", IND.sideSt[i] + " ft"],
-    ["Side-interior setback", IND.sideInt[i]],
-    ["Rear setback", IND.rear[i] + (typeof IND.rear[i]==="number" ? " ft" : "")],
-    ["Height maximum", IND.height[i] + " ft"]
-  ], note:null};
-}
-function districtStandards(zone){
-  var z = (zone||"").toUpperCase().trim();
-  return rrRow(z) || commRow(z) || indRow(z) || null;
-}
-
-/* ---------- PlanNet layer id -> {name, category} ---------- */
-var LAYER_META = {
-  0:["Land Use Case","case"], 1:["Variance","case"], 2:["Comprehensive Plan Amendment","case"],
-  3:["Development Master Plan","case"], 4:["Subdivision","case"], 5:["Military Compatibility Permit","case"],
-  6:["Special Use Permit","case"], 7:["Zoning Overlay","overlay"], 8:["Rezoning Case","case"],
-  9:["Zoning Case","case"], 10:["All Cases","case"], 11:["Zoning","zoning"],
-  23:["Scenic Corridor","overlay"], 24:["Patent Easement","overlay"],
-  26:["Gateway Airport Planning Area","overlay"], 27:["Gateway Airport Noise Contour","overlay"],
-  33:["Native American Land","overlay"],
-  72:["Military Facility","overlay"], 73:["Luke AFB Vicinity","overlay"], 74:["Luke AFB Noise Contour","overlay"],
-  75:["Luke AFB APZ","overlay"], 76:["Luke AFB Aux1 Vicinity","overlay"], 77:["Luke AFB Aux1 Noise Contour","overlay"],
-  78:["Luke AFB Aux1 APZ","overlay"], 79:["Gila Bend Noise Contour","overlay"], 80:["Gila Bend APZ","overlay"],
-  91:["Variance","historic"], 92:["Comprehensive Plan Amendment","historic"], 93:["Development Master Plan","historic"],
-  94:["Subdivision","historic"], 95:["Military Compatibility Permit","historic"], 96:["Land Use Case","historic"],
-  97:["Special Use Permit","historic"], 98:["Zoning Overlay","historic"], 99:["Rezoning Case","historic"], 100:["Zoning Case","historic"]
-};
-var OVERLAY_ORDER = [7,23,24,26,27,33,72,73,74,75,76,77,78,79,80];
-
-/* ---------- helpers ---------- */
-function $(sel){ return document.querySelector(sel); }
-function el(tag, props, children){
-  var e = document.createElement(tag);
-  if(props) for(var k in props){
-    if(k==="class") e.className = props[k];
-    else if(k==="html") e.innerHTML = props[k];
-    else e.setAttribute(k, props[k]);
-  }
-  (children||[]).forEach(function(c){ if(c) e.appendChild(c); });
-  return e;
-}
-function text(s){ return document.createTextNode(s==null?"—":String(s)); }
-function fmtNum(n){ if(n==null||isNaN(n)) return "—"; return Number(n).toLocaleString(); }
-
-function normalizeApn(raw){
-  var s = (raw||"").toUpperCase().replace(/\s+/g,"").replace(/[^0-9A-Z-]/g,"");
-  if(s.indexOf("-")>=0) return s;
-  // raw digits + optional trailing letter: 3-2-3(+letter)
-  var m = s.match(/^(\d{3})(\d{2})(\d{3})([A-Z]?)$/);
-  if(m) return m[1]+"-"+m[2]+"-"+m[3]+(m[4]||"");
-  return s;
-}
-
-function qs(params){
-  return Object.keys(params).map(function(k){
-    return encodeURIComponent(k)+"="+encodeURIComponent(params[k]);
-  }).join("&");
-}
-
-function fetchJSON(url, params){
-  return fetch(url + "?" + qs(params)).then(function(r){
-    if(!r.ok) throw new Error("HTTP " + r.status);
-    return r.json();
-  });
-}
-function postJSON(url, body){
-  return fetch(url, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)})
-    .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
-}
-
-/* point-to-segment distance in planar feet */
-function pointSegDist(px,py, ax,ay, bx,by){
-  var dx=bx-ax, dy=by-ay;
-  var len2 = dx*dx+dy*dy;
-  var t = len2===0 ? 0 : ((px-ax)*dx+(py-ay)*dy)/len2;
-  t = Math.max(0, Math.min(1, t));
-  var cx = ax+t*dx, cy = ay+t*dy;
-  return Math.sqrt((px-cx)*(px-cx)+(py-cy)*(py-cy));
-}
-function nearestLineInfo(ringVertices, lineFeatures, centroid){
-  var best = null;
-  lineFeatures.forEach(function(f){
-    var paths = (f.geometry && f.geometry.paths) || [];
-    paths.forEach(function(path){
-      for(var i=0;i<path.length-1;i++){
-        var a=path[i], b=path[i+1];
-        ringVertices.forEach(function(v){
-          var d = pointSegDist(v[0],v[1], a[0],a[1], b[0],b[1]);
-          if(!best || d<best.dist){
-            var minx=Math.min(a[0],b[0]), maxx=Math.max(a[0],b[0]);
-            var miny=Math.min(a[1],b[1]), maxy=Math.max(a[1],b[1]);
-            var wide = (maxx-minx) >= (maxy-miny);
-            var dir;
-            if(wide){ dir = centroid[1] > (miny+maxy)/2 ? "south" : "north"; }
-            else { dir = centroid[0] > (minx+maxx)/2 ? "west" : "east"; }
-            best = {dist:d, dir:dir};
-          }
-        });
-      }
-    });
-  });
-  return best;
-}
-
-/* ---------- main lookup ---------- */
-function setStatus(msg){
-  $("#statusText").textContent = msg;
-}
-function showStatus(msg){
-  $("#statusLine").hidden = false;
-  setStatus(msg);
-}
-function hideStatus(){ $("#statusLine").hidden = true; }
-function showError(msg){
-  var box = $("#errorBox");
-  box.hidden = false;
-  box.textContent = msg;
-}
-function clearError(){ $("#errorBox").hidden = true; $("#errorBox").textContent=""; }
-
-document.getElementById("lookupBtn").addEventListener("click", runLookup);
-document.getElementById("apnInput").addEventListener("keydown", function(e){
-  if(e.key === "Enter") runLookup();
-});
-
-function runLookup(){
-  var raw = $("#apnInput").value;
-  var apn = normalizeApn(raw);
-  if(!apn){ showError("Enter a parcel number first."); return; }
-  clearError();
-  $("#sandboxNotice").hidden = true;
-  $("#results").innerHTML = "";
-  $("#lookupBtn").disabled = true;
-  showStatus("Fetching parcel record for " + apn + "…");
-
-  var PARCEL_FIELDS = "APN,APNDash,Book,Map,Item,PropertyFullStreetAddress,PropertyCity,PropertyZipCode,OwnerName,OwnerAddressLine1,OwnerAddressLine2,OwnerCity,OwnerState,OwnerZipCode,OwnerCountry,MCRNumber,DeedNumber,DeedDate,SaleDate,Township,Range,Section,QuarterSection,SubdivisionName,Lot,Block,Tract,PropertyDescription,ElementarySchoolDistrict,HighSchoolDistrict,ParcelValuationYear,FullCashValue,LimitedPropertyValue,LandLegalClassCode,LandLegalClassDescription,ImprovementLegalClassCode,ImprovementLegalClassDescription,ExemptStatus,ExemptDescription,Rental";
-
-  fetchJSON(GIS + "/arcgis/rest/services/IndividualService/Parcel/MapServer/1/query", {
-    where: "APNDash='" + apn.replace(/'/g,"''") + "'",
-    outFields: PARCEL_FIELDS,
-    returnGeometry: "true",
-    outSR: "2223",
-    f: "json"
-  }).then(function(parcelRes){
-    if(!parcelRes.features || !parcelRes.features.length){
-      throw new Error("No parcel found for " + apn + ". Check the number and try again (county dash format is 3-2-3, plus a letter for split/lettered parcels).");
-    }
-    var feat = parcelRes.features[0];
-    var attrs = feat.attributes;
-    var rings = feat.geometry.rings[0];
-    var xs = rings.map(function(p){return p[0];}), ys = rings.map(function(p){return p[1];});
-    var bbox = {xmin:Math.min.apply(null,xs), xmax:Math.max.apply(null,xs), ymin:Math.min.apply(null,ys), ymax:Math.max.apply(null,ys)};
-    var centroid = [(bbox.xmin+bbox.xmax)/2, (bbox.ymin+bbox.ymax)/2];
-    var geomJSON = JSON.stringify({rings: feat.geometry.rings, spatialReference:{wkid:2223}});
-
-    showStatus("Querying zoning, overlays, floodplain, and section lines…");
-
-    var identifyP = fetchJSON(GIS + "/arcgis/rest/services/PND/PlanNet/MapServer/identify", {
-      geometry: geomJSON, geometryType: "esriGeometryPolygon", sr: "2223", layers: "all",
-      tolerance: "0", mapExtent: bbox.xmin+","+bbox.ymin+","+bbox.xmax+","+bbox.ymax,
-      imageDisplay: "400,400,96", returnGeometry: "false", f: "json"
-    }).catch(function(e){ return {error:String(e)}; });
-
-    var buf = 2700;
-    var envJSON = JSON.stringify({xmin:bbox.xmin-buf, ymin:bbox.ymin-buf, xmax:bbox.xmax+buf, ymax:bbox.ymax+buf, spatialReference:{wkid:2223}});
-    var tsP = fetchJSON(GIS + "/arcgis/rest/services/IndividualService/TownshipRangeSection/MapServer/2/query", {
-      geometry: envJSON, geometryType: "esriGeometryEnvelope", inSR: "2223", outSR: "2223",
-      spatialRel: "esriSpatialRelIntersects", returnGeometry: "true", outFields: "PLSSType", f: "json"
-    }).catch(function(e){ return {error:String(e)}; });
-
-    var floodEffP = fetchJSON(GIS + "/flood/rest/services/FEMA/FloodplainEffective/MapServer/0/query", {
-      geometry: geomJSON, geometryType: "esriGeometryPolygon", inSR: "2223",
-      spatialRel: "esriSpatialRelIntersects", returnGeometry: "false",
-      outFields: "FloodZoneCode,FloodZoneDescription,StaticElevation_Feet,FIRMPanelNumber", f: "json"
-    }).catch(function(e){ return {error:String(e)}; });
-
-    var floodPrelimP = fetchJSON(GIS + "/flood/rest/services/FEMA/FloodplainPreliminary/MapServer/0/query", {
-      geometry: geomJSON, geometryType: "esriGeometryPolygon", inSR: "2223",
-      spatialRel: "esriSpatialRelIntersects", returnGeometry: "false",
-      outFields: "FloodZoneCode,FloodZoneDescription", f: "json"
-    }).catch(function(e){ return {error:String(e)}; });
-
-    var elevCertP = fetchJSON(GIS + "/flood/rest/services/FEMA/ElevationCertificate/MapServer/0/query", {
-      where: "ParcelNumber='" + apn.replace(/'/g,"''") + "'",
-      outFields: "ElevCertNumber,Address,ParcelNumber", returnGeometry:"false", f: "json"
-    }).catch(function(e){ return {error:String(e)}; });
-
-    return Promise.all([identifyP, tsP, floodEffP, floodPrelimP, elevCertP]).then(function(r){
-      return { attrs: attrs, bbox: bbox, centroid: centroid, rings: rings, apn: apn,
-        identify: r[0], ts: r[1], floodEff: r[2], floodPrelim: r[3], elevCert: r[4] };
-    });
-  }).then(function(data){
-    return finishLookup(data);
-  }).catch(function(err){
-    hideStatus();
-    var msg = err && err.message ? err.message : String(err);
-    if(/failed to fetch|networkerror|load failed/i.test(msg)){
-      $("#sandboxNotice").hidden = false;
-      showError("Network request blocked before it reached the county server. See the note above.");
-    } else {
-      showError(msg);
-    }
-  }).then(function(){
-    $("#lookupBtn").disabled = false;
-  });
-}
-
-function finishLookup(data){
-  var attrs = data.attrs;
-  var identifyResults = (data.identify && data.identify.results) || [];
-
-  // zoning
-  var zoningHits = identifyResults.filter(function(r){ return r.layerId === 11; });
-  var zoneCodes = [];
-  zoningHits.forEach(function(r){
-    var a = r.attributes || {};
-    var z = a.Zone || a.ZONE || a.zone;
-    if(z && zoneCodes.indexOf(z)<0) zoneCodes.push(z);
-  });
-
-  var jurisdictionP;
-  if(zoneCodes.length === 0){
-    jurisdictionP = fetchJSON(GIS + "/arcgis/rest/services/IndividualService/City/MapServer/0/query", {
-      geometry: JSON.stringify({rings:[data.rings], spatialReference:{wkid:2223}}),
-      geometryType: "esriGeometryPolygon", inSR: "2223", spatialRel: "esriSpatialRelIntersects",
-      outFields: "CityName,FullCityName", returnGeometry: "false", f: "json"
-    }).catch(function(){ return null; });
-  } else {
-    jurisdictionP = Promise.resolve(null);
-  }
-
-  return jurisdictionP.then(function(cityRes){
-    var cityName = null;
-    if(cityRes && cityRes.features && cityRes.features.length){
-      var ca = cityRes.features[0].attributes;
-      cityName = ca.FullCityName || ca.CityName;
-    }
-    render(data, zoneCodes, cityName);
-  });
-}
-
-function render(data, zoneCodes, cityName){
-  hideStatus();
-  var attrs = data.attrs;
-  var results = $("#results");
-  results.innerHTML = "";
-  var inCounty = zoneCodes.length > 0;
-
-  results.appendChild(buildPropertySection(data, inCounty, cityName));
-
-  if(!inCounty){
-    results.appendChild(buildFolio("2", "Zoning & Setbacks", [
-      el("p", {class:"note"}, [text("N/A — outside Maricopa County jurisdiction" + (cityName ? " (City of " + cityName + ")" : "") + ". The MCZO does not apply; this city's own zoning code governs.")])
-    ]));
-  } else {
-    results.appendChild(buildZoningSection(zoneCodes));
-  }
-
-  var identifyResults = (data.identify && data.identify.results) || [];
-
-  if(inCounty){
-    results.appendChild(buildOverlaySection(identifyResults));
-    results.appendChild(buildCaseSection(identifyResults));
-  }
-
-  var sectionLine = computeLine(data, "Section");
-  var midLine = computeLine(data, "Quarter Section");
-  results.appendChild(buildPLSSNote(sectionLine, midLine));
-
-  var flood = shapeFlood(data);
-  if(flood) results.appendChild(flood);
-
-  results.appendChild(buildSepticSection(attrs));
-  results.appendChild(buildPlatSection(attrs));
-}
-
-function computeLine(data, plssType){
-  var feats = ((data.ts && data.ts.features) || []).filter(function(f){
-    return f.attributes && f.attributes.PLSSType === plssType;
-  });
-  if(!feats.length) return null;
-  var info = nearestLineInfo(data.rings, feats, data.centroid);
-  return info;
-}
-
-function buildPLSSNote(sectionLine, midLine){
-  var rows = [];
-  rows.push(["Nearest section line", sectionLine ? ("≈ " + Math.round(sectionLine.dist) + " ft " + sectionLine.dir) : "Not available"]);
-  rows.push(["Nearest midsection (quarter-section) line", midLine ? ("≈ " + Math.round(midLine.dist) + " ft " + midLine.dir) : "Not available in county PLSS data for this section"]);
-  return buildFolio("—", "Public Land Survey (PLSS) Lines", [kvTable(rows)]);
-}
-
-function buildPropertySection(data, inCounty, cityName){
-  var a = data.attrs;
-  var deedLink = a.DeedNumber ? linkTo(RECORDER + "?recordingNumber=" + encodeURIComponent(a.DeedNumber) + "&suffix=", "#" + a.DeedNumber + (a.DeedDate ? ", recorded " + a.DeedDate : "")) : "—";
-  var rows = [
-    ["APN", a.APNDash || a.APN],
-    ["Owner", a.OwnerName],
-    ["Owner mailing address", [a.OwnerAddressLine1, a.OwnerAddressLine2, [a.OwnerCity,a.OwnerState,a.OwnerZipCode].filter(Boolean).join(", ")].filter(Boolean).join(" · ")],
-    ["Site address", [a.PropertyFullStreetAddress, a.PropertyCity, a.PropertyZipCode].filter(Boolean).join(", ")],
-    ["Jurisdiction", inCounty ? "Unincorporated Maricopa County" : ("City of " + (cityName||"?"))],
-    ["Legal description", a.PropertyDescription],
-    ["Subdivision / Lot / Block / Tract", [a.SubdivisionName, a.Lot?("Lot "+a.Lot):null, a.Block?("Blk "+a.Block):null, a.Tract?("Tract "+a.Tract):null].filter(Boolean).join(" · ") || "Not platted"],
-    ["Book / Map", [a.Book,a.Map,a.Item].filter(function(v){return v!=null && v!=="";}).join(" / ") || "—"],
-    ["Deed", null],
-    ["Township / Range / Section / Qtr. Section", [a.Township,a.Range,a.Section,a.QuarterSection].filter(Boolean).join(" / ")],
-    ["School districts", [a.ElementarySchoolDistrict, a.HighSchoolDistrict].filter(Boolean).join(" / ")],
-    ["Valuation year", a.ParcelValuationYear],
-    ["Full cash value", a.FullCashValue != null ? "$" + fmtNum(a.FullCashValue) : "—"],
-    ["Limited property value", a.LimitedPropertyValue != null ? "$" + fmtNum(a.LimitedPropertyValue) : "—"],
-    ["Land legal class", [a.LandLegalClassCode, a.LandLegalClassDescription].filter(Boolean).join(" — ")],
-    ["Improvement legal class", [a.ImprovementLegalClassCode, a.ImprovementLegalClassDescription].filter(Boolean).join(" — ")],
-    ["Exempt status", a.ExemptStatus ? [a.ExemptStatus, a.ExemptDescription].filter(Boolean).join(" — ") : "No"],
-    ["Rental registered", a.Rental]
-  ];
-  var tbl = kvTable(rows);
-  // patch in the deed link cell (needs raw HTML link, not text)
-  var cells = tbl.querySelectorAll("tr");
-  cells.forEach(function(tr){
-    if(tr.firstChild && tr.firstChild.textContent === "Deed"){
-      var valueCell = tr.lastChild;
-      valueCell.innerHTML = "";
-      if(a.DeedNumber){ valueCell.appendChild(mkLink(RECORDER + "?recordingNumber=" + encodeURIComponent(a.DeedNumber) + "&suffix=", "#" + a.DeedNumber + (a.DeedDate ? ", recorded " + a.DeedDate : ""))); }
-      else { valueCell.textContent = "—"; }
-    }
-  });
-  return buildFolio("1", "Property & Owner", [tbl]);
-}
-
-function buildZoningSection(zoneCodes){
-  var body = [];
-  body.push(kvTable([
-    ["Base zoning district(s)", zoneCodes.join(", ")],
-    ["Split zoning?", zoneCodes.length > 1 ? "Yes — verify boundary against footprint" : "No"]
-  ]));
-  zoneCodes.forEach(function(z){
-    var std = districtStandards(z);
-    var heading = el("div", {class:"district-heading"}, [
-      text(z + " (MCZO Ch. 5 §" + (std?std.section:"5xx") + ") — "),
-      mkLink(MCZO_PDF, "MCZO text")
-    ]);
-    body.push(heading);
-    if(!std){
-      body.push(el("p",{class:"note"},[text("No static development-standards table on file for this district code — check the MCZO chapter directly.")]));
-      return;
-    }
-    var table = el("div",{class:"table-wrap"},[
-      el("table",{class:"setbacks"},[
-        el("tbody",{}, std.rows.map(function(r){
-          return el("tr",{},[el("td",{},[text(r[0])]), el("td",{},[text(r[1])])]);
-        }))
-      ])
-    ]);
-    body.push(table);
-    if(std.note) body.push(el("p",{class:"note"},[text(std.note)]));
-  });
-  body.push(el("p",{class:"note"},[text("Rear/side required yard coverage maximum governed by "), mkLink(MCZO_PDF,"§806"), text(".")]));
-  return buildFolio("2–3", "Zoning & Setbacks", body);
-}
-
-function buildOverlaySection(identifyResults){
-  var hitIds = {};
-  identifyResults.forEach(function(r){ if(LAYER_META[r.layerId] && LAYER_META[r.layerId][1]==="overlay") hitIds[r.layerId]=true; });
-  var chips = OVERLAY_ORDER.map(function(id){
-    var name = LAYER_META[id][0];
-    var hit = !!hitIds[id];
-    return el("span",{class:"overlay-chip" + (hit?" hit":"")}, [text(name + (hit?" ✓":""))]);
-  });
-  var body = [el("div",{class:"overlay-grid"}, chips)];
-  var anyMilitary = [72,73,74,75,76,77,78,79,80].some(function(id){return hitIds[id];});
-  if(anyMilitary){
-    body.push(el("p",{class:"note flag"},[text("Military Airport / Ancillary Military Facility Overlay applies (MCZO "), mkLink(MCZO_PDF,"Ch. 7 Art. 706"), text(") — any new use or structure needs Art. 706.6.1/706.9 review.")]));
-  }
-  return buildFolio("5","Overlay Districts", body);
-}
-
-function dedupeCases(hits){
-  var seen = {}, out = [];
-  hits.forEach(function(h){
-    var key = h.permit || h.type + "|" + h.name;
-    if(seen[key]) return;
-    seen[key] = true;
-    out.push(h);
-  });
-  return out;
-}
-
-function buildCaseSection(identifyResults){
-  function pick(a, keys){ for(var i=0;i<keys.length;i++){ if(a[keys[i]] != null && a[keys[i]] !== "") return a[keys[i]]; } return null; }
-  var current = [], historic = [];
-  identifyResults.forEach(function(r){
-    var meta = LAYER_META[r.layerId];
-    if(!meta || (meta[1]!=="case" && meta[1]!=="historic")) return;
-    var a = r.attributes || {};
-    var item = {
-      type: meta[0],
-      permit: pick(a, ["Plan Number","PERMITNUM","PlanNumber","CaseNumber","Case Number","PERMIT"]),
-      status: pick(a, ["Case Status","CASESTATUS","Status"]),
-      date: pick(a, ["Application Date","CASEDATE","Completed Date","APPLICATIONDATE"]),
-      name: r.value || a.Name || meta[0]
-    };
-    (meta[1]==="historic" ? historic : current).push(item);
-  });
-  current = dedupeCases(current);
-  historic = dedupeCases(historic);
-
-  function list(items){
-    if(!items.length) return el("p",{class:"empty-note"},[text("None found.")]);
-    return el("div",{class:"case-list"}, items.map(function(i){
-      return el("div",{class:"case-item"},[
-        el("div",{class:"left"},[
-          el("span",{class:"type"},[text(i.type)]),
-          el("span",{class:"meta"},[text([i.permit, i.date].filter(Boolean).join(" · ") || "—")])
-        ]),
-        el("span",{class:"pill " + (i.status && /denied|withdrawn/i.test(i.status) ? "bad" : "ok")},[text(i.status || "on file")])
-      ]);
-    }));
-  }
-  return buildFolio("6","Zoning / Planning Cases", [
-    el("h3",{style:"font-size:0.85rem;margin-bottom:6px;"},[text("Current / pending")]),
-    list(current),
-    el("h3",{style:"font-size:0.85rem;margin:14px 0 6px;"},[text("Historical (before June 2024)")]),
-    list(historic)
-  ]);
-}
-
-function shapeFlood(data){
-  var effFeats = (data.floodEff && data.floodEff.features) || [];
-  var prelimFeats = (data.floodPrelim && data.floodPrelim.features) || [];
-  var elevFeats = (data.elevCert && data.elevCert.features) || [];
-  var hit = effFeats.some(function(f){ return f.attributes.FloodZoneCode && f.attributes.FloodZoneCode.trim().toUpperCase() !== "X"; })
-    || prelimFeats.length > 0 || elevFeats.length > 0;
-  if(!hit) return null;
-  var body = [];
-  effFeats.forEach(function(f){
-    var a = f.attributes;
-    var isFloodway = /floodway|^FW$/i.test(a.FloodZoneCode||"");
-    body.push(el("p",{class: isFloodway ? "note flag" : "note"}, [
-      text("Effective FEMA zone " + a.FloodZoneCode + (a.FloodZoneDescription?" — "+a.FloodZoneDescription:"") + (a.FIRMPanelNumber?" (FIRM panel " + a.FIRMPanelNumber + ")":"") + (isFloodway ? " — FLOODWAY: stricter development restrictions apply." : ""))
-    ]));
-  });
-  prelimFeats.forEach(function(f){
-    var a = f.attributes;
-    body.push(el("p",{class:"note"},[text("Preliminary (pending FEMA approval) zone " + a.FloodZoneCode + (a.FloodZoneDescription?" — "+a.FloodZoneDescription:""))]));
-  });
-  elevFeats.forEach(function(f){
-    var a = f.attributes;
-    body.push(el("p",{class:"note"},[text("Elevation certificate on file: #" + a.ElevCertNumber + (a.Address?" ("+a.Address+")":""))]));
-  });
-  body.push(mkLink("https://maricopa.maps.arcgis.com/apps/webappviewer/index.html?id=f1fd72bdc75f4b3982e0058f1beba159", "Floodplain and Elevation Certificate Viewer"));
-  return buildFolio("7","Floodplain", body);
-}
-
-function buildSepticSection(attrs){
-  var apnDash = attrs.APNDash || attrs.APN;
-  var body = [
-    el("p",{class:"note"},[text("The county's septic archive (Laserfiche EDMS) does not allow cross-site lookups from a page hosted elsewhere, so this can't be queried automatically here — open the tool and search by this parcel's number.")]),
-    linkBtn("https://edms.maricopa.gov/env", "Open Septic Search for " + apnDash),
-    el("p",{class:"note"},[text("Covers records with Discharge Authorization before 6/15/2024 only. For newer permits, use the "), mkLink("https://edms.maricopa.gov/eplpav","Permit Center Records Search"), text(" instead. A \"no records\" result means no pre-6/15/2024 record — not necessarily no septic system.")])
-  ];
-  return buildFolio("8","Septic Records", body);
-}
-
-function buildPlatSection(attrs){
-  if(!attrs.SubdivisionName){
-    return buildFolio("4","Subdivision Plat", [el("p",{class:"empty-note"},[text("Not platted — N/A.")])]);
-  }
-  var body = [
-    kvTable([
-      ["Subdivision", attrs.SubdivisionName],
-      ["Book / Map", [attrs.Book, attrs.Map].filter(function(v){return v!=null && v!=="";}).join(" / ") || "—"],
-      ["MCR number (most recent deed)", attrs.MCRNumber]
-    ])
-  ];
-  if(attrs.Book && attrs.Map){
-    var searchUrl = "https://recorder.maricopa.gov/recording/document-search-results.html?mode=book&docketBook=" + encodeURIComponent(attrs.Book) + "&pageMap=" + encodeURIComponent(attrs.Map);
-    body.push(el("p",{class:"note"},[text("This parcel is platted, but the plat's own recording number and any recorded building-setback line have to be confirmed by hand — open the book/map index below, find the row marked "), el("strong",{},[text("PLAT MAP")]), text(", and check it for a dimensioned setback line. If none is shown, the zoning-district standards above (section 2–3) control.")]));
-    body.push(linkBtn(searchUrl, "Open Recorder book/map index (Book " + attrs.Book + " / Map " + attrs.Map + ")"));
-  }
-  return buildFolio("4","Subdivision Plat", body);
-}
-
-/* ---------- small DOM builders ---------- */
-function buildFolio(num, title, bodyChildren){
-  return el("section",{class:"folio"},[
-    el("div",{class:"tab"},[ el("h2",{},[text(title)]), el("span",{class:"num"},[text("§"+num)]) ]),
-    el("div",{class:"body"}, bodyChildren)
-  ]);
-}
-function kvTable(rows){
-  return el("table",{class:"kv"},[
-    el("tbody",{}, rows.map(function(r){
-      return el("tr",{},[ el("td",{},[text(r[0])]), el("td",{},[text(r[1])]) ]);
-    }))
-  ]);
-}
-function mkLink(href, label){
-  var a = document.createElement("a");
-  a.href = href; a.target = "_blank"; a.rel="noopener noreferrer";
-  a.textContent = label;
-  return a;
-}
-function linkTo(href,label){ return "LINK"; } // unused placeholder
-function linkBtn(href, label){
-  var a = document.createElement("a");
-  a.href = href; a.target="_blank"; a.rel="noopener noreferrer"; a.className="external-btn";
-  a.textContent = label + " ↗";
-  return a;
-}
-
-})();
-</script>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MC Zoning Review</title>
+<meta name="description" content="Maricopa County parcel lookup, MCZO/MCSR standards, subdivision plat database and plan-review deficiency builder.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23b4532a'/><path d='M7 24V9l9 7 9-7v15' fill='none' stroke='white' stroke-width='3' stroke-linejoin='round'/></svg>">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="mark">MC</span><div><b>Zoning Review</b><small>Unincorporated Maricopa County · MCZO · MCSR · Directives</small></div></div>
+  <span id="gh-badge" class="badge"></span>
+</header>
+<nav class="tabs" role="tablist">
+  <button class="tab" role="tab" data-tab="p-lookup">Parcel lookup</button>
+  <button class="tab" role="tab" data-tab="p-review">Plan review</button>
+  <button class="tab" role="tab" data-tab="p-division">Land division</button>
+  <button class="tab" role="tab" data-tab="p-subs">Subdivisions DB</button>
+  <button class="tab" role="tab" data-tab="p-saved">Saved</button>
+  <button class="tab" role="tab" data-tab="p-ref">Reference</button>
+  <button class="tab" role="tab" data-tab="p-settings">Settings</button>
+</nav>
+
+<main>
+<!-- LOOKUP -->
+<section class="panel" id="p-lookup">
+  <form id="lookup-form" class="searchbar">
+    <input id="lookup-apn" placeholder="APN — e.g. 304-88-146 or 30488146A" autocomplete="off" inputmode="text" required>
+    <button class="btn primary">Look up</button>
+  </form>
+  <p class="hint">Runs the assessor record, every PlanNet layer (zoning, overlays, current and historic cases, districts, military), PLSS section lines and FEMA floodplain directly against county GIS, then fills the parcel-report template.</p>
+  <div id="lookup-status" class="status" hidden></div>
+  <div id="map" class="map" hidden></div>
+  <div id="report-actions" class="actions" hidden>
+    <button class="btn" id="rep-copy">Copy as Markdown</button>
+    <button class="btn" id="rep-dl">Download .md</button>
+    <button class="btn" id="rep-save">Save to GitHub</button>
+    <button class="btn ghost" id="rep-print">Print</button>
+  </div>
+  <article id="report" class="report"></article>
+</section>
+
+<!-- PLAN REVIEW -->
+<section class="panel" id="p-review" hidden>
+  <div class="grid2">
+    <div class="card">
+      <h2>Submittal</h2>
+      <label>Type<select id="rv-type"></select></label>
+      <div class="row3">
+        <label>APN<input id="rv-apn"></label>
+        <label>District<select id="rv-district"></select></label>
+        <label>Lot area (sf)<input id="rv-lotArea" inputmode="decimal"></label>
+      </div>
+      <div class="row3">
+        <label>Plan title / rev.<input id="rv-planTitle"></label>
+        <label>Reviewer<input id="rv-reviewer"></label>
+        <label>Date<input id="rv-date" type="date"></label>
+      </div>
+      <label class="rowc"><input type="checkbox" id="rv-adjRes"> Adjacent to a Rural or Residential district (commercial/industrial side and rear setbacks)</label>
+      <p class="sub">Run a parcel lookup first to fill the APN, district and lot area automatically. <span id="plat-hint"></span></p>
+    </div>
+    <div class="card site-only">
+      <h2>Residence / primary building (ft)</h2>
+      <div class="row4">
+        <label>Front<input id="rv-p-front" inputmode="decimal"></label>
+        <label>Rear<input id="rv-p-rear" inputmode="decimal"></label>
+        <label>Side A<input id="rv-p-sideA" inputmode="decimal"></label>
+        <label>Side B<input id="rv-p-sideB" inputmode="decimal"></label>
+        <label>Side-street<input id="rv-p-street" inputmode="decimal" placeholder="corner lots"></label>
+        <label>Height<input id="rv-p-height" inputmode="decimal"></label>
+        <label>Garage plane<input id="rv-p-garage" inputmode="decimal" placeholder="front-facing"></label>
+      </div>
+      <h3>Recorded plat BSL (if any)</h3>
+      <div class="row4">
+        <label>Front<input id="rv-b-front" inputmode="decimal"></label>
+        <label>Rear<input id="rv-b-rear" inputmode="decimal"></label>
+        <label>Side<input id="rv-b-side" inputmode="decimal"></label>
+        <label>Street-side<input id="rv-b-street" inputmode="decimal"></label>
+      </div>
+    </div>
+  </div>
+
+  <div class="card site-only">
+    <h2>Structures — coverage &amp; accessory setbacks</h2>
+    <p class="sub">List every new <b>and</b> existing building. Square footage is the covered footprint, less 2 ft of overhang (primary) or 1 ft (accessory). Lattice or shade covers ≤ 50% opaque count 50% (DD-2021-01).</p>
+    <div class="tw"><table class="edit"><thead><tr><th>Name</th><th>Kind</th><th>Sq ft</th><th>Cover</th><th>Height</th><th>Front</th><th>Rear</th><th>Side</th><th>Street</th><th title="In a required rear/side yard">Yard</th><th></th></tr></thead><tbody id="rv-structs"></tbody></table></div>
+    <button class="btn sm" id="rv-add" type="button">+ Add structure</button>
+    <ul id="rv-findings" class="findings"></ul>
+  </div>
+
+  <div class="card">
+    <div class="cardhead"><h2>Checklist</h2><div><button class="btn sm ghost" id="rv-allok" type="button">Mark unset as OK</button></div></div>
+    <div class="tw"><table class="edit check"><thead><tr><th>Item</th><th>Status</th><th>Plan shows</th><th>Required correction</th></tr></thead><tbody id="rv-check"></tbody></table></div>
+  </div>
+
+  <div class="card">
+    <div class="cardhead"><h2>Markup table</h2>
+      <div class="actions"><button class="btn" id="rv-copy">Copy</button><button class="btn" id="rv-dl">Download .md</button><button class="btn" id="rv-save">Save to GitHub</button><button class="btn ghost" id="rv-reset">New review</button></div></div>
+    <textarea id="rv-md" class="md" rows="16" spellcheck="false"></textarea>
+  </div>
+</section>
+
+<!-- LAND DIVISION -->
+<section class="panel" id="p-division" hidden>
+  <div class="grid2">
+    <form id="ld-form" class="card">
+      <h2>Classify a land division</h2>
+      <label>Number of resulting lots/parcels (including the remainder)<input name="lots" type="number" min="1" value="2"></label>
+      <label>Smallest resulting parcel (acres, to the road/easement centerline)<input name="minAc" type="number" step="0.01" min="0"></label>
+      <label>Inside a recorded subdivision (recorded after 3/1/1973)?<select name="inSub"><option value="no">No</option><option value="yes">Yes</option></select></label>
+      <label class="rowc"><input type="checkbox" name="street"> Dedicates a new public street</label>
+      <label class="rowc"><input type="checkbox" name="aband"> Abandons a street, alley or easement in a recorded plat</label>
+      <label class="rowc"><input type="checkbox" name="tract"> Alters a tract designated for a specific use</label>
+      <label class="rowc"><input type="checkbox" name="condo"> Residential condominium</label>
+      <label class="rowc"><input type="checkbox" name="ag"> Agricultural sale or lease (A.R.S. 11-830)</label>
+      <label class="rowc"><input type="checkbox" name="septic"> Lots under 1 net acre on individual septic</label>
+    </form>
+    <div id="ld-out"></div>
+  </div>
+  <p class="sub">Built from the 2016 MCSR definitions (§105.24, §105.38, §204) and DD-2013-10. The 10/23/2024 MCSR amendment may change the procedure (e.g. administrative plat approval).</p>
+</section>
+
+<!-- SUBDIVISIONS DB -->
+<section class="panel" id="p-subs" hidden>
+  <div class="cardhead">
+    <div><h2>Subdivision plat database</h2><p class="sub"><span id="db-count"></span> · <span id="db-source"></span> <span id="db-dirty" class="pill warn-pill" hidden>Unsaved changes</span></p></div>
+    <div class="actions"><button class="btn" id="db-new">+ Add</button><button class="btn primary" id="db-save">Save to GitHub</button><button class="btn ghost" id="db-reload">Reload</button><button class="btn ghost" id="db-export">Export JSON</button></div>
+  </div>
+  <input id="db-q" class="filter" placeholder="Filter by name, case, zoning, APN…">
+  <div class="tw"><table><thead><tr><th>Subdivision</th><th>MCR</th><th>Plat</th><th>Lots</th><th>Recorded setbacks</th><th>Updated</th><th></th></tr></thead><tbody id="db-body"></tbody></table></div>
+  <p class="sub">Stored as <code>data/subdivision-plats.json</code> in your GitHub repo. A parcel lookup inside a listed subdivision uses its recorded setbacks and checks for cases dated after the plat.</p>
+</section>
+<dialog id="db-editor">
+  <h2 id="ed-title"></h2>
+  <form id="ed-form" class="stack"></form>
+  <div class="actions"><button class="btn ghost" id="ed-count" type="button">Count lots from Assessor</button><span class="grow"></span><button class="btn danger" id="ed-delete" type="button">Delete</button><button class="btn ghost" id="ed-cancel" type="button">Cancel</button><button class="btn primary" id="ed-save" type="button">Apply</button></div>
+</dialog>
+
+<!-- SAVED -->
+<section class="panel" id="p-saved" hidden><div id="saved-list" class="card"></div></section>
+
+<!-- REFERENCE -->
+<section class="panel" id="p-ref" hidden>
+  <div class="card"><h2>MCZO district standards <small>(Ch. 5 §502/504/506, Dec 10, 2025)</small></h2>
+    <div class="tw"><table id="ref-districts" class="dense"></table></div>
+    <p class="sub">** R1-18 through R1-6: 10 ft front, but ≥ 18 ft to a front-facing garage plane. * "0 / 10" = none required / required when adjacent to a Rural or Residential district. Accessory interior side and rear 3 ft (detached ADU 5 ft). <a href="https://www.maricopa.gov/DocumentCenter/View/4785/P-18---Zoning-Ordinance-PDF?bidId=" target="_blank" rel="noopener">MCZO PDF</a></p>
+    <h3>Accessory structures</h3><ul id="ref-acc"></ul>
+    <h3>Septic minimum setbacks (sample residential site plan; ESD controls)</h3><table class="dense"><tbody id="ref-septic"></tbody></table>
+  </div>
+  <div class="card"><h2>Subdivision Regulations — quick reference <small>(2016 text; verify against the 10/23/2024 amendment)</small></h2>
+    <div class="tw"><table class="dense"><thead><tr><th>Topic</th><th>Standard</th><th>Cite</th></tr></thead><tbody id="ref-mcsr"></tbody></table></div></div>
+  <div class="card"><h2>Department directives</h2><ul id="ref-dirs" class="cols"></ul></div>
+  <div class="card"><h2>County tools</h2><ul class="cols">
+    <li><a href="parcel-lookup/">Parcel Lookup (original page)</a></li>
+    <li><a href="https://experience.arcgis.com/experience/905ef9d0a9b646739d6b4458f7eb2910/" target="_blank" rel="noopener">What's My Zoning?</a></li>
+    <li><a href="https://maricopa.maps.arcgis.com/apps/webappviewer/index.html?id=f4c45e831c9d4a7ba70b0fadb3635f7b" target="_blank" rel="noopener">PlanNet zoning overlay map</a></li>
+    <li><a href="https://experience.arcgis.com/experience/1481eed4077842098b1174d0c8f23c17" target="_blank" rel="noopener">Road Information Tool</a></li>
+    <li><a href="https://maricopa.maps.arcgis.com/apps/webappviewer/index.html?id=f1fd72bdc75f4b3982e0058f1beba159" target="_blank" rel="noopener">Floodplain &amp; Elevation Certificate Viewer</a></li>
+    <li><a href="https://gis.maricopa.gov/TSP2040/" target="_blank" rel="noopener">TSP2040</a></li>
+    <li><a href="https://edms.maricopa.gov/env" target="_blank" rel="noopener">Septic Search (pre-6/15/2024)</a></li>
+    <li><a href="https://edms.maricopa.gov/eplpav" target="_blank" rel="noopener">Permit Center records</a></li>
+    <li><a href="https://maps.mcassessor.maricopa.gov/" target="_blank" rel="noopener">Assessor Parcel Viewer</a></li>
+    <li><a href="https://recorder.maricopa.gov/recording/document-search.html" target="_blank" rel="noopener">Recorder document search</a></li>
+    <li><a href="https://www.maricopa.gov/6723/Commercial-Site-Plan-Checklist" target="_blank" rel="noopener">Commercial site plan checklist</a></li>
+    <li><a href="https://www.maricopa.gov/DocumentCenter/View/71170/Typical-Site-Plan-Commercial" target="_blank" rel="noopener">Typical commercial site plan</a></li>
+    <li><a href="https://www.maricopa.gov/2753/Adopted-Regulations" target="_blank" rel="noopener">Adopted regulations (MCSR status)</a></li>
+  </ul></div>
+</section>
+
+<!-- SETTINGS -->
+<section class="panel" id="p-settings" hidden>
+  <div class="grid2">
+    <div class="card">
+      <h2>GitHub storage</h2>
+      <p class="sub">Saving to the subdivision database, parcel reports and reviews commits files to your repo through GitHub's API. Create a <b>fine-grained personal access token</b> limited to this one repository with <b>Contents: Read and write</b>. It is stored only in this browser.</p>
+      <div class="row3"><label>Owner<input id="st-owner"></label><label>Repository<input id="st-repo"></label><label>Branch<input id="st-branch" placeholder="main"></label></div>
+      <label>Token<input id="st-token" type="password" autocomplete="off" placeholder="github_pat_…"></label>
+      <div class="actions"><button class="btn primary" id="st-save">Save settings</button><button class="btn ghost" id="st-test-gh">Test GitHub</button><button class="btn ghost" id="st-forget">Forget token</button></div>
+    </div>
+    <div class="card">
+      <h2>Relay (optional)</h2>
+      <p class="sub">County GIS usually answers this page directly. The EDMS septic search and Recorder don't allow cross-site requests, so they need a small relay. Deploy <code>worker/cors-proxy.js</code> to Cloudflare Workers (free) and paste its URL here.</p>
+      <label>Relay URL<input id="st-proxy" placeholder="https://mc-relay.yourname.workers.dev"></label>
+      <label class="rowc"><input type="checkbox" id="st-force"> Send all county requests through the relay</label>
+      <div class="actions"><button class="btn ghost" id="st-test-gis">Test county GIS</button></div>
+      <p id="st-test-out" class="status"></p>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="foot">Reference tool — verify findings against the adopted ordinance, recorded documents and case files before relying on them. MCSR on file: 2016 edition, superseded in part by the 10/23/2024 amendment.</footer>
+<div id="toasts" aria-live="polite"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

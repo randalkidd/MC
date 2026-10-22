@@ -1,0 +1,142 @@
+{
+  "schema": 1,
+  "source": "Migrated from project doc reference/subdivision-plats.md on 2026-10-22",
+  "updated": "2026-10-22",
+  "subdivisions": [
+    {
+      "name": "Rancho Cabrillo Parcel D",
+      "mcr": "891-05",
+      "docType": "PLAT MAP",
+      "rec": "20070026086",
+      "recorded": "2007-01-08",
+      "totalLots": 275,
+      "setbacks": "20 ft / 15 ft / 5 ft / 10 ft (Front / Rear / Side / Street-side)",
+      "height": "30 ft or 2 stories",
+      "lastUpdated": "2026-10-13",
+      "baseZoning": "R1-6 RUPD",
+      "controllingCases": "RUPD Case Z2000183; DMP 2003002 (latest amendment DMP2006009, 2006-07-14)",
+      "platControls": true,
+      "notes": "Shows explicit BSL table. Base zoning R1-6, but governed by RUPD Case Z2000183 / DMP 2003002 — plat postdates all DMP amendments (latest DMP2006009, 2006-07-14), so plat stands as controlling. Min. lot width 50 ft, max. lot coverage 45%, min. 5 ft building separation. Confirmed on two lots (503-54-481 and 503-54-487).",
+      "parcelsChecked": [
+        "503-54-481",
+        "503-54-487"
+      ],
+      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=20070026086&suffix="
+    },
+    {
+      "name": "Valencia Heights",
+      "mcr": "21-31",
+      "docType": "PLAT MAP",
+      "rec": "19290024804",
+      "recorded": "1929-06-11",
+      "totalLots": 247,
+      "setbacks": "Not shown on plat — N/A",
+      "height": "Not shown on plat — N/A",
+      "lastUpdated": "2026-10-12",
+      "baseZoning": "RU-43",
+      "controllingCases": "",
+      "platControls": false,
+      "notes": "Shows only lot lines/dimensions/easements, no BSL. MCZO RU-43 standards (Ch. 5 §502) control, not the plat.",
+      "parcelsChecked": [
+        "502-34-019M"
+      ],
+      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=19290024804&suffix="
+    },
+    {
+      "name": "Savannah",
+      "mcr": "754-39",
+      "docType": "PLAT MAP",
+      "rec": "20050810388",
+      "recorded": "2005-06-15",
+      "totalLots": null,
+      "setbacks": "Lots 1–268 (R1-10): 20 ft / 25 ft / 7 ft / 10 ft. Lots 269–319 (R1-18): 30 ft / 30 ft / 10 ft / 15 ft",
+      "height": "Lots 1–268: 30 ft / 2 story. Lots 269–319: 30 ft / 2 story. (Note 11 restricts lots 258–279, 30–33, 80–83, 127–130, 308–311, 295–298, 278–281 to one story.)",
+      "lastUpdated": "2026-10-13",
+      "baseZoning": "R1-10 / R1-18 RUPD",
+      "controllingCases": "Z2006166 (RUPD overlay, approved 1/26/2007); Z2011108 (withdrawn 2011)",
+      "platControls": null,
+      "notes": "⚠ Plat's printed Zoning Chart (lot coverage 30% for lots 1–268, 25% for 269–319) may be stale — Rezoning Case Z2006166 (RUPD overlay, approved 1/26/2007) postdates this plat and a later case (Z2011108, withdrawn 2011) cites 36% as the then-current allowable coverage for this lot range, implying Z2006166 raised it. Pull the Z2006166 RUPD stipulations before relying on the plat's coverage figure for any lot in 1–268. Subject to Luke AFB Vicinity noise/overflight notice (plat Note 9) and historical-subsidence notice (plat Note 10).",
+      "parcelsChecked": [
+        "502-27-629"
+      ],
+      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=20050810388&suffix="
+    },
+    {
+      "name": "Sun City West 39A",
+      "mcr": "322-16",
+      "docType": "PLAT MAP",
+      "rec": "19880247904",
+      "recorded": "1988-05-23",
+      "totalLots": 19,
+      "setbacks": "Not shown on plat — N/A",
+      "height": "Not shown on plat — N/A",
+      "lastUpdated": "2026-10-13",
+      "baseZoning": "R1-7",
+      "controllingCases": "Z87-132 (1987-09-16, Rural-43 → R1-7 S.C.); DMP1990003 (1990-12-19); DMP1994001 (1994-07-07)",
+      "platControls": false,
+      "notes": "Resubdivision of Lots 16–40 of Sun City West Unit 39 (Book 320 Page 8 MCR), NE¼ Sec 21 T4N R1W. No BSL or zoning chart — MCZO base-district standards control. Zoning layer also returns an RU-43 edge sliver on Lot 7 (~0%). ⚠ Two DMP amendments postdate the plat (DMP1990003, DMP1994001) — stipulations not GIS-queryable. Private deed restrictions Instrument 88-247905. In Wickenburg Highway Scenic Corridor (Art. 704) and Luke AFB Vicinity (Art. 706).",
+      "parcelsChecked": [
+        "232-19-318"
+      ],
+      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=19880247904&suffix="
+    },
+    {
+      "name": "Desert Wilderness Ranches",
+      "mcr": "371-42",
+      "docType": "SUR MAP",
+      "rec": "19940067894",
+      "recorded": "1994-01-26",
+      "totalLots": 47,
+      "setbacks": "Not shown on survey — N/A",
+      "height": "Not shown on survey — N/A",
+      "lastUpdated": "2026-10-13",
+      "baseZoning": "RU-190",
+      "controllingCases": "",
+      "platControls": false,
+      "notes": "Recorded as a SUR MAP, not a PLAT MAP. 4-sheet survey of ~40-acre parcels in Secs 13, 14 and 19 T1S R7-8W; easement table: 60-ft ingress/egress + PUE per the survey, 30-ft ROW easement per Book 360 Pg 18, 20-ft roadway easements per Doc 94-252315–252320, electric-line easements per dockets. No BSL/zoning chart — MCZO base-district standards control.",
+      "parcelsChecked": [
+        "401-52-034C"
+      ],
+      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=19940067894&suffix="
+    },
+    {
+      "name": "Lee Homes Annex",
+      "mcr": "79-28",
+      "docType": "PLAT MAP",
+      "rec": "19580114975",
+      "recorded": "1958-10-03",
+      "totalLots": 119,
+      "setbacks": "Not shown on plat — N/A",
+      "height": "Not shown on plat — N/A",
+      "lastUpdated": "2026-10-14",
+      "baseZoning": "R1-6",
+      "controllingCases": "Z05-21 (2005-08-01, special use overlay for single-wide mobile homes in C-2/R1-6)",
+      "platControls": false,
+      "notes": "One-sheet plat (P&Z approval 3-19-1958), ~62–63 × 100–105 ft lots along Walnut, Bush, Laura and Myers Streets (Wittmann), Sec 13 T5N R3W. No BSL/zoning chart in portions reviewed (scan rotated/low-res). ⚠ Z05-21 postdates the plat; conditions not GIS-queryable. In Wickenburg Highway Scenic Corridor (Art. 704) and Luke AFB Aux1 Vicinity (Art. 706).",
+      "parcelsChecked": [
+        "503-41-216"
+      ],
+      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=19580114975&suffix="
+    },
+    {
+      "name": "Chandler Heights Citrus Tract Unit 3626",
+      "mcr": "23-07",
+      "docType": "PLAT MAP",
+      "rec": "19300021276",
+      "recorded": "1930-07-11",
+      "totalLots": 520,
+      "setbacks": "Not shown on plat — N/A",
+      "height": "Not shown on plat — N/A",
+      "lastUpdated": "2026-10-16",
+      "baseZoning": "R-4 (GIS) vs Rural-43 RUPD (Z05-6) — unresolved",
+      "controllingCases": "Z05-6 (2006-04-24, R-4/R1-35 → Rural-43 RUPD); Z2017080 (closed); Z91-20/CI1991001; Z2007070 SUP; Z2013019/Z2013034; Z2015029 SUP (expired 4/6/2026); CPA2015002",
+      "platControls": false,
+      "notes": "1930 plat of Sec 36 T2S R6E into large numbered parcels and roads; dedication reserves easements over/under/along all roads for ditches, pipelines, conduits, water and utilities. No BSL — MCZO controls. Total lots = today's parcel count after splits. ⚠ Zoning unresolved: GIS R-4 vs approved Z05-6 Rural-43 RUPD. Pull case files from Planning & Development for any lot here.",
+      "parcelsChecked": [
+        "304-88-988",
+        "304-88-146"
+      ],
+      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=19300021276&suffix="
+    }
+  ]
+}
