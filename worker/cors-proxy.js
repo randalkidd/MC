@@ -26,7 +26,7 @@ const ALLOWED_HOSTS = new Set([
 
 const cors = (origin) => ({
   'X-Relay-Version': RELAY_VERSION,
-  'Access-Control-Allow-Origin': ALLOWED_ORIGIN === '*' ? '*' : (origin === ALLOWED_ORIGIN ? origin : ALLOWED_ORIGIN),
+  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, X-MC-Key',
   'Access-Control-Max-Age': '86400',
@@ -88,18 +88,18 @@ export default {
     const origin = req.headers.get('Origin') || '';
     if (req.method === 'OPTIONS') return new Response(null, { headers: cors(origin) });
     // Only your site may use the relay. Plain address-bar visits (no Origin) get a short health response.
-    if (ALLOWED_ORIGIN !== '*' && origin && origin !== ALLOWED_ORIGIN) return new Response('Forbidden origin', { status: 403, headers: cors(origin) });
+    if (origin && origin !== ALLOWED_ORIGIN) return new Response('Forbidden origin', { status: 403, headers: cors(origin) });
     if (!['GET', 'POST'].includes(req.method)) return new Response('Method not allowed', { status: 405, headers: cors(origin) });
     const u0 = new URL(req.url);
     if (u0.pathname.startsWith('/gh/')) {
-      if (origin !== ALLOWED_ORIGIN && ALLOWED_ORIGIN !== '*') return json({ error: 'Saving is only allowed from the site.' }, 403, origin);
+      if (origin !== ALLOWED_ORIGIN) return json({ error: 'Saving is only allowed from the site.' }, 403, origin);
       return handleGitHub(req, env, origin, u0.pathname);
     }
 
     const target = u0.searchParams.get('url');
     if (!target) return new Response('Missing ?url=', { status: 400, headers: cors(origin) });
     // Forward only for the site itself — scripts and other servers (no Origin header) can't use this as an open proxy.
-    if (ALLOWED_ORIGIN !== '*' && origin !== ALLOWED_ORIGIN) return new Response('Relay requests must come from the site', { status: 403, headers: cors(origin) });
+    if (origin !== ALLOWED_ORIGIN) return new Response('Relay requests must come from the site', { status: 403, headers: cors(origin) });
     if (target.length > 4000) return new Response('URL too long', { status: 414, headers: cors(origin) });
     let u; try { u = new URL(target); } catch { return new Response('Bad url', { status: 400, headers: cors(origin) }); }
     if (u.protocol !== 'https:' || !ALLOWED_HOSTS.has(u.hostname)) return new Response(`Host not allowed by relay: ${u.hostname}`, { status: 403, headers: { ...cors(origin), 'X-Relay-Block': '1' } });
