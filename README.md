@@ -1,4 +1,4 @@
-# MC Zoning Review
+# Kidd - Unofficial Maricopa County Zoning Review System
 
 Live at **https://randalkidd.github.io/mc/** · the original single-page Parcel Lookup is at [`/parcel-lookup/`](parcel-lookup/).
 
