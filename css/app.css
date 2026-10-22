@@ -87,3 +87,4 @@ dialog::backdrop { background: rgb(0 0 0 / .4); }
 .theme-btn:hover { color: var(--accent); border-color: var(--accent); }
 .top-right { display: flex; gap: .5rem; align-items: center; }
 fieldset.stbl { border: 1px solid var(--line); border-radius: 8px; margin: .5rem 0; padding: .5rem .75rem; } fieldset.stbl legend { font-size: .82rem; color: var(--ink); padding: 0 .3rem; } fieldset.stbl input { width: 5.5rem; }
+details.miss { margin: .4rem 0 .2rem; font-size: .85rem; } details.miss summary { color: var(--muted); cursor: pointer; } details.miss summary:hover { color: var(--accent); }

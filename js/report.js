@@ -159,7 +159,10 @@ export function renderReportHTML(R, db) {
   }
 
   h('5. Overlay Districts');
-  table(R.overlays.map(o => [esc(o.name), o.hit ? '<b class="bad">Yes</b>' : 'No', esc(o.notes || '—')]), ['Overlay', 'Intersects?', 'Notes']);
+  const ovHit = R.overlays.filter(o => o.hit), ovMiss = R.overlays.filter(o => !o.hit);
+  if (ovHit.length) table(ovHit.map(o => [esc(o.name), esc(o.notes || '—')]), ['Intersecting overlay', 'Notes']);
+  else out.push('<p class="ok">No overlay districts intersect this parcel.</p>');
+  if (ovMiss.length) out.push(`<details class="miss"><summary>${ovMiss.length} other overlay${ovMiss.length > 1 ? 's' : ''} checked — no intersection</summary><p class="sub">${ovMiss.map(o => esc(o.name)).join(' · ')}</p></details>`);
   if (R.overlays.find(o => o.id === 24 && o.hit)) out.push(`<div class="warn">Patent easement: yard setbacks are measured from the easement line (DD-2015-09).</div>`);
 
   h('6. Zoning / Planning Cases');
@@ -224,7 +227,8 @@ export function renderReportMD(R, db, extras = {}) {
   if (!p.SubdivisionName) L.push('Not platted — N/A.', '');
   else if (plat) t([['Subdivision name', plat.name], ['Book / Map', plat.mcr], ['Plat recording # / date', mdLink(`${plat.docType} #${plat.rec}, recorded ${plat.recorded}`, plat.platUrl)], ['Setback line (BSL) shown on plat? (Y/N)', ps.rows.length ? 'Y — see Section 3 (controlling table)' : 'N — MCZO governs (Section 3)'], ['Notes', plat.notes]]);
   else L.push(`${p.SubdivisionName} (MCR ${p.MCRNumber || '—'}) — not yet in the subdivision database; plat not checked.`, '');
-  L.push('### 5. Overlay Districts', ''); t(R.overlays.map(o => [o.name, o.hit ? 'Yes' : 'No', o.notes || '—']), ['Overlay', 'Intersects parcel?', 'Notes']);
+  L.push('### 5. Overlay Districts', '');
+  { const hit = R.overlays.filter(o => o.hit); hit.length ? t(hit.map(o => [o.name, o.notes || '—']), ['Intersecting overlay', 'Notes']) : L.push('No overlay districts intersect this parcel.', ''); L.push(`_${R.overlays.length - hit.length} other overlays checked — no intersection._`, ''); }
   L.push('### 6. Zoning / Planning Cases', '', '**Current / pending:**', '');
   R.currentCases.length ? t(R.currentCases.map(c => [c.type, c.permit, c.name, c.status, c.date]), ['Case type', 'Permit #', 'Name', 'Status', 'Date']) : L.push('None found.', '');
   L.push('**Historical (before June 2024):**', '');
