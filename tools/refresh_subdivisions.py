@@ -2,6 +2,7 @@
 """Monthly snapshot of every recorded subdivision in Maricopa County (Parcel MapServer layer 0) → data/all-subdivisions.json.
 Run by .github/workflows/refresh-subdivisions.yml; safe to run by hand. Env SUBDIV_URL overrides the layer URL (tests)."""
 import json, os, sys, time, urllib.parse, urllib.request, pathlib, datetime
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); from envfile import load_env; load_env()  # optional git-ignored .env
 URL = os.environ.get('SUBDIV_URL', 'https://gis.maricopa.gov/arcgis/rest/services/IndividualService/Parcel/MapServer/0') + '/query'
 PAGE = 2000
 OUT = pathlib.Path(__file__).resolve().parent.parent / 'data' / 'all-subdivisions.json'

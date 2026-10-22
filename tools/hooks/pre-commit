@@ -1,0 +1,4 @@
+#!/bin/sh
+# Blocks commits that contain tokens or a real .env/.dev.vars file.
+# Enable once per clone:  git config core.hooksPath tools/hooks
+exec python3 tools/check_secrets.py --staged

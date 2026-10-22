@@ -1,0 +1,14 @@
+# Optional: deploy the relay from the command line instead of pasting it into the Cloudflare editor.
+#   cd worker && npx wrangler deploy
+# Secrets are NOT stored here. Set them once with:
+#   npx wrangler secret put GITHUB_TOKEN
+#   npx wrangler secret put SITE_KEY
+# For local testing put them in worker/.dev.vars (git-ignored; see .dev.vars.example).
+name = "mc-relay"
+main = "cors-proxy.js"
+compatibility_date = "2024-09-23"
+
+[vars]
+ALLOWED_ORIGIN = "https://randalkidd.github.io"
+REPO = "randalkidd/MC"
+BRANCH = "main"

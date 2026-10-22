@@ -89,6 +89,30 @@ The relay only forwards to an allow-list of `*.maricopa.gov` hosts, and (from re
 - GIS layer IDs follow the county's current PlanNet service. If the county republishes it and results look wrong, re-check the layer IDs in `js/lookup.js`.
 - This is a review aid. Verify findings against the adopted ordinance, recorded documents and case files.
 
+## Secrets and .env files
+
+The website is public static files, so **no secret can live in anything the browser loads** (a `.env` file served by GitHub Pages would be readable by anyone). Secrets live in exactly two places:
+
+| Secret | Where it lives | Never in |
+|---|---|---|
+| `GITHUB_TOKEN` (fine-grained, Contents: Read and write on this repo) | Cloudflare → mc-relay → Settings → Variables and Secrets (**Type: Secret**) | the repo, chat, the browser |
+| `SITE_KEY` (the passphrase) | Same place in Cloudflare; each browser stores only a hash-checked copy you typed | the repo |
+
+`.env` files are for **local tools only**, and are git-ignored:
+
+- **`.env`** (copy `.env.example`): settings for the Python scripts in `tools/` (loaded by `tools/envfile.py`; real environment variables win).
+- **`worker/.dev.vars`** (copy `worker/.dev.vars.example`): `GITHUB_TOKEN` and `SITE_KEY` for running the relay locally with `npx wrangler dev`. `worker/wrangler.toml` lets you deploy from the command line (`npx wrangler deploy`, secrets via `npx wrangler secret put …`) instead of pasting into the Cloudflare editor.
+- **Relay settings as variables (relay v9):** `ALLOWED_ORIGIN` (comma-separate to add `http://localhost:8000` for testing), `REPO` and `BRANCH` can be set as plain-text Cloudflare variables instead of editing the code. Invalid values fall back to the defaults.
+
+**Guard rails**
+
+- `.gitignore` blocks `.env`, `.env.*`, `.dev.vars`, keys and certificates (the `*.example` files are allowed).
+- `tools/check_secrets.py` scans for GitHub/Cloudflare/AWS/Slack/AI tokens, private keys and `TOKEN=`-style assignments, and fails if a real `.env`/`.dev.vars` is tracked.
+- The **Secret scan** GitHub Action runs it on every push and pull request.
+- Optional local hook, once per clone: `git config core.hooksPath tools/hooks` (blocks the commit before it happens).
+- Also turn on GitHub's own **push protection**: repo Settings → Code security → Secret Protection → Push protection.
+- If a token ever leaks, **revoke it first** (GitHub → Settings → Developer settings → Fine-grained tokens), then replace `GITHUB_TOKEN` in Cloudflare.
+
 ## Maintenance
 
 - **After editing any JS/CSS, run `python3 tools/stamp.py` before committing.** It stamps every file reference with a content version (`?v=…`) so browsers load the new code immediately instead of a cached copy.

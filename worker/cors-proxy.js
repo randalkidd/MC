@@ -11,10 +11,23 @@
 //   GITHUB_TOKEN = github_pat_...   (fine-grained, repo randalkidd/MC, Contents: Read and write)
 //   SITE_KEY     = a passphrase you choose (what you'll type in each browser)
 
-const RELAY_VERSION = '8';
-const ALLOWED_ORIGIN = 'https://randalkidd.github.io'; // only your site may use this relay
-const REPO = 'randalkidd/MC';
-const BRANCH = 'main';
+const RELAY_VERSION = '9';
+// Settings. Defaults below; each can be overridden by a Cloudflare variable (Worker → Settings → Variables and
+// Secrets, Type: Text) or, for local `wrangler dev`, by worker/.dev.vars (never committed — see .dev.vars.example).
+//   ALLOWED_ORIGIN = https://randalkidd.github.io   (comma-separate to add e.g. http://localhost:8000 for local testing)
+//   REPO = randalkidd/MC     BRANCH = main
+const DEFAULTS = { ALLOWED_ORIGIN: 'https://randalkidd.github.io', REPO: 'randalkidd/MC', BRANCH: 'main' };
+let ORIGINS = new Set([DEFAULTS.ALLOWED_ORIGIN]); // only your site may use this relay
+let ALLOWED_ORIGIN = DEFAULTS.ALLOWED_ORIGIN;
+let REPO = DEFAULTS.REPO;
+let BRANCH = DEFAULTS.BRANCH;
+function configure(env) {
+  const list = String(env.ALLOWED_ORIGIN || DEFAULTS.ALLOWED_ORIGIN).split(',').map(s => s.trim().replace(/\/$/, '')).filter(o => /^https:\/\/[a-z0-9.-]+$|^http:\/\/localhost(:\d+)?$/i.test(o));
+  ORIGINS = new Set(list.length ? list : [DEFAULTS.ALLOWED_ORIGIN]); ALLOWED_ORIGIN = [...ORIGINS][0];
+  REPO = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(env.REPO || '') ? env.REPO : DEFAULTS.REPO;
+  BRANCH = /^[A-Za-z0-9_.\/-]{1,100}$/.test(env.BRANCH || '') ? env.BRANCH : DEFAULTS.BRANCH;
+}
+const allowed = (origin) => ORIGINS.has(origin);
 const ALLOWED_HOSTS = new Set([
   'gis.maricopa.gov',
   'edms.maricopa.gov',
@@ -26,7 +39,7 @@ const ALLOWED_HOSTS = new Set([
 
 const cors = (origin) => ({
   'X-Relay-Version': RELAY_VERSION,
-  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+  'Access-Control-Allow-Origin': allowed(origin) ? origin : ALLOWED_ORIGIN,
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, X-MC-Key',
   'Access-Control-Max-Age': '86400',
@@ -91,21 +104,22 @@ async function handleGitHub(req, env, origin, route) {
 
 export default {
   async fetch(req, env) {
+    configure(env);
     const origin = req.headers.get('Origin') || '';
     if (req.method === 'OPTIONS') return new Response(null, { headers: cors(origin) });
     // Only your site may use the relay. Plain address-bar visits (no Origin) get a short health response.
-    if (origin && origin !== ALLOWED_ORIGIN) return new Response('Forbidden origin', { status: 403, headers: cors(origin) });
+    if (origin && !allowed(origin)) return new Response('Forbidden origin', { status: 403, headers: cors(origin) });
     if (!['GET', 'POST'].includes(req.method)) return new Response('Method not allowed', { status: 405, headers: cors(origin) });
     const u0 = new URL(req.url);
     if (u0.pathname.startsWith('/gh/')) {
-      if (origin !== ALLOWED_ORIGIN) return json({ error: 'Saving is only allowed from the site.' }, 403, origin);
+      if (!allowed(origin)) return json({ error: 'Saving is only allowed from the site.' }, 403, origin);
       return handleGitHub(req, env, origin, u0.pathname);
     }
 
     const target = u0.searchParams.get('url');
     if (!target) return new Response('Missing ?url=', { status: 400, headers: cors(origin) });
     // Forward only for the site itself — scripts and other servers (no Origin header) can't use this as an open proxy.
-    if (origin !== ALLOWED_ORIGIN) return new Response('Relay requests must come from the site', { status: 403, headers: cors(origin) });
+    if (!allowed(origin)) return new Response('Relay requests must come from the site', { status: 403, headers: cors(origin) });
     if (target.length > 4000) return new Response('URL too long', { status: 414, headers: cors(origin) });
     let u; try { u = new URL(target); } catch { return new Response('Bad url', { status: 400, headers: cors(origin) }); }
     if (u.protocol !== 'https:' || !ALLOWED_HOSTS.has(u.hostname)) return new Response(`Host not allowed by relay: ${u.hostname}`, { status: 403, headers: { ...cors(origin), 'X-Relay-Block': '1' } });

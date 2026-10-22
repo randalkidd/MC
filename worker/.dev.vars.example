@@ -1,0 +1,10 @@
+# Secrets for running the relay locally with `npx wrangler dev` (copy to worker/.dev.vars; it is git-ignored).
+# In production these live ONLY in Cloudflare: Worker → Settings → Variables and Secrets (Type: Secret),
+# or `npx wrangler secret put GITHUB_TOKEN` / `npx wrangler secret put SITE_KEY`.
+GITHUB_TOKEN=github_pat_REPLACE_ME
+SITE_KEY=REPLACE_WITH_YOUR_PASSPHRASE
+
+# Optional, non-secret overrides (defaults are in cors-proxy.js)
+# ALLOWED_ORIGIN=https://randalkidd.github.io,http://localhost:8000
+# REPO=randalkidd/MC
+# BRANCH=main
