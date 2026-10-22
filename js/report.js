@@ -1,6 +1,6 @@
 // Renders a lookup result in the project's parcel-report-template structure (HTML + Markdown).
-import { LINKS } from './lookup.js?v=240be4c4';
-import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=240be4c4';
+import { LINKS } from './lookup.js?v=ebe0ecf7';
+import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=ebe0ecf7';
 
 // Only allow http(s) URLs into href attributes; everything else becomes "#".
 const safeUrl = (u) => { try { const x = new URL(String(u), location.href); return /^https?:$/.test(x.protocol) ? x.href : '#'; } catch { return '#'; } };
@@ -49,7 +49,8 @@ function looserThanZoning(row, zoneKey) {
   return pairs.filter(([k, , z]) => num(row[k]) != null && z != null && num(row[k]) < z).map(([k, lab, z]) => `${lab} ${row[k]} ft vs ${z} ft`);
 }
 function newerCases(R, plat) {
-  const y = +String(plat.recorded).slice(0, 4);
+  const y = +String(plat.recorded || '').slice(0, 4);
+  if (!y) return { y: '?', list: [] };
   return { y, list: [...R.currentCases, ...R.historicCases].filter(c => /Rezoning|Zoning Case|Development Master|Comprehensive|Overlay/.test(c.type) && c.date && new Date(c.date).getFullYear() >= y) };
 }
 
@@ -205,13 +206,13 @@ export function renderReportHTML(R, db) {
   else if (plat) {
     table([
       ['Subdivision', esc(plat.name)], ['MCR', esc(plat.mcr)],
-      ['Plat', a(`${plat.docType} #${plat.rec}, recorded ${plat.recorded}`, plat.platUrl)],
-      ['Recorded setbacks', ps.rows.length ? 'Yes — shown as the controlling table in Section 3' : 'None on plat — MCZO standards in Section 3 govern'],
+      ['Plat', plat.rec ? a(`${plat.docType} #${plat.rec}, recorded ${plat.recorded}`, plat.platUrl) : `${a(`Find plat at the Recorder (MCR ${plat.mcr || '?'})`, plat.platUrl)} — recording number not entered yet`],
+      ['Recorded setbacks', ps.rows.length ? 'Yes — shown as the controlling table in the Setbacks section' : (/not yet reviewed/i.test(plat.setbacks || '') ? '<b class="chg">⚠ Plat not yet reviewed</b> — MCZO standards shown; check the plat for a building setback line and update the database' : 'None on plat — MCZO standards govern')],
       ['Controlling cases', esc(dash(plat.controllingCases))], ['Notes', esc(plat.notes)], ['Last updated', esc(plat.lastUpdated)],
     ]);
     if (!ps.rows.length) out.push(nc.list.length
       ? `<div class="warn">⚠ ${nc.list.length} DMP / rezoning / CPA / overlay case(s) dated on or after the plat (${nc.y}): ${nc.list.map(c => esc(`${c.permit} (${c.date}, ${c.status || 'status ?'})`)).join(', ')}. Verify whether an approved newer case changes the standards.</div>`
-      : `<p class="ok">No DMP / rezoning / CPA case postdates the ${nc.y} plat in GIS.</p>`);
+      : (nc.y === '?' ? '<p class="sub">Plat recording date not entered — the newer-case check runs once it is.</p>' : `<p class="ok">No DMP / rezoning / CPA case postdates the ${nc.y} plat in GIS.</p>`));
   } else {
     out.push(`<div class="note">Platted (<b>${esc(p.SubdivisionName)}</b>, MCR ${esc(dash(p.MCRNumber))}) but not yet in the subdivision database. Open the plat via the ${p.MCRNumber ? a('Recorder book/page search', LINKS.recBook(...p.MCRNumber.split('-'))) : 'Recorder'} (row coded PLAT MAP), then <button class="link" data-act="add-sub">add it to the database</button>.</div>`);
   }
@@ -313,7 +314,7 @@ export function renderReportMD(R, db, extras = {}) {
   L.push(`Rear/side required yard coverage maximum per [§806](${MCZO_URL}).`, '');
   if (p.SubdivisionName) H('Subdivision Plat (MCR) — setback check');
   if (!p.SubdivisionName) { /* not platted — section omitted */ }
-  else if (plat) t([['Subdivision name', plat.name], ['Book / Map', plat.mcr], ['Plat recording # / date', mdLink(`${plat.docType} #${plat.rec}, recorded ${plat.recorded}`, plat.platUrl)], ['Setback line (BSL) shown on plat? (Y/N)', ps.rows.length ? 'Y — see Section 3 (controlling table)' : 'N — MCZO governs (Section 3)'], ['Notes', plat.notes]]);
+  else if (plat) t([['Subdivision name', plat.name], ['Book / Map', plat.mcr], ['Plat recording # / date', plat.rec ? mdLink(`${plat.docType} #${plat.rec}, recorded ${plat.recorded}`, plat.platUrl) : `Not entered yet — ${mdLink('find plat', plat.platUrl)}`], ['Setback line (BSL) shown on plat? (Y/N)', ps.rows.length ? 'Y — see Setbacks section (controlling table)' : (/not yet reviewed/i.test(plat.setbacks || '') ? 'Not yet reviewed — check the plat' : 'N — MCZO governs')], ['Notes', plat.notes]]);
   else L.push(`${p.SubdivisionName} (MCR ${p.MCRNumber || '—'}) — not yet in the subdivision database; plat not checked.`, '');
   H('Overlay Districts');
   { const hit = R.overlays.filter(o => o.hit); hit.length ? t(hit.map(o => [o.name, o.notes || '—']), ['Intersecting overlay', 'Notes']) : L.push('No overlay districts intersect this parcel.', ''); L.push(`_${R.overlays.length - hit.length} other overlays checked — no intersection._`, ''); }

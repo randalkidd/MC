@@ -1,11 +1,11 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, normalizeApn, lookupSplit } from './lookup.js?v=240be4c4';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=240be4c4';
-import { settings, setSharedRelay } from './net.js?v=240be4c4';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=240be4c4';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=240be4c4';
-import { CHECKLISTS } from './checklists.js?v=240be4c4';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=240be4c4';
-import { DIRECTIVES, MCSR_QUICK } from './refdata.js?v=240be4c4';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, normalizeApn, lookupSplit } from './lookup.js?v=ebe0ecf7';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=ebe0ecf7';
+import { settings, setSharedRelay } from './net.js?v=ebe0ecf7';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=ebe0ecf7';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=ebe0ecf7';
+import { CHECKLISTS } from './checklists.js?v=ebe0ecf7';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=ebe0ecf7';
+import { DIRECTIVES, MCSR_QUICK } from './refdata.js?v=ebe0ecf7';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -89,7 +89,7 @@ function renderDB() {
   $('#db-body').innerHTML = rows.map(s => `<tr data-name="${esc(s.name)}">
     <td><b>${esc(s.name)}</b>${noteWarnings(s.notes).length ? ' ' + warnIco(noteWarnings(s.notes).join(' • ')) : ''}<div class="sub">${zoningCell(s.baseZoning)}</div></td>
     <td>${esc(s.mcr)}</td>
-    <td><a href="${esc(s.platUrl)}" target="_blank" rel="noopener">${esc(s.docType)} #${esc(s.rec)}</a><div class="sub">${esc(s.recorded)}</div></td>
+    <td>${s.rec ? `<a href="${esc(s.platUrl)}" target="_blank" rel="noopener noreferrer">${esc(s.docType)} #${esc(s.rec)}</a><div class="sub">${esc(s.recorded)}</div>` : `<a href="${esc(s.platUrl || '#')}" target="_blank" rel="noopener noreferrer">Find plat (MCR ${esc(s.mcr || '?')})</a> ${warnIco('Recording number not recorded yet — open the plat (the PLAT MAP row), then Edit this subdivision and enter its recording number and date.')}`}</td>
     <td>${s.totalLots ?? `— ${warnIco('Lot count not taken yet — open Edit and use "Count lots from Assessor".')}`}</td><td>${setbackCell(s)}</td><td>${coverageCell(s)}</td><td>${esc(s.lastUpdated)}</td>
     <td><button class="btn sm" data-edit="${esc(s.name)}">Edit</button></td></tr>`).join('') || '<tr><td colspan="8">No matches.</td></tr>';
 }
@@ -136,13 +136,14 @@ $('#ed-save').addEventListener('click', (e) => {
   e.preventDefault();
   const f = new FormData($('#ed-form')); const r = {};
   for (const [k] of FIELDS) r[k] = (f.get(k) || '').trim();
-  if (!r.name || !r.rec) { toast('Name and recording number are required', 'error'); return; }
+  if (!r.name) { toast('Subdivision name is required', 'error'); return; }
   r.totalLots = r.totalLots === '' ? null : +r.totalLots;
   r.parcelsChecked = r.parcelsChecked ? r.parcelsChecked.split(/[,\s]+/).map(normalizeApn).filter(Boolean) : [];
   r.platControls = !!f.get('platControls');
   r.setbackTable = $$('#ed-stbl tr').map(tr => Object.fromEntries($$('input[data-s]', tr).map(i => { const k = i.dataset.s, v = i.value.trim(); return [k, ['front', 'rear', 'side', 'street', 'width'].includes(k) && v !== '' && !isNaN(+v) ? +v : v]; }))).filter(x => ['front', 'rear', 'side', 'street'].some(k => x[k] !== ''));
   if (r.setbackTable.length) { const m = r.setbackTable; r.setbacks = m.map(x => `${m.length > 1 ? `Lots ${x.lots}${x.district ? ` (${x.district})` : ''}: ` : ''}${x.front} ft / ${x.rear} ft / ${x.side} ft / ${x.street} ft`).join('. ') + (m.length === 1 ? ' (Front / Rear / Side / Street-side)' : ''); }
-  r.platUrl = LINKS.recDoc(r.rec);
+  r.platUrl = r.rec ? LINKS.recDoc(r.rec) : (r.mcr && r.mcr.includes('-') ? LINKS.recBook(...r.mcr.split('-')) : '');
+  if (r.rec) r.autoAdded = false;
   r.lastUpdated = new Date().toISOString().slice(0, 10);
   const orig = $('#db-editor').dataset.orig;
   const i = S.db.subdivisions.findIndex(s => s.name === (orig || r.name));
@@ -161,6 +162,40 @@ $('#db-save').addEventListener('click', async () => {
 });
 
 // ---------------- lookup ----------------
+// New subdivision found in a lookup → open its plat at the Recorder and add it to the database (no prompt).
+const titleCase = (t) => String(t || '').toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase()).replace(/\b(Mcr|Ii|Iii|Iv)\b/g, (m) => m.toUpperCase());
+async function autoAddSubdivision(R) {
+  const p = R.parcel; const [book, page] = String(p.MCRNumber || '').split('-');
+  const platUrl = book && page ? LINKS.recBook(book, page) : 'https://recorder.maricopa.gov/recording/document-search.html#tab-map-search';
+  // open the plat (Recorder book/page result — the PLAT MAP row is the plat); popup blockers may stop this
+  let opened = null; try { opened = window.open(platUrl, '_blank'); if (opened) opened.opener = null; } catch {}
+  let lots = null; try { lots = await countSubdivisionLots(p.SubdivisionName); } catch {}
+  const today = new Date().toISOString().slice(0, 10);
+  const rec = {
+    name: titleCase(p.SubdivisionName), mcr: p.MCRNumber || '', docType: 'PLAT MAP', rec: '', recorded: '', totalLots: lots,
+    baseZoning: R.zoning.map(z => z.zone).join(', '),
+    controllingCases: [...R.currentCases, ...R.historicCases].filter(c => /Rezoning|Zoning Case|Development Master|Comprehensive|Overlay/.test(c.type)).map(c => `${c.permit} (${c.date || '?'}, ${c.status || '?'})`).join('; '),
+    setbacks: 'Not yet reviewed', height: 'Not yet reviewed', easements: '', platControls: false, setbackTable: [],
+    notes: `⚠ Plat not yet reviewed — added automatically from a lookup of ${R.apn} on ${today}. Open the plat and record its recording number, setbacks, height and easements.`,
+    parcelsChecked: [R.apn], platUrl, autoAdded: true, lastUpdated: today,
+  };
+  S.db = S.db || { schema: 1, subdivisions: [] };
+  if (S.db.subdivisions.some(x => x.name.toUpperCase() === rec.name.toUpperCase())) return;
+  S.db.subdivisions.push(rec); renderDB();
+  let saved = false;
+  if (gh.canWrite) {
+    try {
+      // merge onto the latest published copy so another browser's additions aren't lost
+      const f = await readFile('data/subdivision-plats.json'); const latest = f.text ? JSON.parse(f.text) : null;
+      const base = latest && Array.isArray(latest.subdivisions) ? latest : S.db;
+      if (!base.subdivisions.some(x => x.name.toUpperCase() === rec.name.toUpperCase())) base.subdivisions.push(rec);
+      base.updated = new Date().toISOString();
+      await writeFile('data/subdivision-plats.json', JSON.stringify(base, null, 2) + '\n', `Add subdivision ${rec.name} (auto, from ${R.apn})`);
+      S.db = base; S.dbStamp = base.updated; S.dbDirty = false; saved = true; renderDB();
+    } catch (e) { S.dbDirty = true; renderDB(); toast(`Added ${rec.name} locally, but saving failed: ${e.message}`, 'error'); }
+  } else { S.dbDirty = true; renderDB(); }
+  toast(`New subdivision "${rec.name}" added to the database${saved ? ' and saved' : ' (not saved — connect GitHub)'}${opened ? '; plat opened at the Recorder' : '; popup blocked — use the plat link in the report'}.`, saved ? 'ok' : 'info');
+}
 const lookupCache = new Map(); // APN → { R, t } — avoids re-querying county GIS for 15 min
 async function runLookup(apn, { force = false } = {}) {
   const out = $('#report'); const st = $('#lookup-status');
@@ -172,6 +207,7 @@ async function runLookup(apn, { force = false } = {}) {
     if (!force && hit && Date.now() - hit.t < 15 * 60000) S.R = hit.R;
     else { S.R = await lookupParcel(apn, { onStep: (m) => (st.textContent = `Querying: ${m}…`) }); lookupCache.set(S.R.apn, { R: S.R, t: Date.now() }); }
     st.hidden = true;
+    if (S.R.parcel.SubdivisionName && !findPlat(S.R, S.db) && !S.R.outsideCounty) await autoAddSubdivision(S.R);
     out.innerHTML = renderReportHTML(S.R, S.db);
     const age = Math.round((Date.now() - lookupCache.get(S.R.apn).t) / 60000);
     if (age >= 1) out.insertAdjacentHTML('afterbegin', `<p class="meta">Cached result from ${age} min ago · <button class="link" data-act="refresh">refresh from county GIS</button></p>`);
