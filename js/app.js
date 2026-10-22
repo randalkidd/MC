@@ -1,12 +1,12 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=9f1efb51';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=9f1efb51';
-import { settings, setSharedRelay } from './net.js?v=9f1efb51';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=9f1efb51';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=9f1efb51';
-import { CHECKLISTS } from './checklists.js?v=9f1efb51';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=9f1efb51';
-import { DIRECTIVES, MCSR_QUICK } from './refdata.js?v=9f1efb51';
-import { findPlatDoc } from './recorder.js?v=9f1efb51';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=2ffc18be';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=2ffc18be';
+import { settings, setSharedRelay } from './net.js?v=2ffc18be';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=2ffc18be';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=2ffc18be';
+import { CHECKLISTS } from './checklists.js?v=2ffc18be';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=2ffc18be';
+import { DIRECTIVES, MCSR_QUICK } from './refdata.js?v=2ffc18be';
+import { findPlatDoc } from './recorder.js?v=2ffc18be';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];

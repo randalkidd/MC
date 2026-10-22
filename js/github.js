@@ -30,7 +30,7 @@ export const gh = {
   get canWrite() { return !!(this.owner && this.repo && (this.token || this.viaRelay)); },
 };
 
-import { settings } from './net.js?v=9f1efb51';
+import { settings } from './net.js?v=2ffc18be';
 const relayUrl = () => settings.proxy;
 
 async function relay(route, init = {}) {
@@ -45,7 +45,7 @@ async function relay(route, init = {}) {
   let d = {}; try { d = JSON.parse(text); } catch {}
   if (r.ok) return d;
   if (r.status === 401) throw new Error('Wrong passphrase — re-enter it in Settings (it must match SITE_KEY in Cloudflare exactly, including capitals).');
-  if (d.error) throw new Error(d.error);
+  if (d.error) throw new Error(`${d.error} (relay: ${base.replace(/^https:\/\//, '')}${r.headers.get('X-Relay-Version') ? `, v${r.headers.get('X-Relay-Version')}` : ''})`);
   if (r.status === 400 && /Missing \?url=/.test(text)) throw new Error('The relay is still running the OLD code. In Cloudflare: Worker → Edit code → paste the latest worker/cors-proxy.js from GitHub → Deploy.');
   if (r.status === 404) throw new Error(`Relay error 404 — ${base} is not the relay Worker (it has no /gh/ service). Use the .workers.dev address of the Worker you pasted the relay code into, and make sure that code is the latest version.`);
   throw new Error(`Relay error ${r.status}${text && text.length < 200 ? `: ${text}` : ''}`);
