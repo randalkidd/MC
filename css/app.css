@@ -120,3 +120,8 @@ html.locked .gated { display: none !important; }
 .pager { display: flex; align-items: center; justify-content: center; gap: .75rem; margin: .75rem 0; } .ok-pill { color: var(--ok); border-color: currentColor; }
 [data-sort] { font-weight: 600; color: inherit; }
 th button.link[data-sort] { color: inherit; text-decoration: none; font: inherit; font-weight: 600; padding: 0; } th button.link[data-sort]:hover { color: var(--accent); }
+.as-updated { text-align: center; font-size: .85rem; color: var(--muted); margin: .25rem 0 .75rem; }
+/* SubdivisionDB: show ~5 rows, scroll for the rest (sticky header) */
+.db-scroll { max-height: 24rem; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius); }
+.db-scroll thead th { position: sticky; top: 0; background: var(--surface); z-index: 1; }
+#allsubs, #queue { margin-top: 1rem; }
