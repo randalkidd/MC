@@ -1,7 +1,7 @@
 import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, normalizeApn } from './lookup.js';
 import { renderReportHTML, renderReportMD, findPlat } from './report.js';
 import { settings, setSharedRelay } from './net.js';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks } from './github.js';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js';
 import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js';
 import { CHECKLISTS } from './checklists.js';
 import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js';
@@ -37,8 +37,8 @@ $$('.tab').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)
 async function loadDB() {
   const f = await readFile('data/subdivision-plats.json');
   S.db = f.text ? JSON.parse(f.text) : { schema: 1, subdivisions: [] };
-  S.dbSha = f.sha; S.dbDirty = false;
-  $('#db-source').textContent = f.source === 'github' ? `Loaded live from ${gh.owner}/${gh.repo}@${gh.branch}` : 'Loaded from the published site copy (add GitHub settings for live data)';
+  S.dbSha = f.sha; S.dbDirty = false; S.dbStamp = S.db.updated || '';
+  $('#db-source').textContent = `Last saved ${S.db.updated ? String(S.db.updated).replace('T', ' ').slice(0, 16) : '—'}`;
   renderDB();
 }
 
@@ -104,22 +104,29 @@ $('#ed-save').addEventListener('click', (e) => {
 });
 $('#db-save').addEventListener('click', async () => {
   try {
-    S.db.updated = new Date().toISOString().slice(0, 10);
+    const latest = await readFile('data/subdivision-plats.json').then(f => (f.text ? JSON.parse(f.text).updated : '')).catch(() => '');
+    if (latest && S.dbStamp && latest !== S.dbStamp && !confirm('The database was saved from another browser after you opened it. Saving now will overwrite those changes. Continue? (Cancel, then Reload, to get the latest first.)')) return;
+    S.db.updated = new Date().toISOString();
     await writeFile('data/subdivision-plats.json', JSON.stringify(S.db, null, 2) + '\n', `Update subdivision database (${S.db.subdivisions.length} entries)`);
-    S.dbDirty = false; renderDB(); toast('Saved to GitHub — the published site updates in about a minute', 'ok');
+    S.dbDirty = false; S.dbStamp = S.db.updated; renderDB(); toast('Saved to GitHub — the published site updates in about a minute', 'ok');
   } catch (e) { toast(e.message, 'error'); }
 });
 
 // ---------------- lookup ----------------
-async function runLookup(apn) {
+const lookupCache = new Map(); // APN → { R, t } — avoids re-querying county GIS for 15 min
+async function runLookup(apn, { force = false } = {}) {
   const out = $('#report'); const st = $('#lookup-status');
   out.innerHTML = ''; $('#report-actions').hidden = true; st.hidden = false; st.className = 'status';
   try {
     if (!S.db) await loadDB().catch(() => {});
     S.extras = {};
-    S.R = await lookupParcel(apn, { onStep: (m) => (st.textContent = `Querying: ${m}…`) });
+    const key = normalizeApn(apn); const hit = key && lookupCache.get(key);
+    if (!force && hit && Date.now() - hit.t < 15 * 60000) S.R = hit.R;
+    else { S.R = await lookupParcel(apn, { onStep: (m) => (st.textContent = `Querying: ${m}…`) }); lookupCache.set(S.R.apn, { R: S.R, t: Date.now() }); }
     st.hidden = true;
     out.innerHTML = renderReportHTML(S.R, S.db);
+    const age = Math.round((Date.now() - lookupCache.get(S.R.apn).t) / 60000);
+    if (age >= 1) out.insertAdjacentHTML('afterbegin', `<p class="meta">Cached result from ${age} min ago · <button class="link" data-act="refresh">refresh from county GIS</button></p>`);
     S.md = renderReportMD(S.R, S.db, S.extras);
     $('#report-actions').hidden = false;
     drawMap(S.R);
@@ -136,6 +143,7 @@ async function runLookup(apn) {
 $('#lookup-form').addEventListener('submit', (e) => { e.preventDefault(); runLookup($('#lookup-apn').value); });
 $('#report').addEventListener('click', async (e) => {
   const act = e.target.dataset.act; if (!act || !S.R) return;
+  if (act === 'refresh') { runLookup(S.R.apn, { force: true }); return; }
   const cell = (id, html) => { const c = $(id); if (c) c.innerHTML = html; };
   try {
     if (act === 'septic') {
@@ -169,12 +177,22 @@ $('#report').addEventListener('click', async (e) => {
 $('#rep-copy').addEventListener('click', () => copy(S.md));
 $('#rep-dl').addEventListener('click', () => download(`${S.R.apn}.md`, S.md));
 $('#rep-save').addEventListener('click', async () => {
-  try { await writeFile(`data/parcels/${S.R.apn}.md`, S.md + '\n', `Parcel report ${S.R.apn} (${S.R.lookupDate})`); toast('Report saved to GitHub', 'ok'); } catch (e) { toast(e.message, 'error'); }
+  try { await writeFile(`data/parcels/${S.R.apn}.md`, S.md + '\n', `Parcel report ${S.R.apn} (${S.R.lookupDate})`); clearDirCache(); toast('Report saved to GitHub', 'ok'); } catch (e) { toast(e.message, 'error'); }
 });
 $('#rep-print').addEventListener('click', () => window.print());
 
-function drawMap(R) {
-  if (!window.L || !R.wgsRings) { $('#map').hidden = true; return; }
+let leafletP = null;
+function loadLeaflet() {
+  if (window.L) return Promise.resolve();
+  if (!leafletP) leafletP = new Promise((res, rej) => {
+    const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.append(css);
+    const js = document.createElement('script'); js.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'; js.onload = res; js.onerror = rej; document.head.append(js);
+  });
+  return leafletP;
+}
+async function drawMap(R) {
+  if (!R.wgsRings) { $('#map').hidden = true; return; }
+  try { await loadLeaflet(); } catch { $('#map').hidden = true; return; }
   $('#map').hidden = false;
   if (!S.map) {
     S.map = L.map('map', { zoomControl: true, attributionControl: true });
@@ -226,7 +244,7 @@ function renderOutput() {
   $('#rv-md').value = buildMarkdown(S.review);
 }
 function bindReview() {
-  const upd = () => { saveDraft(S.review); renderOutput(); };
+  let tmr; const upd = () => { saveDraft(S.review); clearTimeout(tmr); tmr = setTimeout(renderOutput, 120); };
   $('#rv-type').addEventListener('change', (e) => { S.review.type = e.target.value; saveDraft(S.review); renderReview(); });
   $('#rv-district').addEventListener('change', (e) => { S.review.district = e.target.value; upd(); });
   for (const k of ['apn', 'lotArea', 'planTitle', 'reviewer', 'date']) $(`#rv-${k}`).addEventListener('input', (e) => { S.review[k] = e.target.value; upd(); });
@@ -242,7 +260,7 @@ function bindReview() {
   $('#rv-copy').addEventListener('click', () => copy($('#rv-md').value));
   $('#rv-dl').addEventListener('click', () => download(`review-${S.review.apn || 'plan'}-${S.review.date}.md`, $('#rv-md').value));
   $('#rv-save').addEventListener('click', async () => {
-    try { const p = `data/reviews/${S.review.apn || 'no-apn'}-${S.review.date}-${S.review.type}.md`; await writeFile(p, $('#rv-md').value + '\n', `Plan review ${S.review.apn} ${S.review.type}`); await writeFile(p.replace(/\.md$/, '.json'), JSON.stringify(S.review, null, 2), `Plan review data ${S.review.apn}`); toast('Review saved to GitHub', 'ok'); } catch (e) { toast(e.message, 'error'); }
+    try { const p = `data/reviews/${S.review.apn || 'no-apn'}-${S.review.date}-${S.review.type}.md`; await writeFile(p, $('#rv-md').value + '\n', `Plan review ${S.review.apn} ${S.review.type}`); await writeFile(p.replace(/\.md$/, '.json'), JSON.stringify(S.review, null, 2), `Plan review data ${S.review.apn}`); clearDirCache(); toast('Review saved to GitHub', 'ok'); } catch (e) { toast(e.message, 'error'); }
   });
 }
 

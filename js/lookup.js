@@ -236,13 +236,9 @@ export async function lookupTSP(R) {
   if (!hits.length) return { hits: [] };
   const meta = await arcgis(EP.tspNeed, {});
   const ids = [...new Set(hits.map(h => h.needId).filter(Boolean))];
-  const needs = [];
-  for (const L of meta.layers || []) {
-    try {
-      const r = await arcgis(`${EP.tspNeed}/${L.id}/query`, { where: `NeedID IN (${ids.map(i => `'${i}'`).join(',')})`, outFields: 'NeedID,OnRoad,FromRoad,ToRoad,NeedCategory,Need,Jurisdiction,ResponsibleAgency', returnGeometry: 'false' });
-      for (const f of r.features || []) needs.push(f.attributes);
-    } catch { /* layer without NeedID */ }
-  }
+  const where = `NeedID IN (${ids.map(i => `'${String(i).replace(/'/g, "''")}'`).join(',')})`;
+  const res = await Promise.all((meta.layers || []).map(L => arcgis(`${EP.tspNeed}/${L.id}/query`, { where, outFields: 'NeedID,OnRoad,FromRoad,ToRoad,NeedCategory,Need,Jurisdiction,ResponsibleAgency', returnGeometry: 'false' }).catch(() => null)));
+  const needs = res.flatMap(r => (r && r.features ? r.features.map(f => f.attributes) : []));
   return { hits, needs };
 }
 

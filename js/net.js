@@ -63,8 +63,16 @@ export async function request(url, { method = 'GET', form, json, timeout = 30000
 }
 
 // ArcGIS helper: POST form, throw on service-level error objects.
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 export async function arcgis(url, params) {
-  const data = await request(url, { form: { f: 'json', ...params } });
+  let data;
+  try { data = await request(url, { form: { f: 'json', ...params } }); }
+  catch (e) {
+    // one retry for transient failures (timeouts, 5xx, dropped connections) — not for 4xx
+    if (/HTTP 4\d\d/.test(e.message)) throw e;
+    await sleep(700);
+    data = await request(url, { form: { f: 'json', ...params } });
+  }
   if (data && data.error) throw new NetError(`${url.split('/services/')[1] || url}: ${data.error.message || 'ArcGIS error'} ${(data.error.details || []).join(' ')}`);
   return data;
 }

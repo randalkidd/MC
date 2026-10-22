@@ -74,15 +74,9 @@ async function ghFetch(url, init = {}) {
   return r.json();
 }
 
-// Read a JSON/text file. Prefers the API (fresh, gives sha); falls back to the published site copy.
+// Read a JSON/text file from the published site (same origin: fast, cached by GitHub's CDN, no API rate limit).
+// Pages republishes ~1 min after a save; the app keeps its own saved copy in memory meanwhile.
 export async function readFile(path) {
-  if (gh.owner && gh.repo) {
-    try {
-      const d = await ghFetch(`${api(path)}?ref=${encodeURIComponent(gh.branch)}`);
-      if (d && d.content) return { text: b64dec(d.content), sha: d.sha, source: 'github' };
-      if (d === null) return { text: null, sha: null, source: 'github' };
-    } catch (e) { /* rate-limited or offline → fall through */ }
-  }
   const r = await fetch(`${path}?t=${Date.now()}`, { cache: 'no-store' });
   if (!r.ok) return { text: null, sha: null, source: 'site' };
   return { text: await r.text(), sha: null, source: 'site' };
@@ -98,10 +92,16 @@ export async function writeFile(path, text, message) {
   return ghFetch(api(path), { method: 'PUT', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
 }
 
-export async function listDir(path) {
+const dirCache = new Map();
+export async function listDir(path, { fresh = false } = {}) {
+  const hit = dirCache.get(path);
+  if (!fresh && hit && Date.now() - hit.t < 60000) return hit.v;
   const d = await ghFetch(`${api(path)}?ref=${encodeURIComponent(gh.branch)}`);
-  return Array.isArray(d) ? d : [];
+  const v = Array.isArray(d) ? d : [];
+  dirCache.set(path, { t: Date.now(), v });
+  return v;
 }
+export function clearDirCache() { dirCache.clear(); }
 
 export async function testAccess() {
   if (gh.viaRelay) { const d = await relay('/gh/ping'); return { name: `${d.repo} (via relay)`, canPush: d.canPush, private: false }; }
