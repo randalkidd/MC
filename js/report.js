@@ -1,6 +1,6 @@
 // Renders a lookup result in the project's parcel-report-template structure (HTML + Markdown).
-import { LINKS } from './lookup.js?v=e21eaf80';
-import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=e21eaf80';
+import { LINKS } from './lookup.js?v=3be92253';
+import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=3be92253';
 
 // Only allow http(s) URLs into href attributes; everything else becomes "#".
 const safeUrl = (u) => { try { const x = new URL(String(u), location.href); return /^https?:$/.test(x.protocol) ? x.href : '#'; } catch { return '#'; } };
@@ -130,7 +130,7 @@ export function standardsRows(key) {
 }
 
 export function renderReportHTML(R, db) {
-  const p = R.parcel; const out = [];
+  const p = R.parcel; const out = [`<h2 class="rep-title">Parcel ${esc(p.APNDash || R.apn)}</h2>`];
   const plat = findPlat(R, db);
   let secN = 0; const h = (t) => out.push(`<h3>${++secN}. ${t}</h3>`);
   const table = (rows, head = ['Field', 'Value']) => out.push(`<div class="tw"><table><thead><tr>${head.map(x => `<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.map(r => r.raw ? r.raw : `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`);

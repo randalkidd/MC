@@ -83,7 +83,18 @@ dialog::backdrop { background: rgb(0 0 0 / .4); }
 #toasts { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); display: grid; gap: .5rem; z-index: 2000; width: min(520px, calc(100vw - 32px)); }
 .toast { background: var(--ink); color: var(--bg); padding: .6rem .9rem; border-radius: 8px; font-size: .88rem; box-shadow: 0 6px 20px rgb(0 0 0 / .2); } .toast.error { background: var(--bad); color: #fff; } .toast.ok { background: var(--ok); color: #fff; }
 .foot { max-width: 1180px; margin: 0 auto; padding: 0 16px 2rem; color: var(--muted); font-size: .75rem; }
-@media print { .top, .tabs, .searchbar, .actions, .hint, .foot, #toasts, .maps, .map { display: none !important; } .report { border: 0; } body { background: #fff; } }
+@media print { .top, .tabs, .searchbar, .actions, .hint, .foot, #toasts, .landing, #lookup-status, .maps, .map { display: none !important; } .report { border: 0; } body { background: #fff; } }
+/* Print snapshot of the maps: moved under the report's "Parcel …" heading while printing (app.js). Fixed size so the
+   framing Leaflet computes on screen is exactly what prints. */
+html.printing .report .maps { display: grid !important; grid-template-columns: 340px 340px; gap: 16px; width: 696px; margin: .4rem 0 1rem; break-inside: avoid; }
+html.printing .report .map { display: block !important; height: 280px; width: 340px; }
+html.printing .report .maps figcaption { color: #4f5d6b; }
+@media print {
+  html.printing .report .maps, html.printing .report .map { display: grid !important; }
+  html.printing .report .map { display: block !important; border: 1px solid #D8DFE1; }
+  .leaflet-control-zoom, .leaflet-control-layers { display: none !important; }
+  .leaflet-control-attribution { font-size: 7px !important; }
+}
 /* Printing is always light, whatever theme is on screen. */
 @media print {
   :root, :root[data-theme] {
@@ -146,3 +157,4 @@ h1, h2, .brand b, .landing h2 { font-family: var(--display); font-weight: 700; l
 h3, .tab, th { font-family: var(--sans); font-weight: 700; }
 .tab { font-weight: 500; } .tab[aria-selected="true"] { font-weight: 700; }
 a { font-weight: 500; }
+.report .rep-title { margin: 0 0 .35rem; font: 700 1.35rem/1.25 var(--display); color: var(--ink); }

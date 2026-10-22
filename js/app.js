@@ -1,13 +1,13 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=e21eaf80';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=e21eaf80';
-import { settings, setSharedRelay } from './net.js?v=e21eaf80';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=e21eaf80';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=e21eaf80';
-import { CHECKLISTS } from './checklists.js?v=e21eaf80';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=e21eaf80';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=3be92253';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=3be92253';
+import { settings, setSharedRelay } from './net.js?v=3be92253';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=3be92253';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=3be92253';
+import { CHECKLISTS } from './checklists.js?v=3be92253';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=3be92253';
 let REF = null; // js/refdata.js (76 KB) loads the first time the Reference tab opens
-import { findPlatDoc } from './recorder.js?v=e21eaf80';
-import { loadAllSubdivisions } from './subdivisions.js?v=e21eaf80';
+import { findPlatDoc } from './recorder.js?v=3be92253';
+import { loadAllSubdivisions } from './subdivisions.js?v=3be92253';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -346,7 +346,7 @@ async function runLookup(apn, { force = false } = {}) {
     if (unlocked && S.R.parcel.SubdivisionName && !findPlat(S.R, S.db) && !S.R.outsideCounty) queueSubdivision(S.R); // background
     out.innerHTML = renderReportHTML(S.R, S.db);
     const age = Math.round((Date.now() - lookupCache.get(S.R.apn).t) / 60000);
-    if (age >= 1) out.insertAdjacentHTML('afterbegin', `<p class="meta">Cached result from ${age} min ago · <button class="link" data-act="refresh">refresh from county GIS</button></p>`);
+    if (age >= 1) (out.querySelector('.rep-title') || out).insertAdjacentHTML(out.querySelector('.rep-title') ? 'afterend' : 'afterbegin',`<p class="meta">Cached result from ${age} min ago · <button class="link" data-act="refresh">refresh from county GIS</button></p>`);
     S.md = renderReportMD(S.R, S.db, S.extras);
     $('#report-actions').hidden = false;
     drawMap(S.R);
@@ -408,11 +408,43 @@ $('#rep-save').addEventListener('click', async () => {
 $('#rep-pdf').addEventListener('click', async (e) => {
   const b = e.currentTarget; if (b.disabled || !S.md) return;
   b.disabled = true; const label = b.textContent; b.textContent = 'Building PDF…';
-  try { const { reportPDF } = await import('./pdf.js?v=e21eaf80'); await reportPDF(S.md, { apn: S.R.apn }); toast('PDF saved', 'ok'); }
+  try { const { reportPDF } = await import('./pdf.js?v=3be92253'); await reportPDF(S.md, { apn: S.R.apn }); toast('PDF saved', 'ok'); }
   catch (err) { toast(`PDF failed: ${err.message}`, 'error'); }
   finally { b.disabled = false; b.textContent = label; }
 });
-$('#rep-print').addEventListener('click', () => window.print());
+// Printing: put the two maps under the report's "Parcel …" heading at a fixed print width, refit them
+// to the parcel and (from the Print button) wait for tiles, then put everything back afterwards.
+const PR = { on: false, home: null, view: null };
+function printMapsIn() {
+  if (PR.on || !S.map || !S.layer || $('#maps').hidden || $('#p-lookup').hidden) return false;
+  const h = $('#report .rep-title'); if (!h) return false;
+  PR.on = true; PR.view = { c: S.map.getCenter(), z: S.map.getZoom() };
+  PR.home = document.createComment('maps'); $('#maps').before(PR.home); h.after($('#maps'));
+  document.documentElement.classList.add('printing');
+  S.map.invalidateSize({ animate: false }); S.map2.invalidateSize({ animate: false });
+  S.map.fitBounds(S.layer.getBounds(), { padding: [20, 20], maxZoom: 19, animate: false });
+  S.refreshLines?.();
+  return true;
+}
+function printMapsOut() {
+  if (!PR.on) return; PR.on = false;
+  document.documentElement.classList.remove('printing');
+  PR.home.replaceWith($('#maps'));
+  S.map.invalidateSize({ animate: false }); S.map2.invalidateSize({ animate: false });
+  S.map.setView(PR.view.c, PR.view.z, { animate: false });
+}
+function tilesSettled(ms = 4000) {
+  const layers = []; [S.map, S.map2].forEach(m => m.eachLayer(l => { if (l instanceof L.TileLayer && l.isLoading?.()) layers.push(l); }));
+  return Promise.race([Promise.all(layers.map(l => new Promise(r => l.once('load', r)))), new Promise(r => setTimeout(r, ms))]);
+}
+window.addEventListener('beforeprint', () => { printMapsIn(); }); // Ctrl+P: best effort, uses tiles already loaded
+window.addEventListener('afterprint', printMapsOut);
+$('#rep-print').addEventListener('click', async (e) => {
+  const b = e.currentTarget; b.disabled = true;
+  try { if (printMapsIn()) { await new Promise(r => setTimeout(r, 60)); await tilesSettled(); } }
+  finally { b.disabled = false; }
+  window.print();
+});
 
 let leafletP = null;
 function loadLeaflet() {
@@ -715,7 +747,7 @@ async function renderSaved() {
 // ---------------- reference ----------------
 let refP = null;
 function renderReference() {
-  return (refP ||= import('./refdata.js?v=e21eaf80').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
+  return (refP ||= import('./refdata.js?v=3be92253').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
 }
 function fillReference() {
   const { DIRECTIVES, MCSR_QUICK, REG_DOCS, REG_LOOKUP } = REF;
