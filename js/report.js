@@ -33,7 +33,10 @@ export function platSetbacks(plat, lot) {
 }
 const PLAT_FIELDS = [['Front setback', 'front', ' ft'], ['Rear setback', 'rear', ' ft'], ['Side-interior setback', 'side', ' ft'], ['Side-street setback', 'street', ' ft'], ['Height maximum', 'height', ''], ['Lot coverage maximum', 'coverage', ''], ['Lot width minimum', 'width', ' ft'], ['Other recorded restrictions', 'other', '']];
 export function platRows(rows) {
-  const val = (r, k, u) => (r[k] == null || r[k] === '' ? '—' : `${r[k]}${typeof r[k] === 'number' ? u : ''}`);
+  const val = (r, k, u) => {
+    if (k === 'coverage' && r.coverageNow) return `${r.coverage || '—'} on plat → ${r.coverageNow} now${r.coverageBy ? ` (changed by ${r.coverageBy})` : ''}`;
+    return r[k] == null || r[k] === '' ? '—' : `${r[k]}${typeof r[k] === 'number' ? u : ''}`;
+  };
   return PLAT_FIELDS.filter(([, k]) => rows.some(r => r[k] != null && r[k] !== '')).map(([lab, k, u]) => [lab, ...rows.map(r => val(r, k, u))]);
 }
 const platHead = (rows) => ['Standard', ...rows.map(r => rows.length > 1 ? `Lots ${r.lots}${r.district ? ` (${r.district})` : ''}` : `Recorded plat${r.district ? ` (${r.district})` : ''}`)];

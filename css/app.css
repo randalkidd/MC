@@ -95,3 +95,5 @@ tr.me td { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .card.result, .findings li { color: var(--ink); }
 .result.bad h3 { color: var(--bad); } .result.ok h3 { color: var(--ok); } .result.warn h3 { color: #e0a85f; }
 .sb-lines div + div { margin-top: .25rem; padding-top: .25rem; border-top: 1px dashed var(--line); }
+.chg { color: #e0a85f; }
+#db-body td:nth-child(2), #db-body td:nth-child(7) { white-space: nowrap; }

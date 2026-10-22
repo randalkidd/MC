@@ -50,6 +50,18 @@ function setbackCell(s) {
     : String(s.setbacks || '—').split(/\.\s+(?=Lots)/).map(x => esc(x.replace(/\.$/, '')));
   return `<div class="sb-lines">${lines.map(l => `<div>${l}</div>`).join('')}</div>${t.length ? '<div class="sub">Front / Rear / Side / Street-side</div>' : ''}`;
 }
+// Lot coverage per lot range: plat figure, any later change (and the case that made it); else base-zoning maximum.
+function coverageCell(s) {
+  const t = Array.isArray(s.setbackTable) ? s.setbackTable.filter(r => r.coverage || r.coverageNow) : [];
+  if (t.length) return t.map(r => {
+    const label = t.length > 1 || (r.lots && !/^all$/i.test(r.lots)) ? `<b>Lots ${esc(r.lots)}:</b> ` : '';
+    const chg = r.coverageNow ? ` → <b class="chg">${esc(r.coverageNow)}</b>${r.coverageBy ? `<div class="sub">changed by ${esc(r.coverageBy)}</div>` : ''}` : '';
+    return `<div>${label}${esc(r.coverage || '—')} <span class="sub">plat</span>${chg}</div>`;
+  }).join('').replace(/^/, '<div class="sb-lines">') + '</div>';
+  const keys = String(s.baseZoning || '').split(/[\/,;]|\bvs\b/i).map(z => normalizeDistrict(z.trim())).filter(Boolean);
+  const uniq = [...new Set(keys)];
+  return uniq.length ? `<div class="sb-lines">${uniq.map(k => `<div>${DISTRICTS[k].cov}% <span class="sub">${k} base zoning</span></div>`).join('')}</div>${uniq.length > 1 ? '<div class="sub">⚠ zoning unresolved — confirm which applies</div>' : ''}` : '—';
+}
 function renderDB() {
   const q = ($('#db-q').value || '').toLowerCase();
   const rows = (S.db?.subdivisions || []).filter(s => !q || JSON.stringify(s).toLowerCase().includes(q)).sort((a, b) => a.name.localeCompare(b.name));
@@ -59,8 +71,8 @@ function renderDB() {
     <td><b>${esc(s.name)}</b><div class="sub">${esc(s.baseZoning || '')}</div></td>
     <td>${esc(s.mcr)}</td>
     <td><a href="${esc(s.platUrl)}" target="_blank" rel="noopener">${esc(s.docType)} #${esc(s.rec)}</a><div class="sub">${esc(s.recorded)}</div></td>
-    <td>${s.totalLots ?? '—'}</td><td>${setbackCell(s)}</td><td>${esc(s.lastUpdated)}</td>
-    <td><button class="btn sm" data-edit="${esc(s.name)}">Edit</button></td></tr>`).join('') || '<tr><td colspan="7">No matches.</td></tr>';
+    <td>${s.totalLots ?? '—'}</td><td>${setbackCell(s)}</td><td>${coverageCell(s)}</td><td>${esc(s.lastUpdated)}</td>
+    <td><button class="btn sm" data-edit="${esc(s.name)}">Edit</button></td></tr>`).join('') || '<tr><td colspan="8">No matches.</td></tr>';
 }
 $('#db-q').addEventListener('input', renderDB);
 $('#db-body').addEventListener('click', (e) => { const n = e.target.dataset.edit; if (n) openEditor(S.db.subdivisions.find(s => s.name === n)); });
@@ -68,7 +80,7 @@ $('#db-new').addEventListener('click', () => openEditor(null));
 $('#db-reload').addEventListener('click', () => loadDB().then(() => toast('Reloaded')));
 $('#db-export').addEventListener('click', () => download('subdivision-plats.json', JSON.stringify(S.db, null, 2)));
 
-const STBL = [['lots', 'Lots'], ['district', 'District'], ['front', 'Front ft'], ['rear', 'Rear ft'], ['side', 'Side ft'], ['street', 'Street-side ft'], ['height', 'Height'], ['coverage', 'Coverage'], ['width', 'Min width ft'], ['other', 'Other']];
+const STBL = [['lots', 'Lots'], ['district', 'District'], ['front', 'Front ft'], ['rear', 'Rear ft'], ['side', 'Side ft'], ['street', 'Street-side ft'], ['height', 'Height'], ['coverage', 'Coverage (plat)'], ['coverageNow', 'Coverage now'], ['coverageBy', 'Changed by (case)'], ['width', 'Min width ft'], ['other', 'Other']];
 const FIELDS = [
   ['name', 'Subdivision name (exact Assessor SubdivisionName)'], ['mcr', 'MCR book-page (e.g. 754-39)'], ['docType', 'Document type (PLAT MAP / SUR MAP)'],
   ['rec', 'Recording number'], ['recorded', 'Recorded date (YYYY-MM-DD)'], ['totalLots', 'Total lots (current Assessor count)'],
