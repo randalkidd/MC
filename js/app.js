@@ -365,6 +365,8 @@ $('#theme-btn').addEventListener('click', () => {
 });
 syncThemeBtn();
 
+document.addEventListener('click', (e) => { const j = e.target.closest('[data-jump]'); if (!j) return; e.preventDefault(); showTab('p-ref'); setTimeout(() => document.getElementById(j.dataset.jump)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); });
+
 // ---------------- init ----------------
 async function loadSharedConfig() {
   try { const f = await readFile('data/site-config.json'); if (f.text) { const c = JSON.parse(f.text); setSharedRelay(c.relayUrl); } } catch {}
