@@ -1,8 +1,11 @@
 // Network helpers: direct fetch first, optional relay (Cloudflare Worker) fallback for hosts that block cross-site requests.
 const LS = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { return null; } };
 
-let sharedRelay = ''; // from data/site-config.json in the repo (same for every browser)
-export function setSharedRelay(u) { sharedRelay = (u || '').trim().replace(/\/+$/, ''); }
+export const DEFAULT_RELAY = 'https://mc-relay.randalkiddaz.workers.dev';
+let sharedRelay = DEFAULT_RELAY; // overridden by data/site-config.json in the repo (same for every browser)
+// Drop a stale per-browser relay that points at a copy of the website instead of the Worker.
+try { const v = localStorage.getItem('mc.proxy') || ''; if (/pages\.dev|github\.io/i.test(v) || v.replace(/\/+$/, '') === DEFAULT_RELAY) localStorage.removeItem('mc.proxy'); } catch {}
+export function setSharedRelay(u) { sharedRelay = (u || '').trim().replace(/\/+$/, '') || DEFAULT_RELAY; }
 export const settings = {
   get localProxy() { return (LS('mc.proxy') || '').trim().replace(/\/+$/, ''); },
   get sharedProxy() { return sharedRelay; },
