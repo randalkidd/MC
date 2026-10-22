@@ -3,6 +3,8 @@
 # or `npx wrangler secret put GITHUB_TOKEN` / `npx wrangler secret put SITE_KEY`.
 GITHUB_TOKEN=github_pat_REPLACE_ME
 SITE_KEY=REPLACE_WITH_YOUR_PASSPHRASE
+# Optional: enables Plan review → Read a site plan PDF
+ANTHROPIC_API_KEY=REPLACE_ME
 
 # Optional, non-secret overrides (defaults are in cors-proxy.js)
 # ALLOWED_ORIGIN=https://randalkidd.github.io,http://localhost:8000

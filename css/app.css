@@ -164,3 +164,7 @@ a { font-weight: 500; }
 :root[data-theme="light"] th { background: var(--soft); }
 :root[data-theme="light"] .db-scroll thead th { background: var(--surface); }
 :root[data-theme="light"] .findings li, :root[data-theme="light"] tr.grp-head td, :root[data-theme="light"] code { background: var(--soft); }
+.sp-drop { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; padding: .8rem; border: 2px dashed var(--line); border-radius: var(--radius); margin: .5rem 0; }
+.sp-drop.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.sp-drop input[type=file] { max-width: 100%; }
+#sp-out h3 { margin-top: 1rem; }

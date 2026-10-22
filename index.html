@@ -7,14 +7,14 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://gis.maricopa.gov https://server.arcgisonline.com https://*.arcgisonline.com https://unpkg.com; connect-src 'self' https://gis.maricopa.gov https://publicapi.recorder.maricopa.gov https://edms.maricopa.gov https://recorder.maricopa.gov https://api.github.com https://*.workers.dev; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="preconnect" href="https://gis.maricopa.gov" crossorigin>
-<script src="js/theme.js?v=9957b21b"></script>
+<script src="js/theme.js?v=cd6f86f5"></script>
 <title>Unofficial Maricopa County Zoning Hub</title>
 <meta name="description" content="Maricopa County parcel lookup, MCZO/MCSR standards, subdivision plat database and plan-review deficiency builder.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23F26724'/><path d='M7 24V9l9 7 9-7v15' fill='none' stroke='%2304161a' stroke-width='3' stroke-linejoin='round'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=9957b21b">
-<link rel="modulepreload" href="js/app.js?v=9957b21b"><link rel="modulepreload" href="js/lookup.js?v=9957b21b"><link rel="modulepreload" href="js/report.js?v=9957b21b"><link rel="modulepreload" href="js/net.js?v=9957b21b"><link rel="modulepreload" href="js/github.js?v=9957b21b"><link rel="modulepreload" href="js/standards.js?v=9957b21b"><link rel="modulepreload" href="js/checklists.js?v=9957b21b"><link rel="modulepreload" href="js/review.js?v=9957b21b"><link rel="modulepreload" href="js/recorder.js?v=9957b21b"><link rel="modulepreload" href="js/subdivisions.js?v=9957b21b">
+<link rel="stylesheet" href="css/app.css?v=cd6f86f5">
+<link rel="modulepreload" href="js/app.js?v=cd6f86f5"><link rel="modulepreload" href="js/lookup.js?v=cd6f86f5"><link rel="modulepreload" href="js/report.js?v=cd6f86f5"><link rel="modulepreload" href="js/net.js?v=cd6f86f5"><link rel="modulepreload" href="js/github.js?v=cd6f86f5"><link rel="modulepreload" href="js/standards.js?v=cd6f86f5"><link rel="modulepreload" href="js/checklists.js?v=cd6f86f5"><link rel="modulepreload" href="js/review.js?v=cd6f86f5"><link rel="modulepreload" href="js/recorder.js?v=cd6f86f5"><link rel="modulepreload" href="js/subdivisions.js?v=cd6f86f5">
 </head>
 <body>
 <header class="top">
@@ -62,6 +62,17 @@
 
 <!-- PLAN REVIEW -->
 <section class="panel" id="p-review" hidden>
+  <div class="card sp-card" id="sp-card">
+    <div class="cardhead"><h2>Read a site plan PDF <span class="sub">(Claude)</span></h2></div>
+    <p class="sub">Pick the submittal type below, then drop the applicant's site plan here. Claude reads every sheet and fills this page: plan title, residence setbacks and height, every structure with its square footage and setbacks (lot coverage is then computed), and the checklist. The APN, owner, address, lot area, zoning and subdivision/lot on the plan are then checked against the Assessor record and the recorded deed. <b>AI reading of dimensions can be wrong — verify every value against the plan.</b> The PDF is sent through your relay to Anthropic, read once and deleted.</p>
+    <div class="sp-drop" id="sp-drop">
+      <input type="file" id="sp-file" accept="application/pdf,.pdf">
+      <span id="sp-name" class="sub">or drag a PDF here (max 30 MB)</span>
+      <button class="btn primary" id="sp-run" type="button" disabled>Read with Claude</button>
+    </div>
+    <div id="sp-status" class="status" hidden></div>
+    <div id="sp-out"></div>
+  </div>
   <div class="grid2">
     <div class="card">
       <h2>Submittal</h2>
@@ -247,8 +258,8 @@
 </section>
 </main>
 <footer class="foot">All information in this system is public and accessible to anyone; items saved here are stored in a public GitHub repository. Reference tool — verify findings against the adopted ordinance, recorded documents and case files before relying on them.
-<div class="build">Version <span id="build">10.22.26.039</span> · <span id="relay-ver" data-latest="9" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
+<div class="build">Version <span id="build">10.22.26.041</span> · <span id="relay-ver" data-latest="10" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
 <div id="toasts" aria-live="polite"></div>
-<script type="module" src="js/app.js?v=9957b21b"></script>
+<script type="module" src="js/app.js?v=cd6f86f5"></script>
 </body>
 </html>

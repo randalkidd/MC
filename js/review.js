@@ -1,6 +1,6 @@
 // Plan review: measurement checks (setbacks, coverage, height) + checklist → markup table (Markdown).
-import { DISTRICTS, normalizeDistrict, MCZO_URL } from './standards.js?v=9957b21b';
-import { CHECKLISTS } from './checklists.js?v=9957b21b';
+import { DISTRICTS, normalizeDistrict, MCZO_URL } from './standards.js?v=cd6f86f5';
+import { CHECKLISTS } from './checklists.js?v=cd6f86f5';
 
 const DD2021 = 'https://www.maricopa.gov/6459/Lot-Coverage-Calculations---DD-2021-01';
 const DD3012 = 'https://www.maricopa.gov/6353/Accessory-Structures-Equipment-and-Setba';
@@ -115,6 +115,7 @@ export function buildMarkdown(s) {
   const md = [];
   md.push(`## Plan Review — ${s.apn || '<APN>'} — ${CHECKLISTS[s.type]?.label || s.type} — ${s.date}`, '');
   md.push(`**Plan reviewed:** ${s.planTitle || '—'}  **Reviewer:** ${s.reviewer || '—'}`);
+  if (s.ai && s.ai.result) md.push(`**Plan read:** ${s.ai.file} read by Claude (${s.ai.model || 'AI'}) on ${String(s.ai.at).slice(0, 10)}; the reviewer verified the values before issuing these comments.`);
   md.push(`**Controlling standards:** ${key ? `${key} per [MCZO Ch. 5 §${d.section}](${MCZO_URL}) (Dec 10, 2025 edition — confirm per DD-3014-01)` : 'district not set'}${Object.values(s.platSetbacks).some(v => v) ? `; recorded plat BSL F/R/S/SS = ${['front', 'rear', 'side', 'street'].map(k => s.platSetbacks[k] || '—').join('/')} ft` : ''}`);
   md.push(`**Completeness:** ${inc ? `**Incomplete** (${inc} item${inc > 1 ? 's' : ''})` : (cl.length ? 'Complete' : 'Not screened')}`, '');
   md.push('| # | Sheet / location | Item | Plan shows | Required | Citation | Status | Required correction |', '|---|---|---|---|---|---|---|---|');

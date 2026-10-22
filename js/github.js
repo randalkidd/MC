@@ -30,9 +30,10 @@ export const gh = {
   get canWrite() { return !!(this.owner && this.repo && (this.token || this.viaRelay)); },
 };
 
-import { settings } from './net.js?v=9957b21b';
+import { settings } from './net.js?v=cd6f86f5';
 const relayUrl = () => settings.proxy;
 
+export async function relayFetch(route, init = {}) { return relay(route, init); }
 async function relay(route, init = {}) {
   const base = relayUrl();
   if (!/^https:\/\/[^/]+\.workers\.dev$/i.test(base)) {
@@ -108,7 +109,7 @@ export async function listDir(path, { fresh = false } = {}) {
 export function clearDirCache() { dirCache.clear(); }
 
 export async function testAccess() {
-  if (gh.viaRelay) { const d = await relay('/gh/ping'); return { name: `${d.repo} (via relay)`, canPush: d.canPush, private: false }; }
+  if (gh.viaRelay) { const d = await relay('/gh/ping'); return { name: `${d.repo} (via relay)`, canPush: d.canPush, private: false, ai: d.ai }; }
   const r = await ghFetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}`);
   if (!r) throw new Error('Repo not found (check owner/repo, or the token lacks access).');
   return { name: r.full_name, canPush: !!(r.permissions && r.permissions.push), private: r.private };

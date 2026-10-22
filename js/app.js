@@ -1,13 +1,13 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=9957b21b';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=9957b21b';
-import { settings, setSharedRelay } from './net.js?v=9957b21b';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=9957b21b';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=9957b21b';
-import { CHECKLISTS } from './checklists.js?v=9957b21b';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=9957b21b';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=cd6f86f5';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=cd6f86f5';
+import { settings, setSharedRelay } from './net.js?v=cd6f86f5';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=cd6f86f5';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=cd6f86f5';
+import { CHECKLISTS } from './checklists.js?v=cd6f86f5';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=cd6f86f5';
 let REF = null; // js/refdata.js (76 KB) loads the first time the Reference tab opens
-import { findPlatDoc } from './recorder.js?v=9957b21b';
-import { loadAllSubdivisions } from './subdivisions.js?v=9957b21b';
+import { findPlatDoc } from './recorder.js?v=cd6f86f5';
+import { loadAllSubdivisions } from './subdivisions.js?v=cd6f86f5';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -352,15 +352,18 @@ async function runLookup(apn, { force = false } = {}) {
     drawMap(S.R);
     $('#lookup-apn').value = S.R.apn;
     history.replaceState(null, '', `?apn=${S.R.apn}#lookup`);
-    // carry context into the plan review
-    const z = S.R.zoning[0]?.zone; const k = normalizeDistrict(z);
-    Object.assign(S.review, { apn: S.R.apn, lotArea: S.R.parcel.areaSqFt, district: k || S.review.district });
-    const plat = findPlat(S.R, S.db);
-    const ps = platSetbacks(plat, S.R.parcel.Lot);
-    if (ps.match) { S.review.platSetbacks = { front: ps.match.front ?? '', rear: ps.match.rear ?? '', side: ps.match.side ?? '', street: ps.match.street ?? '' }; $('#plat-hint').innerHTML = `Recorded plat setbacks filled in from <b>${esc(plat.name)}</b>${ps.rows.length > 1 ? ` (lots ${esc(ps.match.lots)})` : ''}.`; }
-    else { S.review.platSetbacks = { front: '', rear: '', side: '', street: '' }; $('#plat-hint').innerHTML = plat ? (ps.rows.length ? `Plat <b>${esc(plat.name)}</b> has several lot ranges — enter the applicable BSLs below.` : `Plat <b>${esc(plat.name)}</b> shows no setbacks — MCZO governs.`) : ''; }
-    saveDraft(S.review); renderReview();
+    carryToReview(S.R);
   } catch (e) { st.className = 'status err'; st.textContent = e.message; }
+}
+// Carry a lookup's APN, district, lot area and recorded plat setbacks into the plan review.
+function carryToReview(R) {
+  const z = R.zoning[0]?.zone; const k = normalizeDistrict(z);
+  Object.assign(S.review, { apn: R.apn, lotArea: R.parcel.areaSqFt, district: k || S.review.district });
+  const plat = findPlat(R, S.db);
+  const ps = platSetbacks(plat, R.parcel.Lot);
+  if (ps.match) { S.review.platSetbacks = { front: ps.match.front ?? '', rear: ps.match.rear ?? '', side: ps.match.side ?? '', street: ps.match.street ?? '' }; $('#plat-hint').innerHTML = `Recorded plat setbacks filled in from <b>${esc(plat.name)}</b>${ps.rows.length > 1 ? ` (lots ${esc(ps.match.lots)})` : ''}.`; }
+  else { S.review.platSetbacks = { front: '', rear: '', side: '', street: '' }; $('#plat-hint').innerHTML = plat ? (ps.rows.length ? `Plat <b>${esc(plat.name)}</b> has several lot ranges — enter the applicable BSLs below.` : `Plat <b>${esc(plat.name)}</b> shows no setbacks — MCZO governs.`) : ''; }
+  saveDraft(S.review); renderReview();
 }
 $('#lookup-form').addEventListener('submit', (e) => { e.preventDefault(); runLookup($('#lookup-apn').value); });
 $('#report').addEventListener('click', async (e) => {
@@ -408,7 +411,7 @@ $('#rep-save').addEventListener('click', async () => {
 $('#rep-pdf').addEventListener('click', async (e) => {
   const b = e.currentTarget; if (b.disabled || !S.md) return;
   b.disabled = true; const label = b.textContent; b.textContent = 'Building PDF…';
-  try { const { reportPDF } = await import('./pdf.js?v=9957b21b'); await reportPDF(S.md, { apn: S.R.apn }); toast('PDF saved', 'ok'); }
+  try { const { reportPDF } = await import('./pdf.js?v=cd6f86f5'); await reportPDF(S.md, { apn: S.R.apn }); toast('PDF saved', 'ok'); }
   catch (err) { toast(`PDF failed: ${err.message}`, 'error'); }
   finally { b.disabled = false; b.textContent = label; }
 });
@@ -613,7 +616,7 @@ function renderReview() {
   for (const k of Object.keys(s.platSetbacks)) $(`#rv-b-${k}`).value = s.platSetbacks[k] ?? '';
   const site = ['residential', 'commercial'].includes(s.type);
   $$('.site-only').forEach(el => (el.hidden = !site));
-  renderStructures(); renderChecklist(); renderOutput();
+  renderStructures(); renderChecklist(); renderOutput(); renderSitePlan();
 }
 function renderStructures() {
   $('#rv-structs').innerHTML = S.review.structures.map((x, i) => `<tr data-i="${i}">
@@ -747,7 +750,7 @@ async function renderSaved() {
 // ---------------- reference ----------------
 let refP = null;
 function renderReference() {
-  return (refP ||= import('./refdata.js?v=9957b21b').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
+  return (refP ||= import('./refdata.js?v=cd6f86f5').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
 }
 function fillReference() {
   const { DIRECTIVES, MCSR_QUICK, REG_DOCS, REG_LOOKUP } = REF;
@@ -794,7 +797,7 @@ $('#st-copy-relay').addEventListener('click', async () => {
   catch (e) { toast('Copy blocked by the browser — use "View relay code", then select all and copy', 'error'); }
 });
 $('#st-test-gis').addEventListener('click', async () => { const o = $('#st-test-out'); o.textContent = 'Testing county GIS…'; try { o.textContent = `County GIS reachable (${await ping()} ms).`; } catch (e) { o.textContent = e.message; } });
-$('#st-test-gh').addEventListener('click', async () => { const o = $('#st-test-out'); o.textContent = 'Testing GitHub…'; try { const r = await testAccess(); o.textContent = `${r.name}: ${r.canPush ? 'write access OK' : 'READ-ONLY — on GitHub, edit the token: Repository access must include randalkidd/MC and Contents must be Read and write'}${r.private ? ' (private repo — Pages needs a paid plan)' : ''}`; if (r.canPush && gh.viaRelay) { await grantAccess(); toast('Connected — staff tools unlocked', 'ok'); } else revokeAccess(); if (r.canPush && gh.viaRelay) { try { if (await shareRelayIfNeeded()) { o.textContent += ' · Relay address shared — other browsers now need only the passphrase.'; renderSettings(); } } catch (e) { o.textContent += ` · Couldn't share relay address: ${e.message}`; } } } catch (e) { o.textContent = e.message; revokeAccess(); } });
+$('#st-test-gh').addEventListener('click', async () => { const o = $('#st-test-out'); o.textContent = 'Testing GitHub…'; try { const r = await testAccess(); o.textContent = `${r.name}: ${r.canPush ? 'write access OK' : 'READ-ONLY — on GitHub, edit the token: Repository access must include randalkidd/MC and Contents must be Read and write'}${r.private ? ' (private repo — Pages needs a paid plan)' : ''}${r.ai === true ? ' · Site-plan reading (Claude): on' : r.ai === false ? ' · Site-plan reading (Claude): off — add ANTHROPIC_API_KEY to the relay to enable' : ''}`; if (r.canPush && gh.viaRelay) { await grantAccess(); toast('Connected — staff tools unlocked', 'ok'); } else revokeAccess(); if (r.canPush && gh.viaRelay) { try { if (await shareRelayIfNeeded()) { o.textContent += ' · Relay address shared — other browsers now need only the passphrase.'; renderSettings(); } } catch (e) { o.textContent += ` · Couldn't share relay address: ${e.message}`; } } } catch (e) { o.textContent = e.message; revokeAccess(); } });
 
 $('#gh-badge').addEventListener('click', () => { showTab('p-settings'); setTimeout(() => $('#st-pass').focus(), 50); });
 
@@ -860,6 +863,82 @@ async function shareRelayIfNeeded() {
   await writeFile('data/site-config.json', JSON.stringify({ relayUrl: settings.localProxy, updated: new Date().toISOString().slice(0, 10) }, null, 2) + '\n', 'Share relay address with all browsers');
   setSharedRelay(settings.localProxy); return true;
 }
+
+
+// ---------------- plan review: read a site-plan PDF with Claude (relay /ai/siteplan) ----------------
+const SP = { file: null, busy: false };
+const spIcon = (st) => ({ ok: '✅', verify: '⚠️', deficient: '❌', na: '—' }[st] || '');
+function spPick(f) {
+  if (!f) return;
+  if (!/\.pdf$/i.test(f.name) && f.type !== 'application/pdf') { toast('Choose a PDF file.', 'error'); return; }
+  SP.file = f; $('#sp-name').textContent = `${f.name} · ${(f.size / 1048576).toFixed(1)} MB`; $('#sp-run').disabled = SP.busy;
+}
+function renderSitePlan() {
+  const a = S.review.ai; const el = $('#sp-out');
+  if (!a || !a.result) { el.innerHTML = ''; return; }
+  const r = a.result, P = r.parcel || {}, pl = r.plan || {}, cv = r.coverage || {};
+  const yn = (v) => v === true ? 'Yes' : v === false ? 'No' : '—';
+  const facts = [
+    ['Plan title / revision / date', [pl.title, pl.revision, pl.date].filter(Boolean).join(' · ') || '—'],
+    ['Prepared by', pl.preparer || '—'], ['Sheets', pl.sheets ?? '—'],
+    ['Scale', `${pl.scale_stated || 'not stated'}${pl.scale_is_standard === false ? ' (non-standard)' : ''}; scale bar: ${yn(pl.scale_bar)}`],
+    ['North arrow / vicinity map', `${yn(pl.north_arrow)} / ${yn(pl.vicinity_map)}`],
+    ['Legal description', P.legal_description || '—'], ['Lot dimensions', P.lot_dimensions || '—'], ['Corner lot', yn(P.corner_lot)],
+    ['Water / wastewater', `${P.water_source || '—'} / ${P.wastewater || '—'}`],
+    ['Lot coverage shown on plan', cv.lot_coverage_pct_shown != null ? `${cv.lot_coverage_pct_shown}%${cv.total_covered_sf_shown ? ` (${(+cv.total_covered_sf_shown).toLocaleString()} sf)` : ''}` : 'not shown'],
+    ['Easements', (r.easements || []).map(e => [e.type, e.width, e.recording && `MCR ${e.recording}`, e.location].filter(Boolean).join(' ')).join('; ') || 'none shown'],
+    ['Streets / ROW', (r.streets || []).map(x => [x.name, x.row_width && `ROW ${x.row_width}`, x.jurisdiction].filter(Boolean).join(' ')).join('; ') || 'none shown'],
+    ['Adjacent uses', (r.adjacent_uses || []).join('; ') || 'none labeled'],
+    ['Invalidating notes', (pl.invalidating_notes || []).join('; ') || 'none found'],
+  ];
+  const u = a.usage || {};
+  el.innerHTML = `<p class="meta">Read <b>${esc(a.file)}</b> with ${esc(a.model || 'Claude')} on ${esc(new Date(a.at).toLocaleString())}${u.input_tokens ? ` · ${u.input_tokens.toLocaleString()} in / ${(u.output_tokens || 0).toLocaleString()} out tokens` : ''}. The form below has been filled in — check each value against the plan.</p>
+    ${a.truncated ? '<div class="warn">The answer was cut off (very large plan). Some items may be missing — verify the checklist.</div>' : ''}
+    ${a.lookupError ? `<div class="warn">Couldn't look up the parcel for the record checks: ${esc(a.lookupError)}</div>` : ''}
+    <h3>Plan vs. Assessor record and recorded deed</h3>
+    <div class="tw"><table><thead><tr><th>Check</th><th>Plan shows</th><th>Record</th><th>Result</th></tr></thead><tbody>
+    ${(a.compare || []).map(([c, plan, rec, st, note]) => `<tr><td>${esc(c)}</td><td>${esc(plan)}</td><td>${esc(rec)}</td><td>${spIcon(st)} ${esc(note || (st === 'ok' ? 'Matches' : ''))}</td></tr>`).join('')}
+    </tbody></table></div>
+    <h3>What the plan shows</h3>
+    <div class="tw"><table><tbody>${facts.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('')}</tbody></table></div>
+    ${(r.uncertain || []).length ? `<div class="warn"><b>Hard to read / inferred — verify:</b><ul>${r.uncertain.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+    ${r.summary ? `<p><b>Summary:</b> ${esc(r.summary)}</p>` : ''}`;
+}
+async function runSitePlan() {
+  if (!SP.file || SP.busy) return;
+  SP.busy = true; $('#sp-run').disabled = true;
+  const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'Sending the PDF to Claude — reading every sheet usually takes 30–90 seconds…';
+  try {
+    const sp = await import('./siteplan.js?v=cd6f86f5');
+    const d = await sp.readSitePlan(SP.file, S.review.type);
+    const res = d.result || {};
+    const planApn = normalizeApn(res.parcel && res.parcel.apn);
+    let R = S.R && S.review.apn && S.R.apn === normalizeApn(S.review.apn) ? S.R : null, lookupError = '';
+    const target = normalizeApn(S.review.apn) || planApn;
+    if (!R && target) {
+      const hit = lookupCache.get(target);
+      if (hit) R = hit.R;
+      else try { st.textContent = `Looking up parcel ${target} for the record checks…`; R = await lookupParcel(target, { onStep: (m) => (st.textContent = `Looking up ${target}: ${m}…`) }); lookupCache.set(R.apn, { R, t: Date.now() }); }
+      catch (e) { lookupError = e.message; }
+    }
+    if (R && !S.review.apn) carryToReview(R);
+    st.textContent = 'Checking the recorded deed…';
+    const deed = R ? await sp.deedNames(R.parcel.DeedNumber) : null;
+    const compare = sp.compareToRecords(res, R, deed);
+    sp.applyToReview(S.review, res, compare);
+    S.review.ai = { file: SP.file.name, at: new Date().toISOString(), model: d.model, usage: d.usage, truncated: !!d.truncated, result: res, compare, deedNames: deed, apn: R ? R.apn : null, lookupError };
+    saveDraft(S.review); renderReview();
+    const bad = compare.filter(c => c[3] === 'deficient').length;
+    st.className = `status ${bad ? 'warn' : 'ok'}`; st.textContent = `Done — the form is filled in from the plan.${bad ? ` ${bad} record mismatch${bad > 1 ? 'es' : ''} found (see below).` : ''} Verify every value before issuing comments.`;
+  } catch (e) { st.className = 'status err'; st.textContent = e.message; }
+  finally { SP.busy = false; $('#sp-run').disabled = !SP.file; }
+}
+$('#sp-file').addEventListener('change', (e) => spPick(e.target.files[0]));
+$('#sp-run').addEventListener('click', runSitePlan);
+{ const dz = $('#sp-drop');
+  ['dragenter', 'dragover'].forEach(t => dz.addEventListener(t, (e) => { e.preventDefault(); dz.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(t => dz.addEventListener(t, (e) => { e.preventDefault(); dz.classList.remove('over'); }));
+  dz.addEventListener('drop', (e) => spPick(e.dataTransfer.files[0])); }
 
 bindReview(); renderReview(); renderSettings(); classify(); loadSharedConfig();
 loadDB().catch(e => { $('#db-source').textContent = `Could not load database: ${e.message}`; }).finally(() => loadQueue());
