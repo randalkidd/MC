@@ -201,7 +201,7 @@ dialog.pv::backdrop { background: rgb(0 0 0 / .6); }
 .pv-where { font-size: .75rem; color: var(--muted); margin-top: .15rem; }
 @media (max-width: 800px) { .pv-body { grid-template-columns: 1fr; grid-template-rows: 60% 40%; } .pv-list { border-left: 0; border-top: 1px solid var(--line); } }
 .pv-diag { padding: .4rem .8rem; background: var(--note-bg); border-bottom: 1px solid var(--line); color: var(--ink); }
-.pv-note { position: sticky; top: 0; z-index: 3; margin: 0 auto 10px; max-width: 900px; padding: .5rem .75rem; border-radius: 8px; background: #fff4e0; color: #3d2a00; border: 1px solid #f0c27a; font-size: .85rem; }
+.pv-note { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: min(720px, calc(100% - 32px)); z-index: 5; box-shadow: 0 6px 20px rgb(0 0 0 / .35); padding: .5rem 2rem .5rem .75rem; border-radius: 8px; background: #fff4e0; color: #3d2a00; border: 1px solid #f0c27a; font-size: .85rem; }
 .pv-page.flash { animation: pvpage 1.2s ease 1; }
 @keyframes pvpage { 50% { box-shadow: 0 0 0 6px rgb(250 176 5 / .8); } }
 html.pv-open, html.pv-open body { overflow: hidden !important; }
@@ -209,3 +209,7 @@ html.pv-open, html.pv-open body { overflow: hidden !important; }
 .pv-box.ripple::before, .pv-box.ripple::after { content: ''; position: absolute; inset: -4px; border: 3px solid #fab005; border-radius: 6px; pointer-events: none; animation: pvripple 1.2s ease-out 3; }
 .pv-box.ripple::after { animation-delay: .4s; }
 @keyframes pvripple { 0% { inset: -4px; opacity: 1; } 100% { inset: -34px; opacity: 0; } }
+
+.pv-main { position: relative; min-width: 0; min-height: 0; display: flex; }
+.pv-main > .pv-scroll { flex: 1; min-width: 0; }
+.pv-note-x { position: absolute; top: 4px; right: 6px; border: 0; background: transparent; color: inherit; font-size: 1rem; cursor: pointer; }
