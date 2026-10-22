@@ -1,5 +1,38 @@
 {
   "schema": 1,
-  "updated": "2026-10-22T17:24:58Z",
-  "items": []
+  "updated": "2026-10-22T17:25:21Z",
+  "items": [
+    {
+      "name": "ARROYO NORTE UNITS 8 9 & 10",
+      "displayName": "Arroyo Norte Units 8 9 & 10",
+      "mcr": "1495-48",
+      "rec": "",
+      "recorded": "",
+      "totalLots": 77,
+      "baseZoning": "R1-18",
+      "controllingCases": "CPA2019010 (8/28/2019, Approved); DMP1994006 (12:00:00 AM, Approved); Z02-92 (9/19/2002, APPROVED)",
+      "apns": [
+        "202-23-649"
+      ],
+      "firstSeen": "2026-10-22",
+      "lastSeen": "2026-10-22",
+      "status": "pending"
+    },
+    {
+      "name": "SUN CITY UNIT 11",
+      "displayName": "Sun City Unit 11",
+      "mcr": "117-03",
+      "rec": "",
+      "recorded": "",
+      "totalLots": 610,
+      "baseZoning": "R1-6",
+      "controllingCases": "CPA2023014 (9/13/2023, Approved); CPA2004003 (6/24/2004, Remove); DMP1972002 (12:00:00 AM, Approved); Z84-65 (3/19/1984, APPROVED); Z51-67 (11/13/1967, APPROVED); Z-188 (4/7/1961, ?)",
+      "apns": [
+        "200-90-389"
+      ],
+      "firstSeen": "2026-10-22",
+      "lastSeen": "2026-10-22",
+      "status": "pending"
+    }
+  ]
 }
