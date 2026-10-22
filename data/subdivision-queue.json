@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated": "2026-10-22T17:25:21Z",
+  "updated": "2026-10-22T17:28:13.647Z",
   "items": [
     {
       "name": "ARROYO NORTE UNITS 8 9 & 10",
@@ -29,6 +29,22 @@
       "controllingCases": "CPA2023014 (9/13/2023, Approved); CPA2004003 (6/24/2004, Remove); DMP1972002 (12:00:00 AM, Approved); Z84-65 (3/19/1984, APPROVED); Z51-67 (11/13/1967, APPROVED); Z-188 (4/7/1961, ?)",
       "apns": [
         "200-90-389"
+      ],
+      "firstSeen": "2026-10-22",
+      "lastSeen": "2026-10-22",
+      "status": "pending"
+    },
+    {
+      "name": "STONEBRIDGE MANOR PARCEL 1",
+      "displayName": "Stonebridge Manor Parcel 1",
+      "mcr": "1749-45",
+      "rec": "",
+      "recorded": "",
+      "totalLots": 232,
+      "baseZoning": "R1-6",
+      "controllingCases": "CPA1989003 (12:00:00 AM, Remove); CPA2020005 (12/24/2020, Approved); CPA2023014 (9/13/2023, Approved); CPA2004003 (6/24/2004, Remove); Z01-45 (4/23/2001, DROPPED); Z2020102 (12/28/2020, APPROVED); Z04-125 (4/11/2006, APPROVED)",
+      "apns": [
+        "501-41-217"
       ],
       "firstSeen": "2026-10-22",
       "lastSeen": "2026-10-22",
