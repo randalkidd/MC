@@ -50,17 +50,36 @@ function setbackCell(s) {
     : String(s.setbacks || '—').split(/\.\s+(?=Lots)/).map(x => esc(x.replace(/\.$/, '')));
   return `<div class="sb-lines">${lines.map(l => `<div>${l}</div>`).join('')}</div>${t.length ? '<div class="sub">Front / Rear / Side / Street-side</div>' : ''}`;
 }
+// ⚠ icon whose explanation shows on mouseover (and on tap/focus for phones).
+const warnIco = (tip) => `<span class="warnico" tabindex="0" role="img" aria-label="${esc(tip)}" data-tip="${esc(tip)}">⚠</span>`;
+// Pull the ⚠ sentences out of free-text notes (each runs to the next ⚠ or sentence end).
+function noteWarnings(text) {
+  return (String(text || '').match(/⚠[^⚠]*/g) || []).map(w => {
+    const t = w.replace(/^⚠\s*/, '').replace(/\s*\(The [^)]*pruned[^)]*\)\s*/g, ' ').trim();
+    const sent = t.split(/(?<=\.)\s+(?=[A-Z])/); // the warning sentence, plus a follow-on instruction (Pull/Verify/Confirm…) if present
+    return (sent[0] + (sent[1] && /^(Pull|Verify|Confirm|Check|Open)\b/.test(sent[1]) ? ' ' + sent[1] : '')).trim();
+  }).filter(Boolean);
+}
+// Show a zoning label compactly; if it records a conflict, keep the district codes and move the detail to a ⚠.
+function zoningCell(z) {
+  const t = String(z || ''); if (!t) return '';
+  if (!/unresolved|\bvs\b|conflict|\?/i.test(t)) return esc(t);
+  const keys = [...new Set(t.split(/[\/,;]|\bvs\b/i).map(x => normalizeDistrict(x.trim())).filter(Boolean))];
+  return `${esc(keys.join(' / ') || t)} ${warnIco(`Zoning unresolved — ${t}`)}`;
+}
 // Lot coverage per lot range: plat figure, any later change (and the case that made it); else base-zoning maximum.
 function coverageCell(s) {
   const t = Array.isArray(s.setbackTable) ? s.setbackTable.filter(r => r.coverage || r.coverageNow) : [];
   if (t.length) return t.map(r => {
     const label = t.length > 1 || (r.lots && !/^all$/i.test(r.lots)) ? `<b>Lots ${esc(r.lots)}:</b> ` : '';
-    const chg = r.coverageNow ? ` → <b class="chg">${esc(r.coverageNow)}</b>${r.coverageBy ? `<div class="sub">changed by ${esc(r.coverageBy)}</div>` : ''}` : '';
+    const chg = r.coverageNow ? ` → <b class="chg">${esc(r.coverageNow)}</b> ${warnIco(`Changed from ${r.coverage || 'the plat figure'} to ${r.coverageNow}${r.coverageBy ? ` by ${r.coverageBy}` : ''}. Verify against the case file.`)}` : '';
     return `<div>${label}${esc(r.coverage || '—')} <span class="sub">plat</span>${chg}</div>`;
   }).join('').replace(/^/, '<div class="sb-lines">') + '</div>';
   const keys = String(s.baseZoning || '').split(/[\/,;]|\bvs\b/i).map(z => normalizeDistrict(z.trim())).filter(Boolean);
   const uniq = [...new Set(keys)];
-  return uniq.length ? `<div class="sb-lines">${uniq.map(k => `<div>${DISTRICTS[k].cov}% <span class="sub">${k} base zoning</span></div>`).join('')}</div>${uniq.length > 1 ? '<div class="sub">⚠ zoning unresolved — confirm which applies</div>' : ''}` : '—';
+  if (!uniq.length) return '—';
+  if (uniq.length > 1) return `${uniq.map(k => `${DISTRICTS[k].cov}%`).join(' or ')} <span class="sub">base zoning</span> ${warnIco(`Zoning unresolved — confirm which applies: ${uniq.map(k => `${k} ${DISTRICTS[k].cov}%`).join(' vs ')}`)}`;
+  return `${DISTRICTS[uniq[0]].cov}% <span class="sub">${uniq[0]} base zoning</span>`;
 }
 function renderDB() {
   const q = ($('#db-q').value || '').toLowerCase();
@@ -68,10 +87,10 @@ function renderDB() {
   $('#db-count').textContent = `${S.db?.subdivisions.length || 0} subdivisions`;
   $('#db-dirty').hidden = !S.dbDirty;
   $('#db-body').innerHTML = rows.map(s => `<tr data-name="${esc(s.name)}">
-    <td><b>${esc(s.name)}</b><div class="sub">${esc(s.baseZoning || '')}</div></td>
+    <td><b>${esc(s.name)}</b>${noteWarnings(s.notes).length ? ' ' + warnIco(noteWarnings(s.notes).join(' • ')) : ''}<div class="sub">${zoningCell(s.baseZoning)}</div></td>
     <td>${esc(s.mcr)}</td>
     <td><a href="${esc(s.platUrl)}" target="_blank" rel="noopener">${esc(s.docType)} #${esc(s.rec)}</a><div class="sub">${esc(s.recorded)}</div></td>
-    <td>${s.totalLots ?? '—'}</td><td>${setbackCell(s)}</td><td>${coverageCell(s)}</td><td>${esc(s.lastUpdated)}</td>
+    <td>${s.totalLots ?? `— ${warnIco('Lot count not taken yet — open Edit and use "Count lots from Assessor".')}`}</td><td>${setbackCell(s)}</td><td>${coverageCell(s)}</td><td>${esc(s.lastUpdated)}</td>
     <td><button class="btn sm" data-edit="${esc(s.name)}">Edit</button></td></tr>`).join('') || '<tr><td colspan="8">No matches.</td></tr>';
 }
 $('#db-q').addEventListener('input', renderDB);
