@@ -20,6 +20,7 @@ const ALLOWED_HOSTS = new Set([
   'recorder.maricopa.gov',
   'legacy.recorder.maricopa.gov',
   'www.maricopa.gov',
+  'publicapi.recorder.maricopa.gov',
 ]);
 
 const cors = (origin) => ({

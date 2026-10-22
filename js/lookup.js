@@ -14,6 +14,7 @@ export const EP = {
   tspProj: 'https://gis.maricopa.gov/dot/rest/services/Planning/TransportationSystemPlan2040Project/MapServer',
   tspNeed: 'https://gis.maricopa.gov/dot/rest/services/Planning/TransportationSystemPlan2040Need/MapServer',
   fcdProperty: 'https://gis.maricopa.gov/flood/rest/services/Property/Parcel/MapServer/0',
+  recorderApi: 'https://publicapi.recorder.maricopa.gov',
   rightOfWay: 'https://gis.maricopa.gov/dot/rest/services/Property/RightOfWay/MapServer/0',
   septic: 'https://edms.maricopa.gov/env/api/CustomQuery/KeywordSearch',
 };
@@ -150,6 +151,7 @@ export async function lookupParcel(apnInput, { onStep = () => {} } = {}) {
   onStep('PlanNet (all layers), section lines, floodplain, map geometry');
   const settle = (p) => p.then(v => ({ ok: true, v }), e => ({ ok: false, e: String(e.message || e) }));
   const insetQ = { ...polyQ, geometry: JSON.stringify({ rings: insetRings(rings), spatialReference: { wkid: 2223 } }) };
+  const recP = settle(lookupRecorder({ parcel: { ...a, DeedDate: fmtDate(a.DeedDate) } }));
   const [idf, trs, fe, fp, ec, wgs, fcd, row] = await Promise.all([
     settle(arcgis(`${EP.plannet}/identify`, { geometry: gjson, geometryType: 'esriGeometryPolygon', sr: '2223', layers: 'all', tolerance: '0',
       mapExtent: `${bb.xmin},${bb.ymin},${bb.xmax},${bb.ymax}`, imageDisplay: '400,400,96', returnGeometry: 'false' })),
@@ -247,6 +249,13 @@ export async function lookupParcel(apnInput, { onStep = () => {} } = {}) {
   for (const h of results.filter(r => r.layerId === 24)) R.easements.push({ kind: 'Patent easement', detail: pick(h.attributes, ['Name', 'NAME', 'Description', 'Type']) || h.value || 'Small Tract Act patent easement', source: 'PlanNet — Patent Easement', patent: true });
   for (const f of (fcd.ok ? fcd.v.features || [] : []).map(x => x.attributes).filter(x => /easement/i.test(x.Type || ''))) R.easements.push({ kind: 'Flood Control District easement', detail: [f.ProjectName, f.PIN && `PIN ${f.PIN}`].filter(Boolean).join(' · ') || '—', source: 'FCDMC property' });
   for (const f of (row.ok ? row.v.features || [] : []).map(x => x.attributes)) R.easements.push({ kind: /easement|patent/i.test(f.aquisition_type || '') ? 'Roadway easement (MCDOT right-of-way)' : 'Road right-of-way (MCDOT)', detail: [f.aquisition_type && `Acquired by ${f.aquisition_type}`, f.RightOfWayWidth && `${f.RightOfWayWidth} ft wide`, f.RightOfWayShareDescription].filter(Boolean).join(' · ') || '—', source: 'MCDOT right-of-way', rec: f.RecorderNumber || null, url: f.RecorderUrl || null });
+  const rec = await recP;
+  R.recorder = rec.ok ? rec.v : { error: rec.e };
+  if (rec.ok) {
+    const d = rec.v.deed;
+    if (d && d.hasEasement) R.easements.push({ kind: 'Easement in the deed', detail: `Deed recorded with document codes ${d.codes.join(', ')}${d.date ? ` on ${d.date}` : ''}`, source: 'County Recorder', rec: d.rec });
+    for (const e of rec.v.easements) R.easements.push({ kind: 'Recorded easement (current owner)', detail: `${e.code} recorded ${e.date} — ${e.names}`, source: 'County Recorder (owner-name match)', rec: e.rec, nameMatch: true });
+  }
   R.easements = R.easements.filter((e, i, a) => a.findIndex(x => x.kind === e.kind && x.detail === e.detail && x.rec === e.rec) === i);
   return R;
 }
@@ -316,4 +325,32 @@ export async function lookupSplit(R) {
     for (const f of q.features || []) { if (!f.geometry || !f.geometry.paths) continue; const d = polyToLineDist(R.rings2223, f.geometry.paths); if (!street || d < street.d) street = { d: Math.round(d), name: f.attributes.FullRouteName || 'unnamed road' }; }
   } catch (e) { street = { error: String(e.message || e) }; }
   return { base, parcels, street };
+}
+
+// ---------- County Recorder: easements in / after the current owner's deed ----------
+const BIZ = /\b(LLC|L L C|INC|CORP|CORPORATION|COMPANY|CO|LP|LLP|LTD|TRUST|TR|TRUSTEE|TRS|ASSOCIATION|ASSN|HOA|CHURCH|BANK|PARTNERSHIP|PTNRSHP|COUNTY|CITY|STATE|USA|DISTRICT|FUND|HOLDINGS|PROPERTIES|INVESTMENTS|GROUP|ESTATES|RANCH|FARMS)\b/i;
+function ownerQuery(name) {
+  const n = String(name || '').replace(/\s+/g, ' ').trim(); if (!n) return null;
+  if (BIZ.test(n)) return { label: n, qs: `businessNames=${encodeURIComponent(n)}` };
+  const first = n.split(/[\/&]/)[0].trim().split(' ');
+  if (first.length < 2) return { label: n, qs: `businessNames=${encodeURIComponent(n)}` };
+  return { label: `${first[0]} ${first[1]}`, qs: `lastNames=${encodeURIComponent(first[0])}&firstNames=${encodeURIComponent(first[1])}` };
+}
+const recDate = (s) => { const m = String(s || '').match(/(\d{1,2})-(\d{1,2})-(\d{4})/); return m ? `${m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}` : null; };
+export async function lookupRecorder(R) {
+  const p = R.parcel; const out = { deed: null, owner: null, easements: [] };
+  const tasks = [];
+  if (p.DeedNumber) tasks.push(request(`${EP.recorderApi}/documents/${p.DeedNumber}`).then(d => {
+    const codes = (d && d.documentCodes) || [];
+    out.deed = { rec: String(p.DeedNumber), date: recDate(d && d.recordingDate) || p.DeedDate, codes, pages: d && d.pageAmount, hasEasement: codes.some(c => /EASE|ESMT/i.test(c)) };
+  }));
+  const oq = ownerQuery(p.OwnerName);
+  if (oq) tasks.push(request(`${EP.recorderApi}/documents/search?${oq.qs}&documentCode=EASEMENT`).then(d => {
+    const since = p.DeedDate || '0000';
+    const rows = ((d && d.searchResults) || []).map(r => ({ rec: String(r.recordingNumber), suffix: r.recordingSuffix || '', date: recDate(r.recordingDate), code: r.documentCode, names: r.names }));
+    out.owner = { label: oq.label, total: (d && d.totalResults) || rows.length };
+    out.easements = rows.filter(r => r.date && r.date >= since).sort((a, b) => (a.date < b.date ? 1 : -1));
+  }));
+  await Promise.all(tasks);
+  return out;
 }

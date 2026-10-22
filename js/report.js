@@ -188,7 +188,14 @@ export function renderReportHTML(R, db) {
     table(ez.map(e => [`<b>${esc(e.kind)}</b>`, `${esc(e.detail)}${e.rec ? ` · ${a(`Rec. #${e.rec}`, e.url || LINKS.recDoc(e.rec))}` : ''}${e.platUrl ? ` · ${a('plat', e.platUrl)}` : ''}`, esc(e.source)]), ['Intersecting easement', 'Details', 'Source']);
     if (ez.some(e => e.patent)) out.push(`<div class="warn">Patent easement: structures inside it can be removed without compensation, and yard setbacks are measured from the easement line, not the property line (<a href="https://www.maricopa.gov/6446/Patent-Easements-DD-2015-09" target="_blank" rel="noopener">DD-2015-09</a>).</div>`);
   } else out.push('<p><b>None found, verify</b></p>');
-  out.push('<p class="sub">Mapped sources checked: patent easements, Flood Control District easements, MCDOT right-of-way, and easements recorded on plats in the subdivision database. Public utility, shared-well, ingress/egress and other private easements are not mapped — check the deed, the title report and the recorded plat.</p>');
+  const rc = R.recorder || {};
+  if (rc.error) out.push(`<p class="sub">⚠ County Recorder not checked (${esc(rc.error)}).</p>`);
+  else {
+    const d = rc.deed;
+    if (d) out.push(`<p class="sub">Deed ${a(`#${d.rec}`, LINKS.recDoc(d.rec))} (${esc(d.codes.join(', ') || 'type n/a')}${d.date ? `, ${esc(d.date)}` : ''}${d.pages ? `, ${d.pages} pp.` : ''}) checked: ${d.hasEasement ? 'recorded with an easement — listed above.' : 'no easement recorded with it.'} Easements written into the deed's text ("subject to…", reservations) aren't read automatically — open the deed to check its exceptions.</p>`);
+    if (rc.owner) out.push(`<p class="sub">Recorder searched for easements recorded by <b>${esc(rc.owner.label)}</b> since the deed${rc.easements && rc.easements.length ? ` — ${rc.easements.length} found (listed above; name match, confirm each covers this parcel)` : ' — none found'}.</p>`);
+  }
+  out.push('<p class="sub">Also checked: patent easements, Flood Control District easements, MCDOT right-of-way, and easements recorded on plats in the subdivision database. Public utility, shared-well, ingress/egress and other private easements are not mapped — check the deed, the title report and the recorded plat.</p>');
 
   h('7. Zoning / Planning Cases');
   const caseTable = (list) => list.length ? table(list.map(c => [esc(c.type), esc(dash(c.permit)), esc(dash(c.name)), esc(dash(c.status)), esc(dash(c.date)), esc(dash(c.request))]), ['Type', 'Permit #', 'Name', 'Status', 'Date', 'Request']) : out.push('<p>None found.</p>');
@@ -255,7 +262,8 @@ export function renderReportMD(R, db, extras = {}) {
   L.push('### 5. Overlay Districts', '');
   { const hit = R.overlays.filter(o => o.hit); hit.length ? t(hit.map(o => [o.name, o.notes || '—']), ['Intersecting overlay', 'Notes']) : L.push('No overlay districts intersect this parcel.', ''); L.push(`_${R.overlays.length - hit.length} other overlays checked — no intersection._`, ''); }
   L.push('### 6. Easements', '');
-  { const ez = easementList(R, plat); ez.length ? t(ez.map(e => [e.kind, `${e.detail}${e.rec ? ` · ${mdLink(`Rec. #${e.rec}`, e.url || LINKS.recDoc(e.rec))}` : ''}`, e.source]), ['Intersecting easement', 'Details', 'Source']) : L.push('None found, verify', ''); }
+  { const ez = easementList(R, plat); ez.length ? t(ez.map(e => [e.kind, `${e.detail}${e.rec ? ` · ${mdLink(`Rec. #${e.rec}`, e.url || LINKS.recDoc(e.rec))}` : ''}`, e.source]), ['Intersecting easement', 'Details', 'Source']) : L.push('None found, verify', '');
+    const d = R.recorder && R.recorder.deed; if (d) L.push(`Deed ${mdLink(`#${d.rec}`, LINKS.recDoc(d.rec))} (${d.codes.join(', ')}) checked: ${d.hasEasement ? 'recorded with an easement.' : 'no easement recorded with it;'} deed text exceptions not read automatically — review the deed.`, ''); }
   L.push('### 7. Zoning / Planning Cases', '', '**Current / pending:**', '');
   R.currentCases.length ? t(R.currentCases.map(c => [c.type, c.permit, c.name, c.status, c.date]), ['Case type', 'Permit #', 'Name', 'Status', 'Date']) : L.push('None found.', '');
   L.push('**Historical (before June 2024):**', '');
