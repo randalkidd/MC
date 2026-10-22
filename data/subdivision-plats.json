@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "source": "Migrated from project doc reference/subdivision-plats.md on 2026-10-22",
-  "updated": "2026-10-22",
+  "updated": "2026-10-22T15:39:05.808Z",
   "subdivisions": [
     {
       "name": "Rancho Cabrillo Parcel D",
@@ -190,6 +190,28 @@
       ],
       "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=19300021276&suffix=",
       "easements": "Dedication reserves easements over, under and along all roads for ditches, pipelines, conduits, water and other utilities."
+    },
+    {
+      "name": "Arroyo Norte Units 8 9 & 10",
+      "mcr": "1495-48",
+      "docType": "PLAT MAP",
+      "rec": "",
+      "recorded": "",
+      "totalLots": 77,
+      "baseZoning": "R1-18",
+      "controllingCases": "CPA2019010 (8/28/2019, Approved); DMP1994006 (12:00:00 AM, Approved); Z02-92 (9/19/2002, APPROVED)",
+      "setbacks": "Not yet reviewed",
+      "height": "Not yet reviewed",
+      "easements": "",
+      "platControls": false,
+      "setbackTable": [],
+      "notes": "⚠ Plat not yet reviewed — added automatically from a lookup of 202-23-649 on 2026-10-22. Open the plat and record its recording number, setbacks, height and easements.",
+      "parcelsChecked": [
+        "202-23-649"
+      ],
+      "platUrl": "https://recorder.maricopa.gov/recording/document-search-results.html?mode=book&docketBook=1495&pageMap=48",
+      "autoAdded": true,
+      "lastUpdated": "2026-10-22"
     }
   ]
 }
