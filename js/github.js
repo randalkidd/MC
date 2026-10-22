@@ -34,10 +34,21 @@ import { settings } from './net.js';
 const relayUrl = () => settings.proxy;
 
 async function relay(route, init = {}) {
-  const r = await fetch(`${relayUrl()}${route}`, { ...init, headers: { 'X-MC-Key': gh.passphrase, ...(init.headers || {}) } });
-  const d = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(r.status === 401 ? 'Wrong passphrase — re-enter it in Settings (it must match SITE_KEY in Cloudflare).' : (d.error || `Relay error ${r.status}`));
-  return d;
+  const base = relayUrl();
+  if (!/^https:\/\/[^/]+\.workers\.dev$/i.test(base)) {
+    if (/pages\.dev|github\.io/i.test(base)) throw new Error(`The Relay URL (${base}) is a copy of the website, not the relay. Use the address of the Worker you pasted the relay code into — it ends in .workers.dev.`);
+  }
+  let r;
+  try { r = await fetch(`${base}${route}`, { ...init, headers: { 'X-MC-Key': gh.passphrase, ...(init.headers || {}) } }); }
+  catch { throw new Error(`Couldn't reach the relay at ${base}. Check the Relay URL (it ends in .workers.dev) and that the Worker is deployed.`); }
+  const text = await r.text();
+  let d = {}; try { d = JSON.parse(text); } catch {}
+  if (r.ok) return d;
+  if (r.status === 401) throw new Error('Wrong passphrase — re-enter it in Settings (it must match SITE_KEY in Cloudflare exactly, including capitals).');
+  if (d.error) throw new Error(d.error);
+  if (r.status === 400 && /Missing \?url=/.test(text)) throw new Error('The relay is still running the OLD code. In Cloudflare: Worker → Edit code → paste the latest worker/cors-proxy.js from GitHub → Deploy.');
+  if (r.status === 404) throw new Error(`Relay error 404 — ${base} is not the relay Worker (it has no /gh/ service). Use the .workers.dev address of the Worker you pasted the relay code into, and make sure that code is the latest version.`);
+  throw new Error(`Relay error ${r.status}${text && text.length < 200 ? `: ${text}` : ''}`);
 }
 
 const api = (path) => `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${path}`;
