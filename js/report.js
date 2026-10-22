@@ -229,7 +229,8 @@ export function renderReportHTML(R, db) {
     rows.push(['Floodplain', `<b class="bad">Hit</b>${R.flood.floodway ? ' — <b>FLOODWAY</b>' : ''}: ${esc(z.join('; ') || '—')}${R.flood.certs.length ? `; elevation certificate(s): ${esc(R.flood.certs.map(c => c.ElevCertNumber).join(', '))}` : ''} · ${a('Floodplain Viewer', LINKS.flood)}`]);
   }
   const dl = (list) => esc(list.map(x => `${x.layer}: ${x.value}`).join(' · ') || '—');
-  rows.push(['Planning layers', dl(R.planning)], ['Development layers', dl(R.development)]);
+  const lines = (list) => (list && list.length ? [...new Set(list.map(x => { const l = shortLayer(x.layer).replace(/^(Military|Planning|Development|Natural Resource)\s*[→>-]\s*/i, ''); const v = String(x.value ?? '').trim(); return !v || v.toLowerCase() === l.toLowerCase() ? l : `${l}: ${v}`; }))].map(esc).join('<br>') : '—');
+  rows.push(['Planning layers', lines(R.planning)], ['Development layers', lines(R.development)]);
   const dRows = [];
   for (const g of groupDistricts(R.district)) {
     const one = g.items.length === 1;
@@ -239,7 +240,6 @@ export function renderReportHTML(R, db) {
       + g.items.map(it => `<tr class="multi-row" data-grp="${g.key}" hidden><td class="sub">↳ ${esc(it.layer)}</td><td>${esc(it.value)}</td></tr>`).join(''));
   }
   rows.push({ raw: dRows.length ? `<tr class="grp-head"><td colspan="2">Districts</td></tr>${dRows.join('')}` : '<tr><td>Districts</td><td>—</td></tr>' });
-  const lines = (list) => (list && list.length ? [...new Set(list.map(x => { const l = shortLayer(x.layer).replace(/^Military\s*[→>-]\s*/i, ''); const v = String(x.value ?? '').trim(); return !v || v.toLowerCase() === l.toLowerCase() ? l : `${l}: ${v}`; }))].map(esc).join('<br>') : '—');
   rows.push(['Natural resource', dl(R.natural)], ['Military', lines(R.military)]);
   rows.push(['Septic', `<span id="septic-cell">Not yet checked — <button class="link" data-act="septic">check EDMS</button> (needs relay) · ${a('Septic Search', LINKS.septic)} · ${a('Permit Center (6/15/2024+)', LINKS.permitCenter)}</span>`]);
   rows.push(['Roads (RIT)', `<span id="roads-cell"><button class="link" data-act="roads">Look up frontage roads</button></span>`]);
