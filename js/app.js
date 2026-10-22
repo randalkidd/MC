@@ -1,12 +1,12 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, normalizeApn, lookupSplit } from './lookup.js?v=222cfb60';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=222cfb60';
-import { settings, setSharedRelay } from './net.js?v=222cfb60';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=222cfb60';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=222cfb60';
-import { CHECKLISTS } from './checklists.js?v=222cfb60';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=222cfb60';
-import { DIRECTIVES, MCSR_QUICK } from './refdata.js?v=222cfb60';
-import { findPlatDoc, platPdfLink, fetchPlatPdf, ocrPlat } from './platocr.js?v=222cfb60';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, normalizeApn, lookupSplit } from './lookup.js?v=cf0bac48';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=cf0bac48';
+import { settings, setSharedRelay } from './net.js?v=cf0bac48';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=cf0bac48';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=cf0bac48';
+import { CHECKLISTS } from './checklists.js?v=cf0bac48';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=cf0bac48';
+import { DIRECTIVES, MCSR_QUICK } from './refdata.js?v=cf0bac48';
+import { findPlatDoc, platPdfLink, fetchPlatPdf, ocrPlat } from './platocr.js?v=cf0bac48';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -238,7 +238,7 @@ async function readPlat(name, recNo) {
     if (gh.canWrite) {
       await saveSubdivision({ ...r }, `Plat OCR: setbacks for ${r.name} (verify)`);
       ocrStatus(`Setbacks read from the ${name} plat and saved to the database — flagged "verify" until you check them against the plat.`, 'ok');
-    } else { S.dbDirty = true; renderDB(); ocrStatus(`Setbacks read from the ${name} plat (not saved — connect GitHub, then Save in the Subdivisions DB tab). Verify against the plat.`, 'ok'); }
+    } else { S.dbDirty = true; renderDB(); ocrStatus(`Setbacks read from the ${name} plat (not saved — connect GitHub, then Save in the SubdivisionDB tab). Verify against the plat.`, 'ok'); }
     if (S.R && sameName(S.R.parcel.SubdivisionName, name)) { $('#report').innerHTML = renderReportHTML(S.R, S.db); S.md = renderReportMD(S.R, S.db, S.extras); }
   } catch (e) { ocrStatus(`Couldn't read the ${name} plat automatically: ${e.message}. Open it from the report and update the database manually.`, 'warn'); }
   finally { ocrRunning.delete(name); }

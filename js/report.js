@@ -1,6 +1,6 @@
 // Renders a lookup result in the project's parcel-report-template structure (HTML + Markdown).
-import { LINKS } from './lookup.js?v=222cfb60';
-import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=222cfb60';
+import { LINKS } from './lookup.js?v=cf0bac48';
+import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=cf0bac48';
 
 // Only allow http(s) URLs into href attributes; everything else becomes "#".
 const safeUrl = (u) => { try { const x = new URL(String(u), location.href); return /^https?:$/.test(x.protocol) ? x.href : '#'; } catch { return '#'; } };
@@ -204,7 +204,7 @@ export function renderReportHTML(R, db) {
   if (p.SubdivisionName) h('Subdivision Plat (MCR)');
   if (!p.SubdivisionName) { /* not platted — section hidden */ }
   else if (plat) {
-    const editBtn = ` <button type="button" class="btn sm" data-act="edit-plat" data-name="${esc(plat.name)}">✎ Edit in Subdivisions DB</button>`;
+    const editBtn = ` <button type="button" class="btn sm" data-act="edit-plat" data-name="${esc(plat.name)}">✎ Edit in SubdivisionDB</button>`;
     table([
       ['Subdivision', esc(plat.name)], ['MCR', esc(plat.mcr)],
       ['Plat', plat.rec ? a(`${plat.docType} #${plat.rec}, recorded ${plat.recorded}`, plat.platUrl) : `${a(`Find plat at the Recorder (MCR ${plat.mcr || '?'})`, plat.platUrl)} — recording number not entered yet`],
