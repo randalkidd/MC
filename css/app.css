@@ -117,3 +117,6 @@ tr.me td { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 #relay-ver.old { color: var(--bad); }
 html.locked .gated { display: none !important; }
 .landing { border-left: 3px solid var(--accent); } .landing h2 { margin-top: 0; } .landing .actions { margin-top: .5rem; }
+.pager { display: flex; align-items: center; justify-content: center; gap: .75rem; margin: .75rem 0; } .ok-pill { color: var(--ok); border-color: currentColor; }
+[data-sort] { font-weight: 600; color: inherit; }
+th button.link[data-sort] { color: inherit; text-decoration: none; font: inherit; font-weight: 600; padding: 0; } th button.link[data-sort]:hover { color: var(--accent); }

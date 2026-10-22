@@ -1,12 +1,13 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=04165a9f';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=04165a9f';
-import { settings, setSharedRelay } from './net.js?v=04165a9f';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=04165a9f';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=04165a9f';
-import { CHECKLISTS } from './checklists.js?v=04165a9f';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=04165a9f';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=4cc821ae';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=4cc821ae';
+import { settings, setSharedRelay } from './net.js?v=4cc821ae';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=4cc821ae';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=4cc821ae';
+import { CHECKLISTS } from './checklists.js?v=4cc821ae';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=4cc821ae';
 let REF = null; // js/refdata.js (76 KB) loads the first time the Reference tab opens
-import { findPlatDoc } from './recorder.js?v=04165a9f';
+import { findPlatDoc } from './recorder.js?v=4cc821ae';
+import { loadAllSubdivisions } from './subdivisions.js?v=4cc821ae';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -28,7 +29,7 @@ const S = { R: null, md: '', extras: {}, db: null, dbSha: null, dbDirty: false, 
 // Plan review, Land division, SubdivisionDB and Saved Parcels appear only after this browser has a passphrase and a relay that
 // passed "Test GitHub" (write access through the relay). Client-side only: it hides the tools, it does not secure
 // public data — saving is what the relay's passphrase actually protects.
-const GATED = ['p-review', 'p-division', 'p-subs', 'p-saved'];
+const GATED = ['p-review', 'p-division', 'p-subs', 'p-allsubs', 'p-saved'];
 let unlocked = false;
 const ACCESS_KEY = 'mc.access';
 async function accessFingerprint() {
@@ -78,6 +79,7 @@ function showTab(id) {
   if (id === 'p-lookup' && S.map) setTimeout(() => { S.map.invalidateSize(); S.map2?.invalidateSize(); }, 50);
   if (id === 'p-saved') renderSaved();
   if (id === 'p-ref') renderReference();
+  if (id === 'p-allsubs') openAllSubs();
   history.replaceState(null, '', `#${id.slice(2)}`);
 }
 $$('.tab').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
@@ -259,12 +261,25 @@ async function queueSubdivision(R) {
   try { await saveQueue(q => { if (!q.items.some(x => sameName(x.name, name))) q.items.push(item); }, `Review list: add ${item.displayName} (from ${R.apn})`); toast(`"${item.displayName}" isn't in SubdivisionDB — added to its review list`, 'info'); }
   catch (e) { toast(`Couldn't save the review list: ${e.message}`, 'error'); }
 }
+async function queueByName(name, mcr) {
+  if (inDB(name)) return toast(`${titleCase(name)} is already in SubdivisionDB`);
+  if (!S.queue) await loadQueue();
+  if (S.queue.items.some(x => sameName(x.name, name))) return toast(`${titleCase(name)} is already on the review list`);
+  const [book, page] = String(mcr || '').split('-'); const today = new Date().toISOString().slice(0, 10);
+  const [doc, lots] = await Promise.all([findPlatDoc(name, book, page).catch(() => null), countSubdivisionLots(name).catch(() => null)]);
+  const item = { name: name.toUpperCase(), displayName: titleCase(name), mcr: mcr || '', rec: doc ? doc.rec : '', recorded: doc ? doc.recorded : '', totalLots: lots,
+    baseZoning: '', controllingCases: '', apns: [], firstSeen: today, lastSeen: today, status: 'pending', note: 'Added from All Subdivisions (no parcel lookup yet)' };
+  S.queueGone?.delete(item.name);
+  await saveQueue(q => { if (!q.items.some(x => sameName(x.name, name))) q.items.push(item); }, `Review list: add ${item.displayName} (from All Subdivisions)`);
+  toast(`${item.displayName} added to the review list`, 'ok');
+}
 function claudeRequest() {
   const items = (S.queue?.items || []).filter(x => !inDB(x.name));
   return `Process my SubdivisionDB review list (${items.length} subdivision${items.length === 1 ? '' : 's'}: ${items.map(x => x.displayName || x.name).join('; ')}).\n\nFollow the routine in https://github.com/randalkidd/MC/blob/main/tools/process-subdivision-queue.md (repo randalkidd/MC; files data/subdivision-queue.json and data/subdivision-plats.json). Read each plat in the built-in browser on my computer, add the subdivision to SubdivisionDB, remove it from the review list when it's done, then commit and push to main.`;
 }
 function renderQueue() {
   const box = $('#queue'); if (!box) return;
+  if (typeof AS !== 'undefined' && AS.rows && !$('#p-allsubs').hidden) renderAllSubs();
   const items = (S.queue?.items || []).filter(x => !inDB(x.name)).sort((a, b) => (a.firstSeen < b.firstSeen ? -1 : 1));
   $('#queue-count').textContent = items.length;
   $('#queue-run').disabled = $('#queue-copy').disabled = !items.length;
@@ -427,6 +442,69 @@ async function drawMap(R) {
   } catch (e) { console.warn('map', e); }
 }
 
+// ---------------- all subdivisions (county GIS layer 0) ----------------
+const AS = { rows: null, page: 0, per: 100, sort: 'name', dir: 1, loading: null };
+function asStatus(r) {
+  if ((S.db?.subdivisions || []).some(x => sameName(x.name, r.name))) return 'db';
+  if ((S.queue?.items || []).some(x => sameName(x.name, r.name))) return 'queue';
+  return 'none';
+}
+async function openAllSubs(force = false) {
+  if (AS.loading) return AS.loading;
+  if (AS.rows && !force) return renderAllSubs();
+  $('#as-meta').textContent = 'Loading every recorded subdivision from county GIS…';
+  AS.loading = loadAllSubdivisions({ force, onProgress: (d, n) => ($('#as-meta').textContent = `Loading from county GIS… page ${d} of ${n}`) })
+    .then(({ rows, t, cached }) => { AS.rows = rows.map(r => ({ ...r, key: `${r.name} ${r.mcr}`.toLowerCase() })); AS.t = t; AS.cached = cached; renderAllSubs(); })
+    .catch((e) => { $('#as-meta').textContent = `Couldn't load subdivisions: ${e.message}`; })
+    .finally(() => { AS.loading = null; });
+  return AS.loading;
+}
+function asFiltered() {
+  const terms = ($('#as-q').value || '').toLowerCase().split(/\s+/).filter(Boolean); const f = $('#as-filter').value;
+  let rows = AS.rows.filter(r => terms.every(w => r.key.includes(w)) && (!f || asStatus(r) === f));
+  const k = AS.sort, d = AS.dir;
+  const mcrKey = (m) => m.split('-').map(x => x.padStart(5, '0')).join('-');
+  rows = rows.slice().sort((a, b) => d * (k === 'mcr' ? mcrKey(a.mcr).localeCompare(mcrKey(b.mcr)) : a.name.localeCompare(b.name)));
+  return rows;
+}
+function renderAllSubs() {
+  if (!AS.rows) return;
+  const rows = asFiltered(); const pages = Math.max(1, Math.ceil(rows.length / AS.per));
+  AS.page = Math.min(AS.page, pages - 1); const start = AS.page * AS.per; const view = rows.slice(start, start + AS.per);
+  const inDb = AS.rows.filter(r => asStatus(r) === 'db').length;
+  $('#as-meta').textContent = `${AS.rows.length.toLocaleString()} subdivisions · ${inDb} in SubdivisionDB · ${AS.cached ? 'cached' : 'loaded'} ${new Date(AS.t).toLocaleString()}`;
+  $('#as-body').innerHTML = view.map(r => {
+    const st = asStatus(r); const [book, page] = r.mcr.split('-');
+    const rec = st === 'db' ? S.db.subdivisions.find(x => sameName(x.name, r.name))?.rec : '';
+    const plat = rec ? LINKS.recDoc(rec) : r.link ? safeUrl(r.link) : (book && page ? LINKS.recBook(book, page) : '');
+    return `<tr><td><b>${esc(titleCase(r.name))}</b>${r.n > 1 ? ` <span class="sub">(${r.n} areas)</span>` : ''}</td><td>${esc(r.mcr || '—')}</td>
+      <td>${plat ? `<a href="${esc(plat)}" target="_blank" rel="noopener noreferrer">${rec ? `Plat #${esc(rec)}` : r.link ? 'Plat' : 'Find plat'}</a>` : '—'}</td>
+      <td>${st === 'db' ? '<span class="pill ok-pill">✓ SubdivisionDB</span>' : st === 'queue' ? '<span class="pill">⏳ Review list</span>' : '<span class="sub">—</span>'}</td>
+      <td>${st === 'db' ? `<button class="btn sm ghost" type="button" data-as-edit="${esc(r.name)}">Open</button>` : st === 'none' ? `<button class="btn sm ghost" type="button" data-as-queue="${esc(r.name)}" data-mcr="${esc(r.mcr)}">Add to review list</button>` : ''}</td></tr>`;
+  }).join('') || '<tr><td colspan="5" class="sub">No matches.</td></tr>';
+  $('#as-page').textContent = rows.length ? `${(start + 1).toLocaleString()}–${(start + view.length).toLocaleString()} of ${rows.length.toLocaleString()}` : '0 results';
+  $('#as-prev').disabled = AS.page <= 0; $('#as-next').disabled = AS.page >= pages - 1;
+  $$('[data-sort]').forEach(b => { const on = b.dataset.sort === AS.sort; b.textContent = `${b.dataset.sort === 'mcr' ? 'MCR' : 'Subdivision'}${on ? (AS.dir > 0 ? ' ▴' : ' ▾') : ''}`; });
+}
+let asTimer = null;
+$('#as-q').addEventListener('input', () => { clearTimeout(asTimer); asTimer = setTimeout(() => { AS.page = 0; renderAllSubs(); }, 150); });
+$('#as-filter').addEventListener('change', () => { AS.page = 0; renderAllSubs(); });
+$('#as-prev').addEventListener('click', () => { AS.page--; renderAllSubs(); window.scrollTo({ top: 0 }); });
+$('#as-next').addEventListener('click', () => { AS.page++; renderAllSubs(); window.scrollTo({ top: 0 }); });
+$('#as-refresh').addEventListener('click', () => openAllSubs(true));
+$$('[data-sort]').forEach(b => b.addEventListener('click', () => { AS.dir = AS.sort === b.dataset.sort ? -AS.dir : 1; AS.sort = b.dataset.sort; renderAllSubs(); }));
+$('#as-export').addEventListener('click', () => {
+  if (!AS.rows) return; const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const csv = ['Subdivision,MCR,Plat link,Status', ...asFiltered().map(r => [r.name, r.mcr, r.link, ({ db: 'SubdivisionDB', queue: 'Review list', none: '' })[asStatus(r)]].map(q).join(','))].join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'maricopa-subdivisions.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+$('#as-body').addEventListener('click', async (e) => {
+  const ed = e.target.dataset.asEdit; if (ed) { const rec = S.db.subdivisions.find(x => sameName(x.name, ed)); if (rec) { showTab('p-subs'); openEditor(rec); } return; }
+  const qn = e.target.dataset.asQueue; if (!qn) return;
+  e.target.disabled = true; e.target.textContent = 'Adding…';
+  try { await queueByName(qn, e.target.dataset.mcr); renderAllSubs(); } catch (err) { toast(err.message, 'error'); e.target.disabled = false; e.target.textContent = 'Add to review list'; }
+});
+
 // ---------------- regulation lookup (Reference tab) ----------------
 function renderRegLookup() {
   if (!REF) return; const { REG_LOOKUP } = REF;
@@ -588,7 +666,7 @@ async function renderSaved() {
 // ---------------- reference ----------------
 let refP = null;
 function renderReference() {
-  return (refP ||= import('./refdata.js?v=04165a9f').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
+  return (refP ||= import('./refdata.js?v=4cc821ae').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
 }
 function fillReference() {
   const { DIRECTIVES, MCSR_QUICK, REG_DOCS, REG_LOOKUP } = REF;
@@ -635,7 +713,7 @@ $('#st-copy-relay').addEventListener('click', async () => {
   catch (e) { toast('Copy blocked by the browser — use "View relay code", then select all and copy', 'error'); }
 });
 $('#st-test-gis').addEventListener('click', async () => { const o = $('#st-test-out'); o.textContent = 'Testing county GIS…'; try { o.textContent = `County GIS reachable (${await ping()} ms).`; } catch (e) { o.textContent = e.message; } });
-$('#st-test-gh').addEventListener('click', async () => { const o = $('#st-test-out'); o.textContent = 'Testing GitHub…'; try { const r = await testAccess(); o.textContent = `${r.name}: ${r.canPush ? 'write access OK' : 'READ-ONLY — on GitHub, edit the token: Repository access must include randalkidd/MC and Contents must be Read and write'}${r.private ? ' (private repo — Pages needs a paid plan)' : ''}`; if (r.canPush && gh.viaRelay) { await grantAccess(); toast('Connected — Plan review, Land division, SubdivisionDB and Saved Parcels are unlocked', 'ok'); } else revokeAccess(); if (r.canPush && gh.viaRelay) { try { if (await shareRelayIfNeeded()) { o.textContent += ' · Relay address shared — other browsers now need only the passphrase.'; renderSettings(); } } catch (e) { o.textContent += ` · Couldn't share relay address: ${e.message}`; } } } catch (e) { o.textContent = e.message; revokeAccess(); } });
+$('#st-test-gh').addEventListener('click', async () => { const o = $('#st-test-out'); o.textContent = 'Testing GitHub…'; try { const r = await testAccess(); o.textContent = `${r.name}: ${r.canPush ? 'write access OK' : 'READ-ONLY — on GitHub, edit the token: Repository access must include randalkidd/MC and Contents must be Read and write'}${r.private ? ' (private repo — Pages needs a paid plan)' : ''}`; if (r.canPush && gh.viaRelay) { await grantAccess(); toast('Connected — staff tools unlocked', 'ok'); } else revokeAccess(); if (r.canPush && gh.viaRelay) { try { if (await shareRelayIfNeeded()) { o.textContent += ' · Relay address shared — other browsers now need only the passphrase.'; renderSettings(); } } catch (e) { o.textContent += ` · Couldn't share relay address: ${e.message}`; } } } catch (e) { o.textContent = e.message; revokeAccess(); } });
 
 $('#gh-badge').addEventListener('click', () => { showTab('p-settings'); setTimeout(() => $('#st-pass').focus(), 50); });
 

@@ -1,9 +1,10 @@
 // Parcel lookup — ports reference/workflow-standards.md to in-browser REST calls.
-import { arcgis, request } from './net.js?v=04165a9f';
+import { arcgis, request } from './net.js?v=4cc821ae';
 
 const GIS = 'https://gis.maricopa.gov/arcgis/rest/services';
 export const EP = {
   parcel: `${GIS}/IndividualService/Parcel/MapServer/1`,
+  subdivision: `${GIS}/IndividualService/Parcel/MapServer/0`,
   city: `${GIS}/IndividualService/City/MapServer/0`,
   trs: `${GIS}/IndividualService/TownshipRangeSection/MapServer/2`,
   plannet: `${GIS}/PND/PlanNet/MapServer`,
