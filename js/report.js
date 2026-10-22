@@ -239,7 +239,8 @@ export function renderReportHTML(R, db) {
       + g.items.map(it => `<tr class="multi-row" data-grp="${g.key}" hidden><td class="sub">↳ ${esc(it.layer)}</td><td>${esc(it.value)}</td></tr>`).join(''));
   }
   rows.push({ raw: dRows.length ? `<tr class="grp-head"><td colspan="2">Districts</td></tr>${dRows.join('')}` : '<tr><td>Districts</td><td>—</td></tr>' });
-  rows.push(['Natural resource', dl(R.natural)], ['Military', dl(R.military)]);
+  const lines = (list) => (list && list.length ? [...new Set(list.map(x => `${shortLayer(x.layer).replace(/^Military\s*[→>-]\s*/i, '')}: ${x.value}`))].map(esc).join('<br>') : '—');
+  rows.push(['Natural resource', dl(R.natural)], ['Military', lines(R.military)]);
   rows.push(['Septic', `<span id="septic-cell">Not yet checked — <button class="link" data-act="septic">check EDMS</button> (needs relay) · ${a('Septic Search', LINKS.septic)} · ${a('Permit Center (6/15/2024+)', LINKS.permitCenter)}</span>`]);
   rows.push(['Roads (RIT)', `<span id="roads-cell"><button class="link" data-act="roads">Look up frontage roads</button></span>`]);
   rows.push(['TSP2040 corridor projects', `<span id="tsp-cell"><button class="link" data-act="tsp">Check</button></span>`]);
