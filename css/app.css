@@ -159,3 +159,8 @@ h3, .tab, th { font-family: var(--sans); font-weight: 700; }
 .tab { font-weight: 500; } .tab[aria-selected="true"] { font-weight: 700; }
 a { font-weight: 500; }
 .report .rep-title { margin: 0 0 .35rem; font: 700 1.35rem/1.25 var(--display); color: var(--ink); }
+/* Light mode keeps the original pairing: boxes white, header rows grey (the box/header swap is dark-mode only). */
+:root[data-theme="light"] .card, :root[data-theme="light"] .report { background: var(--surface); }
+:root[data-theme="light"] th { background: var(--soft); }
+:root[data-theme="light"] .db-scroll thead th { background: var(--surface); }
+:root[data-theme="light"] .findings li, :root[data-theme="light"] tr.grp-head td, :root[data-theme="light"] code { background: var(--soft); }
