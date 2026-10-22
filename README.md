@@ -1,6 +1,6 @@
 # Unofficial Maricopa County Zoning Review
 
-Live at **https://randalkidd.github.io/mc/** · the original single-page Parcel Lookup is at [`/parcel-lookup/`](parcel-lookup/).
+Live at **https://randalkidd.github.io/MC/** · the original single-page Parcel Lookup is at [`/parcel-lookup/`](parcel-lookup/).
 
 A static web app for zoning and subdivision review in unincorporated Maricopa County. It runs entirely in the browser (phone, tablet or any computer) and talks to the county's public GIS services directly. It needs no server and no browser extension.
 
