@@ -37,7 +37,8 @@
           "coverageNow": "",
           "coverageBy": ""
         }
-      ]
+      ],
+      "easements": ""
     },
     {
       "name": "Valencia Heights",
@@ -56,7 +57,8 @@
       "parcelsChecked": [
         "502-34-019M"
       ],
-      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=19290024804&suffix="
+      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=19290024804&suffix=",
+      "easements": ""
     },
     {
       "name": "Savannah",
@@ -105,7 +107,8 @@
           "coverageNow": "",
           "coverageBy": ""
         }
-      ]
+      ],
+      "easements": ""
     },
     {
       "name": "Sun City West 39A",
@@ -124,7 +127,8 @@
       "parcelsChecked": [
         "232-19-318"
       ],
-      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=19880247904&suffix="
+      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=19880247904&suffix=",
+      "easements": ""
     },
     {
       "name": "Desert Wilderness Ranches",
@@ -143,7 +147,8 @@
       "parcelsChecked": [
         "401-52-034C"
       ],
-      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=19940067894&suffix="
+      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=19940067894&suffix=",
+      "easements": "60 ft ingress/egress and public utility easement (per survey); 30 ft right-of-way easement (Book 360 Pg 18); 20 ft roadway easements (Docs 94-252315 to 94-252320); electric-line easements per recorded dockets."
     },
     {
       "name": "Lee Homes Annex",
@@ -162,7 +167,8 @@
       "parcelsChecked": [
         "503-41-216"
       ],
-      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=19580114975&suffix="
+      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=19580114975&suffix=",
+      "easements": ""
     },
     {
       "name": "Chandler Heights Citrus Tract Unit 3626",
@@ -182,7 +188,8 @@
         "304-88-988",
         "304-88-146"
       ],
-      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=19300021276&suffix="
+      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=19300021276&suffix=",
+      "easements": "Dedication reserves easements over, under and along all roads for ditches, pipelines, conduits, water and other utilities."
     }
   ]
 }

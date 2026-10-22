@@ -51,6 +51,13 @@ function newerCases(R, plat) {
   return { y, list: [...R.currentCases, ...R.historicCases].filter(c => /Rezoning|Zoning Case|Development Master|Comprehensive|Overlay/.test(c.type) && c.date && new Date(c.date).getFullYear() >= y) };
 }
 
+// Mapped easements from the lookup, plus easements recorded on this parcel's subdivision plat (from the subdivision DB).
+export function easementList(R, plat) {
+  const list = [...(R.easements || [])];
+  if (plat && plat.easements && String(plat.easements).trim()) list.push({ kind: 'Subdivision plat easement', detail: `${plat.easements} (recorded on the plat for this subdivision — confirm which affect this lot)`, source: `${plat.docType} #${plat.rec}`, platUrl: plat.platUrl });
+  return list;
+}
+
 export function findPlat(R, db) {
   const n = (R.parcel.SubdivisionName || '').trim().toUpperCase();
   if (!n || !db) return null;
@@ -174,14 +181,21 @@ export function renderReportHTML(R, db) {
   if (ovHit.length) table(ovHit.map(o => [esc(o.name), esc(o.notes || '—')]), ['Intersecting overlay', 'Notes']);
   else out.push('<p class="ok">No overlay districts intersect this parcel.</p>');
   if (ovMiss.length) out.push(`<details class="miss"><summary>${ovMiss.length} other overlay${ovMiss.length > 1 ? 's' : ''} checked — no intersection</summary><p class="sub">${ovMiss.map(o => esc(o.name)).join(' · ')}</p></details>`);
-  if (R.overlays.find(o => o.id === 24 && o.hit)) out.push(`<div class="warn">Patent easement: yard setbacks are measured from the easement line (DD-2015-09).</div>`);
 
-  h('6. Zoning / Planning Cases');
+  h('6. Easements');
+  const ez = easementList(R, plat);
+  if (ez.length) {
+    table(ez.map(e => [`<b>${esc(e.kind)}</b>`, `${esc(e.detail)}${e.rec ? ` · ${a(`Rec. #${e.rec}`, e.url || LINKS.recDoc(e.rec))}` : ''}${e.platUrl ? ` · ${a('plat', e.platUrl)}` : ''}`, esc(e.source)]), ['Intersecting easement', 'Details', 'Source']);
+    if (ez.some(e => e.patent)) out.push(`<div class="warn">Patent easement: structures inside it can be removed without compensation, and yard setbacks are measured from the easement line, not the property line (<a href="https://www.maricopa.gov/6446/Patent-Easements-DD-2015-09" target="_blank" rel="noopener">DD-2015-09</a>).</div>`);
+  } else out.push('<p><b>None found, verify</b></p>');
+  out.push('<p class="sub">Mapped sources checked: patent easements, Flood Control District easements, MCDOT right-of-way, and easements recorded on plats in the subdivision database. Public utility, shared-well, ingress/egress and other private easements are not mapped — check the deed, the title report and the recorded plat.</p>');
+
+  h('7. Zoning / Planning Cases');
   const caseTable = (list) => list.length ? table(list.map(c => [esc(c.type), esc(dash(c.permit)), esc(dash(c.name)), esc(dash(c.status)), esc(dash(c.date)), esc(dash(c.request))]), ['Type', 'Permit #', 'Name', 'Status', 'Date', 'Request']) : out.push('<p>None found.</p>');
   out.push('<h4>Current / pending</h4>'); caseTable(R.currentCases);
   out.push('<h4>Historical (before June 2024)</h4>'); caseTable(R.historicCases);
 
-  h('7. Additional Data');
+  h('8. Additional Data');
   const rows = [];
   if (R.flood.hit) {
     const z = [...R.flood.effective.filter(x => String(x.FloodZoneCode).toUpperCase() !== 'X').map(x => `${x.FloodZoneCode}${x.FIRMPanelNumber ? ` (FIRM ${x.FIRMPanelNumber})` : ''}`), ...R.flood.preliminary.map(x => `Preliminary: ${x.FloodZoneCode}`)];
@@ -240,11 +254,13 @@ export function renderReportMD(R, db, extras = {}) {
   else L.push(`${p.SubdivisionName} (MCR ${p.MCRNumber || '—'}) — not yet in the subdivision database; plat not checked.`, '');
   L.push('### 5. Overlay Districts', '');
   { const hit = R.overlays.filter(o => o.hit); hit.length ? t(hit.map(o => [o.name, o.notes || '—']), ['Intersecting overlay', 'Notes']) : L.push('No overlay districts intersect this parcel.', ''); L.push(`_${R.overlays.length - hit.length} other overlays checked — no intersection._`, ''); }
-  L.push('### 6. Zoning / Planning Cases', '', '**Current / pending:**', '');
+  L.push('### 6. Easements', '');
+  { const ez = easementList(R, plat); ez.length ? t(ez.map(e => [e.kind, `${e.detail}${e.rec ? ` · ${mdLink(`Rec. #${e.rec}`, e.url || LINKS.recDoc(e.rec))}` : ''}`, e.source]), ['Intersecting easement', 'Details', 'Source']) : L.push('None found, verify', ''); }
+  L.push('### 7. Zoning / Planning Cases', '', '**Current / pending:**', '');
   R.currentCases.length ? t(R.currentCases.map(c => [c.type, c.permit, c.name, c.status, c.date]), ['Case type', 'Permit #', 'Name', 'Status', 'Date']) : L.push('None found.', '');
   L.push('**Historical (before June 2024):**', '');
   R.historicCases.length ? t(R.historicCases.map(c => [c.type, c.permit, c.name, c.status, c.date]), ['Case type', 'Permit #', 'Name', 'Status', 'Date']) : L.push('None found.', '');
-  L.push('### 7. Additional Data', '');
+  L.push('### 8. Additional Data', '');
   const add = [];
   if (R.flood.hit) add.push(['Floodplain', `Hit${R.flood.floodway ? ' (FLOODWAY)' : ''}: ${R.flood.effective.map(x => x.FloodZoneCode).join(', ')} — ${mdLink('Floodplain and Elevation Certificate Viewer', LINKS.flood)}`]);
   add.push(['Septic', extras.septic || `Not checked — ${mdLink('Septic Search', LINKS.septic)}`]);

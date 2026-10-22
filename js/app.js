@@ -104,7 +104,7 @@ const FIELDS = [
   ['name', 'Subdivision name (exact Assessor SubdivisionName)'], ['mcr', 'MCR book-page (e.g. 754-39)'], ['docType', 'Document type (PLAT MAP / SUR MAP)'],
   ['rec', 'Recording number'], ['recorded', 'Recorded date (YYYY-MM-DD)'], ['totalLots', 'Total lots (current Assessor count)'],
   ['baseZoning', 'Base zoning'], ['setbacks', 'Recorded setbacks (Front / Rear / Side / Street-side)'], ['height', 'Height limit'],
-  ['controllingCases', 'Controlling cases (DMP / rezoning / CPA, with dates)'], ['notes', 'Notes'], ['parcelsChecked', 'Parcels checked (comma-separated APNs)'],
+  ['controllingCases', 'Controlling cases (DMP / rezoning / CPA, with dates)'], ['easements', 'Easements recorded on the plat'], ['notes', 'Notes'], ['parcelsChecked', 'Parcels checked (comma-separated APNs)'],
 ];
 function openEditor(rec, prefill = {}) {
   const d = $('#db-editor'); const isNew = !rec;
@@ -112,7 +112,7 @@ function openEditor(rec, prefill = {}) {
   $('#ed-title').textContent = isNew ? 'Add subdivision' : `Edit — ${r.name}`;
   $('#ed-form').innerHTML = FIELDS.map(([k, l]) => {
     const v = Array.isArray(r[k]) ? r[k].join(', ') : (r[k] ?? '');
-    const big = ['notes', 'controllingCases', 'setbacks', 'height'].includes(k);
+    const big = ['notes', 'controllingCases', 'setbacks', 'height', 'easements'].includes(k);
     return `<label>${l}${big ? `<textarea name="${k}" rows="${k === 'notes' ? 5 : 2}">${esc(v)}</textarea>` : `<input name="${k}" value="${esc(v)}">`}</label>`;
   }).join('') + `<label class="row"><input type="checkbox" name="platControls" ${r.platControls ? 'checked' : ''}> Plat standards confirmed controlling (no newer case supersedes)</label>`
     + `<fieldset class="stbl"><legend>Recorded setback table (shown as the controlling table in Section 3)</legend><p class="sub">One row per lot range. Leave empty if the plat shows no setbacks. Lots: "All", "1-268", or "1-10, 15".</p><div class="tw"><table class="edit"><thead><tr>${STBL.map(([, l]) => `<th>${l}</th>`).join('')}<th></th></tr></thead><tbody id="ed-stbl"></tbody></table></div><button class="btn sm" type="button" id="ed-stbl-add">+ Add lot range</button></fieldset>`;

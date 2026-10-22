@@ -13,6 +13,8 @@ export const EP = {
   rit: 'https://gis.maricopa.gov/dot/rest/services/Maintenance/RoadInformationTool/MapServer',
   tspProj: 'https://gis.maricopa.gov/dot/rest/services/Planning/TransportationSystemPlan2040Project/MapServer',
   tspNeed: 'https://gis.maricopa.gov/dot/rest/services/Planning/TransportationSystemPlan2040Need/MapServer',
+  fcdProperty: 'https://gis.maricopa.gov/flood/rest/services/Property/Parcel/MapServer/0',
+  rightOfWay: 'https://gis.maricopa.gov/dot/rest/services/Property/RightOfWay/MapServer/0',
   septic: 'https://edms.maricopa.gov/env/api/CustomQuery/KeywordSearch',
 };
 
@@ -45,7 +47,7 @@ export const LAYER_GROUPS = {
   historic: [91, 92, 93, 94, 95, 96, 97, 98, 99, 100],
 };
 export const OVERLAY_ROWS = [
-  [7, 'Zoning Overlay (combined PAD/UPD/SC)'], [23, 'Scenic Corridor'], [24, 'Patent Easement'],
+  [7, 'Zoning Overlay (combined PAD/UPD/SC)'], [23, 'Scenic Corridor'],
   [26, 'Gateway Airport Planning Area'], [27, 'Gateway Airport Noise Contour'], [33, 'Native American Land'],
   [72, 'Military Facility'], [73, 'Luke AFB Vicinity'], [74, 'Luke AFB Noise Contour'], [75, 'Luke AFB APZ'],
   [76, 'Luke AFB Aux1 Vicinity'], [77, 'Luke AFB Aux1 Noise Contour'], [78, 'Luke AFB Aux1 APZ'],
@@ -76,6 +78,11 @@ function ringsBBox(rings) {
 }
 function ringArea(r) { let a = 0; for (let i = 0, j = r.length - 1; i < r.length; j = i++) a += (r[j][0] + r[i][0]) * (r[j][1] - r[i][1]); return a / 2; }
 export function polygonAreaSqFt(rings) { return Math.abs(rings.reduce((s, r) => s + ringArea(r), 0)); }
+// Shrink a parcel ~2 ft toward its centroid so features that only touch the boundary (adjacent road ROW) don't count as intersecting.
+function insetRings(rings, ft = 2) {
+  const c = centroid(rings);
+  return rings.map(r => r.map(([x, y]) => { const dx = c[0] - x, dy = c[1] - y, d = Math.hypot(dx, dy); return d > ft * 2 ? [x + dx / d * ft, y + dy / d * ft] : [x, y]; }));
+}
 function centroid(rings) { const b = ringsBBox(rings); return [(b.xmin + b.xmax) / 2, (b.ymin + b.ymax) / 2]; }
 function ptSeg(p, a, b) {
   const dx = b[0] - a[0], dy = b[1] - a[1];
@@ -142,7 +149,8 @@ export async function lookupParcel(apnInput, { onStep = () => {} } = {}) {
 
   onStep('PlanNet (all layers), section lines, floodplain, map geometry');
   const settle = (p) => p.then(v => ({ ok: true, v }), e => ({ ok: false, e: String(e.message || e) }));
-  const [idf, trs, fe, fp, ec, wgs] = await Promise.all([
+  const insetQ = { ...polyQ, geometry: JSON.stringify({ rings: insetRings(rings), spatialReference: { wkid: 2223 } }) };
+  const [idf, trs, fe, fp, ec, wgs, fcd, row] = await Promise.all([
     settle(arcgis(`${EP.plannet}/identify`, { geometry: gjson, geometryType: 'esriGeometryPolygon', sr: '2223', layers: 'all', tolerance: '0',
       mapExtent: `${bb.xmin},${bb.ymin},${bb.xmax},${bb.ymax}`, imageDisplay: '400,400,96', returnGeometry: 'false' })),
     settle(arcgis(`${EP.trs}/query`, { geometry: env(2700), geometryType: 'esriGeometryEnvelope', inSR: '2223', outSR: '2223', spatialRel: 'esriSpatialRelIntersects', outFields: 'PLSSType', returnGeometry: 'true' })),
@@ -150,6 +158,8 @@ export async function lookupParcel(apnInput, { onStep = () => {} } = {}) {
     settle(arcgis(`${EP.floodPre}/query`, { ...polyQ, outFields: 'FloodZoneCode,FloodZoneDescription' })),
     settle(arcgis(`${EP.elevCert}/query`, { where: `ParcelNumber='${apn}'`, outFields: 'ElevCertNumber,Address', returnGeometry: 'false' })),
     settle(arcgis(`${EP.parcel}/query`, { where: `APNDash='${apn}'`, outFields: 'APN', returnGeometry: 'true', outSR: '4326' })),
+    settle(arcgis(`${EP.fcdProperty}/query`, { ...insetQ, outFields: 'Type,ProjectName,PIN' })),
+    settle(arcgis(`${EP.rightOfWay}/query`, { ...insetQ, outFields: 'aquisition_type,RightOfWayWidth,RecorderNumber,RecorderUrl,CorDNumber,RightOfWayShareDescription' })),
   ]);
 
   const R = {
@@ -230,6 +240,14 @@ export async function lookupParcel(apnInput, { onStep = () => {} } = {}) {
     preliminary: [...new Map(preZones.map(z => [z.FloodZoneCode, z])).values()],
     certs,
   };
+  // Easements (mapped sources only): patent easements (PlanNet 24), Flood Control District easements, MCDOT right-of-way.
+  if (!fcd.ok) R.errors.push(`Flood Control easements: ${fcd.e}`);
+  if (!row.ok) R.errors.push(`MCDOT right-of-way: ${row.e}`);
+  R.easements = [];
+  for (const h of results.filter(r => r.layerId === 24)) R.easements.push({ kind: 'Patent easement', detail: pick(h.attributes, ['Name', 'NAME', 'Description', 'Type']) || h.value || 'Small Tract Act patent easement', source: 'PlanNet — Patent Easement', patent: true });
+  for (const f of (fcd.ok ? fcd.v.features || [] : []).map(x => x.attributes).filter(x => /easement/i.test(x.Type || ''))) R.easements.push({ kind: 'Flood Control District easement', detail: [f.ProjectName, f.PIN && `PIN ${f.PIN}`].filter(Boolean).join(' · ') || '—', source: 'FCDMC property' });
+  for (const f of (row.ok ? row.v.features || [] : []).map(x => x.attributes)) R.easements.push({ kind: /easement|patent/i.test(f.aquisition_type || '') ? 'Roadway easement (MCDOT right-of-way)' : 'Road right-of-way (MCDOT)', detail: [f.aquisition_type && `Acquired by ${f.aquisition_type}`, f.RightOfWayWidth && `${f.RightOfWayWidth} ft wide`, f.RightOfWayShareDescription].filter(Boolean).join(' · ') || '—', source: 'MCDOT right-of-way', rec: f.RecorderNumber || null, url: f.RecorderUrl || null });
+  R.easements = R.easements.filter((e, i, a) => a.findIndex(x => x.kind === e.kind && x.detail === e.detail && x.rec === e.rec) === i);
   return R;
 }
 
