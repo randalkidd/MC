@@ -1,12 +1,12 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=b508ad25';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=b508ad25';
-import { settings, setSharedRelay } from './net.js?v=b508ad25';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=b508ad25';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=b508ad25';
-import { CHECKLISTS } from './checklists.js?v=b508ad25';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=b508ad25';
-import { DIRECTIVES, MCSR_QUICK, REG_DOCS, REG_LOOKUP } from './refdata.js?v=b508ad25';
-import { findPlatDoc } from './recorder.js?v=b508ad25';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=8031595c';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=8031595c';
+import { settings, setSharedRelay } from './net.js?v=8031595c';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=8031595c';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=8031595c';
+import { CHECKLISTS } from './checklists.js?v=8031595c';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=8031595c';
+let REF = null; // js/refdata.js (76 KB) loads the first time the Reference tab opens
+import { findPlatDoc } from './recorder.js?v=8031595c';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -30,6 +30,7 @@ function showTab(id) {
   try { localStorage.setItem('mc.tab', id); } catch {}
   if (id === 'p-lookup' && S.map) setTimeout(() => { S.map.invalidateSize(); S.map2?.invalidateSize(); }, 50);
   if (id === 'p-saved') renderSaved();
+  if (id === 'p-ref') renderReference();
   history.replaceState(null, '', `#${id.slice(2)}`);
 }
 $$('.tab').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
@@ -52,6 +53,7 @@ function setbackCell(s) {
   return `<div class="sb-lines">${lines.map(l => `<div>${l}</div>`).join('')}</div>${t.length ? '<div class="sub">Front / Rear / Side / Street-side</div>' : ''}`;
 }
 // ⚠ icon whose explanation shows on mouseover (and on tap/focus for phones).
+const safeUrl = (u) => { try { const x = new URL(String(u), location.href); return /^https?:$/.test(x.protocol) ? x.href : '#'; } catch { return '#'; } };
 const warnIco = (tip) => `<span class="warnico" tabindex="0" role="img" aria-label="${esc(tip)}" data-tip="${esc(tip)}">⚠</span>`;
 // Pull the ⚠ sentences out of free-text notes (each runs to the next ⚠ or sentence end).
 function noteWarnings(text) {
@@ -90,7 +92,7 @@ function renderDB() {
   $('#db-body').innerHTML = rows.map(s => `<tr data-name="${esc(s.name)}">
     <td><b>${esc(s.name)}</b>${noteWarnings(s.notes).length ? ' ' + warnIco(noteWarnings(s.notes).join(' • ')) : ''}<div class="sub">${zoningCell(s.baseZoning)}</div></td>
     <td>${esc(s.mcr)}</td>
-    <td>${s.rec ? `<a href="${esc(s.platUrl)}" target="_blank" rel="noopener noreferrer">${esc(s.docType)} #${esc(s.rec)}</a><div class="sub">${esc(s.recorded)}</div>` : `<a href="${esc(s.platUrl || '#')}" target="_blank" rel="noopener noreferrer">Find plat (MCR ${esc(s.mcr || '?')})</a> ${warnIco('Recording number not recorded yet — open the plat (the PLAT MAP row), then Edit this subdivision and enter its recording number and date.')}`}</td>
+    <td>${s.rec ? `<a href="${esc(safeUrl(s.platUrl))}" target="_blank" rel="noopener noreferrer">${esc(s.docType)} #${esc(s.rec)}</a><div class="sub">${esc(s.recorded)}</div>` : `<a href="${esc(safeUrl(s.platUrl || '#'))}" target="_blank" rel="noopener noreferrer">Find plat (MCR ${esc(s.mcr || '?')})</a> ${warnIco('Recording number not recorded yet — open the plat (the PLAT MAP row), then Edit this subdivision and enter its recording number and date.')}`}</td>
     <td>${s.totalLots ?? `— ${warnIco('Lot count not taken yet — open Edit and use "Count lots from Assessor".')}`}</td><td>${setbackCell(s)}</td><td>${coverageCell(s)}</td><td>${esc(s.lastUpdated)}</td>
     <td><button class="btn sm" data-edit="${esc(s.name)}">Edit</button></td></tr>`).join('') || '<tr><td colspan="8">No matches.</td></tr>';
   renderQueue();
@@ -316,8 +318,11 @@ let leafletP = null;
 function loadLeaflet() {
   if (window.L) return Promise.resolve();
   if (!leafletP) leafletP = new Promise((res, rej) => {
-    const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.append(css);
-    const js = document.createElement('script'); js.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'; js.onload = res; js.onerror = rej; document.head.append(js);
+    // Pinned with Subresource Integrity (hashes from leafletjs.com/download): a tampered CDN copy will not run.
+    const css = Object.assign(document.createElement('link'), { rel: 'stylesheet', href: 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', integrity: 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=', crossOrigin: '' });
+    const js = Object.assign(document.createElement('script'), { src: 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', integrity: 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=', crossOrigin: '' });
+    js.onload = res; js.onerror = () => { leafletP = null; css.remove(); js.remove(); rej(new Error('Map library failed to load')); };
+    document.head.append(css, js);
   });
   return leafletP;
 }
@@ -375,14 +380,16 @@ async function drawMap(R) {
 
 // ---------------- regulation lookup (Reference tab) ----------------
 function renderRegLookup() {
+  if (!REF) return; const { REG_LOOKUP } = REF;
   const terms = ($('#rl-q').value || '').toLowerCase().split(/\s+/).filter(Boolean); const doc = $('#rl-doc').value;
   const hits = REG_LOOKUP.filter(r => (!doc || r.d === doc) && terms.every(w => `${r.d} ${r.s} ${r.t} ${r.r}`.toLowerCase().includes(w)));
   const phrase = terms.join(' '); const wb = (t, w) => new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i').test(t);
   const score = (r) => (phrase && r.t.toLowerCase().includes(phrase) ? 8 : 0) + (phrase && r.r.toLowerCase().includes(phrase) ? 4 : 0) + terms.filter(w => wb(r.t, w)).length * 2 + terms.filter(w => wb(r.r, w)).length;
   if (terms.length) hits.sort((x, y) => score(y) - score(x));
-  const mark = (t) => { let h = esc(t); for (const w of terms) h = h.replace(new RegExp(`(${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'), '<mark>$1</mark>'); return h; };
+  const rx = terms.length ? new RegExp(`(${terms.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi') : null;
+  const mark = (t) => rx ? String(t).split(rx).map((p, i) => (i % 2 ? `<mark>${esc(p)}</mark>` : esc(p))).join('') : esc(t); // highlight raw text, then escape each piece
   $('#rl-count').textContent = `${hits.length} of ${REG_LOOKUP.length} rules`;
-  $('#rl-body').innerHTML = hits.slice(0, 200).map(r => `<tr><td><a href="${esc(r.u)}" target="_blank" rel="noopener">${esc(r.d)}</a></td><td>${mark(r.s)}</td><td>${mark(r.t)}</td><td>${mark(r.r)}</td></tr>`).join('') || '<tr><td colspan="4" class="sub">No matches.</td></tr>';
+  $('#rl-body').innerHTML = hits.slice(0, 200).map(r => `<tr><td><a href="${esc(safeUrl(r.u))}" target="_blank" rel="noopener">${esc(r.d)}</a></td><td>${mark(r.s)}</td><td>${mark(r.t)}</td><td>${mark(r.r)}</td></tr>`).join('') || '<tr><td colspan="4" class="sub">No matches.</td></tr>';
 }
 $('#rl-q').addEventListener('input', renderRegLookup);
 $('#rl-doc').addEventListener('change', renderRegLookup);
@@ -530,12 +537,17 @@ async function renderSaved() {
 }
 
 // ---------------- reference ----------------
+let refP = null;
 function renderReference() {
+  return (refP ||= import('./refdata.js?v=8031595c').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
+}
+function fillReference() {
+  const { DIRECTIVES, MCSR_QUICK, REG_DOCS, REG_LOOKUP } = REF;
   $('#ref-mcsr').innerHTML = MCSR_QUICK.map(r => `<tr><td>${esc(r.topic)}</td><td>${esc(r.std)}</td><td>${esc(r.cite)}</td></tr>`).join('');
-  $('#ref-regs').innerHTML = REG_DOCS.map(d => `<tr><td><b>${esc(d.n)}</b></td><td>${esc(d.e)}</td><td>${esc(d.st)}</td><td>${d.l.map(l => `<a href="${esc(l.u)}" target="_blank" rel="noopener">${esc(l.t)}</a>`).join(' · ') || '—'}</td></tr>`).join('');
+  $('#ref-regs').innerHTML = REG_DOCS.map(d => `<tr><td><b>${esc(d.n)}</b></td><td>${esc(d.e)}</td><td>${esc(d.st)}</td><td>${d.l.map(l => `<a href="${esc(safeUrl(l.u))}" target="_blank" rel="noopener">${esc(l.t)}</a>`).join(' · ') || '—'}</td></tr>`).join('');
   $('#rl-doc').insertAdjacentHTML('beforeend', [...new Set(REG_LOOKUP.map(r => r.d))].map(d => `<option>${esc(d)}</option>`).join(''));
   renderRegLookup();
-  $('#ref-dirs').innerHTML = DIRECTIVES.map(d => `<li><a href="${d.u}" target="_blank" rel="noopener">${esc(d.t)}</a></li>`).join('');
+  $('#ref-dirs').innerHTML = DIRECTIVES.map(d => `<li><a href="${esc(safeUrl(d.u))}" target="_blank" rel="noopener">${esc(d.t)}</a></li>`).join('');
   $('#ref-acc').innerHTML = ACCESSORY_RULES.map(r => `<li>${esc(r)}</li>`).join('');
   $('#ref-septic').innerHTML = SEPTIC_SAMPLE_SETBACKS.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('');
   const keys = Object.keys(DISTRICTS);
@@ -626,7 +638,7 @@ async function shareRelayIfNeeded() {
   setSharedRelay(settings.localProxy); return true;
 }
 
-bindReview(); renderReview(); renderReference(); renderSettings(); classify(); loadSharedConfig();
+bindReview(); renderReview(); renderSettings(); classify(); loadSharedConfig();
 loadDB().catch(e => { $('#db-source').textContent = `Could not load database: ${e.message}`; }).finally(() => loadQueue());
 const qApn = new URLSearchParams(location.search).get('apn');
 const hashTab = location.hash ? `p-${location.hash.slice(1)}` : null;

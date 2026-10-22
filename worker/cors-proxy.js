@@ -11,7 +11,7 @@
 //   GITHUB_TOKEN = github_pat_...   (fine-grained, repo randalkidd/MC, Contents: Read and write)
 //   SITE_KEY     = a passphrase you choose (what you'll type in each browser)
 
-const RELAY_VERSION = '6';
+const RELAY_VERSION = '7';
 const ALLOWED_ORIGIN = 'https://randalkidd.github.io'; // only your site may use this relay
 const REPO = 'randalkidd/MC';
 const BRANCH = 'main';
@@ -30,10 +30,11 @@ const cors = (origin) => ({
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, X-MC-Key',
   'Access-Control-Max-Age': '86400',
+  'X-Content-Type-Options': 'nosniff',
   'Access-Control-Expose-Headers': 'X-Relay-Block, X-Relay-Upstream-Status, X-Relay-Version',
   Vary: 'Origin',
 });
-const json = (obj, status, origin) => new Response(JSON.stringify(obj), { status, headers: { ...cors(origin), 'Content-Type': 'application/json' } });
+const json = (obj, status, origin) => new Response(JSON.stringify(obj), { status, headers: { ...cors(origin), 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 
 function sameKey(a, b) {
   if (!a || !b || a.length !== b.length) return false;
@@ -97,6 +98,9 @@ export default {
 
     const target = u0.searchParams.get('url');
     if (!target) return new Response('Missing ?url=', { status: 400, headers: cors(origin) });
+    // Forward only for the site itself — scripts and other servers (no Origin header) can't use this as an open proxy.
+    if (ALLOWED_ORIGIN !== '*' && origin !== ALLOWED_ORIGIN) return new Response('Relay requests must come from the site', { status: 403, headers: cors(origin) });
+    if (target.length > 4000) return new Response('URL too long', { status: 414, headers: cors(origin) });
     let u; try { u = new URL(target); } catch { return new Response('Bad url', { status: 400, headers: cors(origin) }); }
     if (u.protocol !== 'https:' || !ALLOWED_HOSTS.has(u.hostname)) return new Response(`Host not allowed by relay: ${u.hostname}`, { status: 403, headers: { ...cors(origin), 'X-Relay-Block': '1' } });
 

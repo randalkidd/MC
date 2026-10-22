@@ -73,7 +73,7 @@ County GIS answers the site directly. `edms.maricopa.gov` (septic) and the Recor
 2. In the worker code, set `ALLOWED_ORIGIN` to `https://<you>.github.io` and redeploy.
 3. Paste the worker URL (`https://<name>.<you>.workers.dev`) into the site's **Settings → Relay URL**.
 
-The relay only forwards to an allow-list of `*.maricopa.gov` hosts. If county GIS ever starts blocking cross-site requests, tick **"Send all county requests through the relay"**.
+The relay only forwards to an allow-list of `*.maricopa.gov` hosts, and (from relay v7) only for requests coming from the site itself, so it can't be used as an open proxy by scripts or other websites. If county GIS ever starts blocking cross-site requests, tick **"Send all county requests through the relay"**.
 
 ## Sources and limits
 - MCZO: Dec 10, 2025 edition (effective 1/9/2026). Use DD-3014-01 to decide which edition governs an application.

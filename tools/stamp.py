@@ -18,6 +18,8 @@ def stamp(text):
     text = strip(text)
     # ES module imports:  from './x.js'
     text = re.sub(r"(from\s+['\"])(\./[\w-]+\.js)(['\"])", rf"\1\2?v={v}\3", text)
+    # dynamic imports:  import('./x.js')
+    text = re.sub(r"(import\(\s*['\"])(\./[\w-]+\.js)(['\"])", rf"\1\2?v={v}\3", text)
     # HTML references:  src="js/x.js"  href="js/x.js"  href="css/x.css"
     text = re.sub(r'((?:src|href)=")((?:js|css)/[\w-]+\.(?:js|css))(")', rf'\1\2?v={v}\3', text)
     return text
