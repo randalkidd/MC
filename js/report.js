@@ -107,7 +107,7 @@ export function renderReportHTML(R, db) {
     ['Deed (# / date)', p.DeedNumber ? a(`#${p.DeedNumber}, recorded ${p.DeedDate || '—'}`, LINKS.recDoc(p.DeedNumber)) : '—'],
     ['Township / Range / Section / Quarter', esc([p.Township, p.Range, p.Section, p.QuarterSection].map(dash).join(' / '))],
     ['Nearest section line', esc(dash(ftDir(R.sectionLine)))],
-    ['Nearest midsection line', esc(R.midsectionLine ? ftDir(R.midsectionLine) : 'Not available in county PLSS data for this section')],
+    ...(R.midsectionLine ? [['Nearest midsection line', esc(ftDir(R.midsectionLine))]] : []),
     ['Lot size (GIS polygon)', `${p.areaSqFt.toLocaleString()} sq ft (${p.areaAcres} ac)`],
     ['Property use / legal class', esc(dash([p.LandLegalClassDescription, p.ImprovementLegalClassDescription].filter(Boolean).join(' / ')))],
   ];
@@ -213,7 +213,7 @@ export function renderReportMD(R, db, extras = {}) {
     ['Deed (# / date)', p.DeedNumber ? mdLink(`#${p.DeedNumber}, recorded ${p.DeedDate}`, LINKS.recDoc(p.DeedNumber)) : '—'],
     ['Township / Range / Section / Quarter Section', [p.Township, p.Range, p.Section, p.QuarterSection].map(dash).join(' / ')],
     ['Nearest section line (direction & distance)', dash(ftDir(R.sectionLine))],
-    ['Nearest midsection line (direction & distance)', R.midsectionLine ? ftDir(R.midsectionLine) : 'Not available in county PLSS data for this section'],
+    ...(R.midsectionLine ? [['Nearest midsection line (direction & distance)', ftDir(R.midsectionLine)]] : []),
     ['Lot size (sq ft / acres)', `${p.areaSqFt.toLocaleString()} / ${p.areaAcres}`],
     ['Property use description', dash([p.LandLegalClassDescription, p.ImprovementLegalClassDescription].filter(Boolean).join(' / '))],
   ]);
