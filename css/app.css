@@ -109,3 +109,4 @@ tr.me td { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .leaflet-tooltip.apn-label { background: rgba(255,255,255,.85); border: 1px solid #d9480f; color: #222; font-weight: 600; font-size: .75rem; box-shadow: none; padding: 1px 5px; }
 .leaflet-tooltip.apn-label::before { display: none; }
 .queue { margin-bottom: 1rem; } .queue h3 { margin: 0 0 .2rem; } .queue .pill { vertical-align: middle; }
+.foot .build { margin-top: .4rem; font-size: .68rem; font-family: var(--mono); opacity: .85; }
