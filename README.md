@@ -26,7 +26,19 @@ A static web app for zoning and subdivision review in unincorporated Maricopa Co
 
 > Because the repo is public, everything saved to it (the subdivision database, parcel reports, reviews) is public too. Assessor and recorded-plat data is already public record. Don't save anything you wouldn't post.
 
-## Turn on saving (subdivision DB, reports, reviews)
+## Easiest setup for several browsers (work + home)
+
+Store the GitHub token **once** in the Cloudflare relay; each browser then only needs a short passphrase.
+
+1. Paste the latest `worker/cors-proxy.js` into your Cloudflare Worker → **Deploy**.
+2. Worker → **Settings → Variables and Secrets → Add**, Type **Secret**:
+   - `GITHUB_TOKEN` = your `github_pat_…` token (repo `randalkidd/MC`, Contents: Read and write)
+   - `SITE_KEY` = a passphrase you choose
+3. In each browser: site **⚙ Settings** → Relay URL + Passphrase → **Save settings** → **Test GitHub**.
+
+The relay commits only files under `data/`, only for requests carrying the passphrase. When the token expires, replace `GITHUB_TOKEN` in Cloudflare — no browser needs touching.
+
+## Alternative: token in each browser
 
 1. GitHub → **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.
 2. Repository access: **Only select repositories → `mc-zoning`**. Permissions: **Contents → Read and write**. Set an expiration.

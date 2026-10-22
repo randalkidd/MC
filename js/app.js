@@ -303,26 +303,28 @@ function renderSettings() {
   const off = !location.hostname.endsWith('github.io') && !/localhost|127\.0\.0\.1/.test(location.hostname);
   $('#st-host').hidden = !off;
   $('#st-proxy').value = settings.proxy; $('#st-force').checked = settings.forceProxy;
-  $('#st-owner').value = gh.owner; $('#st-repo').value = gh.repo; $('#st-branch').value = gh.branch; $('#st-token').value = gh.token ? '••••••••' : '';
-  $('#gh-badge').textContent = gh.canWrite ? `✓ Saving to ${gh.owner}/${gh.repo}` : '⚙ Connect GitHub to save';
+  $('#st-owner').value = gh.owner; $('#st-repo').value = gh.repo; $('#st-branch').value = gh.branch; $('#st-token').value = gh.token ? '••••••••' : ''; $('#st-pass').value = gh.passphrase ? '••••••••' : '';
+  $('#gh-badge').textContent = gh.canWrite ? `✓ Saving to ${gh.owner}/${gh.repo}${gh.viaRelay ? ' (relay)' : ''}` : '⚙ Connect GitHub to save';
   $('#gh-badge').className = `badge ${gh.canWrite ? 'ok' : ''}`;
 }
 $('#st-save').addEventListener('click', () => {
   settings.proxy = $('#st-proxy').value; settings.forceProxy = $('#st-force').checked;
   if (!storageWorks()) { toast('This browser is blocking site storage (private/incognito mode or an in-app browser), so the token cannot be kept. Open the site in regular Safari or Chrome.', 'error'); return; }
+  settings.proxy = $('#st-proxy').value;
+  const pass = $('#st-pass').value; if (!pass.startsWith('••')) gh.passphrase = pass.trim();
   const tok = $('#st-token').value.trim();
   if (tok && !tok.startsWith('••') && !/^(github_pat_|ghp_)/.test(tok)) { toast('That does not look like a GitHub token — it should start with github_pat_', 'error'); return; }
   gh.save({ owner: $('#st-owner').value.trim(), repo: $('#st-repo').value.trim(), branch: $('#st-branch').value.trim() || 'main', token: tok.startsWith('••') ? undefined : tok });
   renderSettings();
   if (gh.canWrite) { toast(`Saved — connected to ${gh.owner}/${gh.repo}. Now tap Test GitHub.`, 'ok'); }
-  else toast(`Not connected yet: ${!gh.token ? 'paste the token first' : 'owner and repository are required'}.`, 'error');
+  else toast(`Not connected yet: ${gh.passphrase && !settings.proxy ? 'add the Relay URL (the passphrase works through the relay)' : !gh.token && !gh.passphrase ? 'enter your passphrase (or a token)' : 'owner and repository are required'}.`, 'error');
   loadDB().catch(() => {});
 });
-$('#st-forget').addEventListener('click', () => { gh.save({ owner: $('#st-owner').value, repo: $('#st-repo').value, branch: $('#st-branch').value, token: '' }); renderSettings(); toast('Token removed from this browser'); });
+$('#st-forget').addEventListener('click', () => { gh.save({ owner: $('#st-owner').value, repo: $('#st-repo').value, branch: $('#st-branch').value, token: '' }); gh.passphrase = ''; renderSettings(); toast('Passphrase and token removed from this browser'); });
 $('#st-test-gis').addEventListener('click', async () => { const o = $('#st-test-out'); o.textContent = 'Testing county GIS…'; try { o.textContent = `County GIS reachable (${await ping()} ms).`; } catch (e) { o.textContent = e.message; } });
 $('#st-test-gh').addEventListener('click', async () => { const o = $('#st-test-out'); o.textContent = 'Testing GitHub…'; try { const r = await testAccess(); o.textContent = `${r.name}: ${r.canPush ? 'write access OK' : 'READ-ONLY — on GitHub, edit the token: Repository access must include randalkidd/MC and Contents must be Read and write'}${r.private ? ' (private repo — Pages needs a paid plan)' : ''}`; } catch (e) { o.textContent = e.message; } });
 
-$('#gh-badge').addEventListener('click', () => { showTab('p-settings'); setTimeout(() => $('#st-token').focus(), 50); });
+$('#gh-badge').addEventListener('click', () => { showTab('p-settings'); setTimeout(() => $('#st-pass').focus(), 50); });
 
 // ---------------- init ----------------
 bindReview(); renderReview(); renderReference(); renderSettings(); classify();

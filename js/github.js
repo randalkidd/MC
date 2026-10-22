@@ -24,8 +24,20 @@ export const gh = {
     LS('gh.owner', owner || null); LS('gh.repo', repo || null); LS('gh.branch', branch || null);
     if (token !== undefined) LS('gh.token', token || null);
   },
-  get canWrite() { return !!(this.owner && this.repo && this.token); },
+  get passphrase() { return LS('gh.pass') || ''; },
+  set passphrase(v) { LS('gh.pass', v || null); },
+  get viaRelay() { return !this.token && !!this.passphrase && !!relayUrl(); },
+  get canWrite() { return !!(this.owner && this.repo && (this.token || this.viaRelay)); },
 };
+
+const relayUrl = () => (LS('mc.proxy') || '').trim().replace(/\/+$/, '');
+
+async function relay(route, init = {}) {
+  const r = await fetch(`${relayUrl()}${route}`, { ...init, headers: { 'X-MC-Key': gh.passphrase, ...(init.headers || {}) } });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(r.status === 401 ? 'Wrong passphrase — re-enter it in Settings (it must match SITE_KEY in Cloudflare).' : (d.error || `Relay error ${r.status}`));
+  return d;
+}
 
 const api = (path) => `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${path}`;
 const b64enc = (str) => btoa(String.fromCharCode(...new TextEncoder().encode(str)));
@@ -66,7 +78,8 @@ export async function readFile(path) {
 
 // Create or update a file with a commit. Retries once on a sha conflict by re-reading.
 export async function writeFile(path, text, message) {
-  if (!gh.canWrite) throw new Error('Not connected to GitHub yet — tap "⚙ Connect GitHub to save" (top right) and paste your token.');
+  if (!gh.canWrite) throw new Error('Not connected to GitHub yet — tap "⚙ Connect GitHub to save" (top right) and enter your passphrase (or token).');
+  if (gh.viaRelay) return relay('/gh/write', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path, content: text, message }) });
   const cur = await ghFetch(`${api(path)}?ref=${encodeURIComponent(gh.branch)}`);
   const body = { message, content: b64enc(text), branch: gh.branch };
   if (cur && cur.sha) body.sha = cur.sha;
@@ -79,6 +92,7 @@ export async function listDir(path) {
 }
 
 export async function testAccess() {
+  if (gh.viaRelay) { const d = await relay('/gh/ping'); return { name: `${d.repo} (via relay)`, canPush: d.canPush, private: false }; }
   const r = await ghFetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}`);
   if (!r) throw new Error('Repo not found (check owner/repo, or the token lacks access).');
   return { name: r.full_name, canPush: !!(r.permissions && r.permissions.push), private: r.private };

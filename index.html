@@ -176,12 +176,14 @@
 <section class="panel" id="p-settings" hidden>
   <div class="grid2">
     <div class="card">
-      <h2>GitHub storage — paste your token here</h2>
+      <h2>GitHub storage — connect to save</h2>
       <p id="st-host" class="warn" hidden>You're on a copy of the site that isn't the GitHub Pages address. Settings are stored per address, so use <a href="https://randalkidd.github.io/MC/">randalkidd.github.io/MC</a> and enter the token there.</p>
-      <p class="sub">Saving to the subdivision database, parcel reports and reviews commits files to your repo through GitHub's API. Create a <b>fine-grained personal access token</b> limited to this one repository with <b>Contents: Read and write</b>. It is stored only in this browser.</p>
+      <p class="sub">Saving to the subdivision database, parcel reports and reviews commits files to your repo through GitHub's API. Simplest: store the token once in the Cloudflare relay (secrets <code>GITHUB_TOKEN</code> + <code>SITE_KEY</code>) and type only the passphrase in each browser.</p>
       <div class="row3"><label>Owner<input id="st-owner"></label><label>Repository<input id="st-repo"></label><label>Branch<input id="st-branch" placeholder="main"></label></div>
-      <label>Token<input id="st-token" type="password" autocomplete="off" placeholder="github_pat_…"></label>
-      <div class="actions"><button class="btn primary" id="st-save">Save settings</button><button class="btn ghost" id="st-test-gh">Test GitHub</button><button class="btn ghost" id="st-forget">Forget token</button></div>
+      <label>Passphrase <span class="sub">(recommended — the token lives once in your Cloudflare relay; needs the Relay URL below)</span><input id="st-pass" type="password" autocomplete="current-password" placeholder="Your SITE_KEY passphrase"></label>
+      <details><summary class="sub">Or paste a GitHub token directly in this browser instead</summary>
+      <label>Token<input id="st-token" type="password" autocomplete="off" placeholder="github_pat_…"></label></details>
+      <div class="actions"><button class="btn primary" id="st-save">Save settings</button><button class="btn ghost" id="st-test-gh">Test GitHub</button><button class="btn ghost" id="st-forget">Forget on this browser</button></div>
     </div>
     <div class="card">
       <h2>Relay (optional)</h2>
