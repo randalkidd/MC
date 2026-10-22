@@ -1,12 +1,12 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=5185b531';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=5185b531';
-import { settings, setSharedRelay } from './net.js?v=5185b531';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=5185b531';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=5185b531';
-import { CHECKLISTS } from './checklists.js?v=5185b531';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=5185b531';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=4b898e43';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=4b898e43';
+import { settings, setSharedRelay } from './net.js?v=4b898e43';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=4b898e43';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=4b898e43';
+import { CHECKLISTS } from './checklists.js?v=4b898e43';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=4b898e43';
 let REF = null; // js/refdata.js (76 KB) loads the first time the Reference tab opens
-import { findPlatDoc } from './recorder.js?v=5185b531';
+import { findPlatDoc } from './recorder.js?v=4b898e43';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -37,8 +37,15 @@ async function accessFingerprint() {
   const d = await crypto.subtle.digest('SHA-256', data);
   return [...new Uint8Array(d)].map(b => b.toString(16).padStart(2, '0')).join('');
 }
+// Top-right badge: "Connected" once passphrase + relay have passed Test GitHub, otherwise "Not Connected" (yellow).
+function renderBadge() {
+  const b = $('#gh-badge'); if (!b) return;
+  b.textContent = unlocked ? 'Connected' : 'Not Connected';
+  b.className = `badge ${unlocked ? 'ok' : 'no'}`;
+  b.title = unlocked ? `Saving to ${gh.owner}/${gh.repo} through the relay` : 'Not saving: open ⚙ Settings, enter the relay URL and passphrase, Save settings, then Test GitHub';
+}
 function applyAccess(on) {
-  unlocked = !!on;
+  unlocked = !!on; renderBadge();
   document.documentElement.classList.toggle('locked', !unlocked);
   $$('.tab.gated').forEach(b => (b.hidden = !unlocked));
   $('#landing').hidden = unlocked;
@@ -581,7 +588,7 @@ async function renderSaved() {
 // ---------------- reference ----------------
 let refP = null;
 function renderReference() {
-  return (refP ||= import('./refdata.js?v=5185b531').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
+  return (refP ||= import('./refdata.js?v=4b898e43').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
 }
 function fillReference() {
   const { DIRECTIVES, MCSR_QUICK, REG_DOCS, REG_LOOKUP } = REF;
@@ -608,8 +615,7 @@ function renderSettings() {
   $('#st-proxy').value = settings.localProxy || settings.sharedProxy; $('#st-force').checked = settings.forceProxy;
   $('#st-relay-note').textContent = settings.sharedProxy ? (settings.localProxy && settings.localProxy !== settings.sharedProxy ? `This browser overrides the shared relay (${settings.sharedProxy}).` : '✓ Shared relay — filled in automatically on every browser.') : 'Not shared yet — after Test GitHub succeeds here, this address is saved for all your browsers.';
   $('#st-owner').value = gh.owner; $('#st-repo').value = gh.repo; $('#st-branch').value = gh.branch; $('#st-token').value = gh.token ? '••••••••' : ''; $('#st-pass').value = gh.passphrase ? '••••••••' : '';
-  $('#gh-badge').textContent = gh.canWrite ? `✓ Saving to ${gh.owner}/${gh.repo}${gh.viaRelay ? ' (relay)' : ''}` : '⚙ Connect GitHub to save';
-  $('#gh-badge').className = `badge ${gh.canWrite ? 'ok' : ''}`;
+  renderBadge();
 }
 $('#st-save').addEventListener('click', () => {
   { const v = $('#st-proxy').value.trim().replace(/\/+$/, ''); settings.proxy = v && v !== settings.sharedProxy ? v : ''; } settings.forceProxy = $('#st-force').checked;
