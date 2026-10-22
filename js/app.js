@@ -1,11 +1,11 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, normalizeApn, lookupSplit } from './lookup.js';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js';
-import { settings, setSharedRelay } from './net.js';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js';
-import { CHECKLISTS } from './checklists.js';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js';
-import { DIRECTIVES, MCSR_QUICK } from './refdata.js';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, normalizeApn, lookupSplit } from './lookup.js?v=240be4c4';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=240be4c4';
+import { settings, setSharedRelay } from './net.js?v=240be4c4';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=240be4c4';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=240be4c4';
+import { CHECKLISTS } from './checklists.js?v=240be4c4';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=240be4c4';
+import { DIRECTIVES, MCSR_QUICK } from './refdata.js?v=240be4c4';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -478,6 +478,9 @@ document.addEventListener('click', (e) => { const j = e.target.closest('[data-ju
   document.addEventListener('click', (e) => { const w = e.target.closest('.warnico'); if (w) { if (owner === w && Date.now() - shownAt > 400) hide(); else show(w); } else hide(); });
   window.addEventListener('scroll', hide, true); window.addEventListener('resize', hide);
 })();
+
+window.addEventListener('error', (e) => { if (e.message && !/ResizeObserver/.test(e.message)) toast(`Something went wrong: ${e.message}`, 'error'); });
+window.addEventListener('unhandledrejection', (e) => { const m = (e.reason && (e.reason.message || String(e.reason))) || 'unknown error'; toast(`Something went wrong: ${m}`, 'error'); });
 
 // ---------------- init ----------------
 async function loadSharedConfig() {

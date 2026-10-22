@@ -1,7 +1,9 @@
 // Renders a lookup result in the project's parcel-report-template structure (HTML + Markdown).
-import { LINKS } from './lookup.js';
-import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js';
+import { LINKS } from './lookup.js?v=240be4c4';
+import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=240be4c4';
 
+// Only allow http(s) URLs into href attributes; everything else becomes "#".
+const safeUrl = (u) => { try { const x = new URL(String(u), location.href); return /^https?:$/.test(x.protocol) ? x.href : '#'; } catch { return '#'; } };
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const dash = (v) => (v == null || v === '' ? '—' : v);
 const mdLink = (t, u) => `[${t}](${u})`;
@@ -92,8 +94,8 @@ const permitHTML = (permit) => {
   const n = String(permit || '').trim(); const L = permitLink(n);
   if (!L) return esc(n || '—');
   return L.direct
-    ? `<a href="${L.url}" target="_blank" rel="noopener" title="Open recorded document ${esc(n)}">${esc(n)}</a>`
-    : `<a href="${L.url}" target="_blank" rel="noopener" class="rec-copy" data-num="${esc(n)}" title="Opens Recorder document search — ${esc(n)} is copied; paste it into Recorded Document Number">${esc(n)}</a>`;
+    ? `<a href="${esc(safeUrl(L.url))}" target="_blank" rel="noopener noreferrer" title="Open recorded document ${esc(n)}">${esc(n)}</a>`
+    : `<a href="${esc(safeUrl(L.url))}" target="_blank" rel="noopener noreferrer" class="rec-copy" data-num="${esc(n)}" title="Opens Recorder document search — ${esc(n)} is copied; paste it into Recorded Document Number">${esc(n)}</a>`;
 };
 
 export function findPlat(R, db) {
@@ -131,7 +133,7 @@ export function renderReportHTML(R, db) {
   const plat = findPlat(R, db);
   let secN = 0; const h = (t) => out.push(`<h3>${++secN}. ${t}</h3>`);
   const table = (rows, head = ['Field', 'Value']) => out.push(`<div class="tw"><table><thead><tr>${head.map(x => `<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.map(r => r.raw ? r.raw : `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`);
-  const a = (t, u) => `<a href="${u}" target="_blank" rel="noopener">${esc(t)}</a>`;
+  const a = (t, u) => `<a href="${esc(safeUrl(u))}" target="_blank" rel="noopener noreferrer">${esc(t)}</a>`;
 
   if (R.errors.length) out.push(`<div class="warn"><b>Some sources didn't respond:</b><ul>${R.errors.map(e => `<li>${esc(e)}</li>`).join('')}</ul>Those sections show "—"; retry, or enable the relay in Settings.</div>`);
   out.push(`<p class="meta">Lookup ${R.lookupDate} · direct ArcGIS REST queries against the exact parcel polygon (Assessor Parcel + PND/PlanNet), per the project workflow standards.</p>`);

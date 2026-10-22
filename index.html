@@ -4,14 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0d1418">
-<script>try{if(localStorage.getItem("mc.theme")==="light")document.documentElement.dataset.theme="light"}catch(e){}</script>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://server.arcgisonline.com https://*.arcgisonline.com https://cdnjs.cloudflare.com; connect-src 'self' https://gis.maricopa.gov https://publicapi.recorder.maricopa.gov https://edms.maricopa.gov https://recorder.maricopa.gov https://api.github.com https://*.workers.dev; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<script src="js/theme.js?v=240be4c4"></script>
 <title>Unofficial Maricopa County Zoning Review</title>
 <meta name="description" content="Maricopa County parcel lookup, MCZO/MCSR standards, subdivision plat database and plan-review deficiency builder.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%232ec4d0'/><path d='M7 24V9l9 7 9-7v15' fill='none' stroke='%2304161a' stroke-width='3' stroke-linejoin='round'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css">
-<link rel="modulepreload" href="js/app.js"><link rel="modulepreload" href="js/lookup.js"><link rel="modulepreload" href="js/report.js"><link rel="modulepreload" href="js/net.js"><link rel="modulepreload" href="js/github.js"><link rel="modulepreload" href="js/standards.js"><link rel="modulepreload" href="js/checklists.js"><link rel="modulepreload" href="js/review.js"><link rel="modulepreload" href="js/refdata.js">
+<link rel="stylesheet" href="css/app.css?v=240be4c4">
+<link rel="modulepreload" href="js/app.js?v=240be4c4"><link rel="modulepreload" href="js/lookup.js?v=240be4c4"><link rel="modulepreload" href="js/report.js?v=240be4c4"><link rel="modulepreload" href="js/net.js?v=240be4c4"><link rel="modulepreload" href="js/github.js?v=240be4c4"><link rel="modulepreload" href="js/standards.js?v=240be4c4"><link rel="modulepreload" href="js/checklists.js?v=240be4c4"><link rel="modulepreload" href="js/review.js?v=240be4c4"><link rel="modulepreload" href="js/refdata.js?v=240be4c4">
 </head>
 <body>
 <header class="top">
@@ -209,6 +211,6 @@
 </main>
 <footer class="foot">All information in this system is public and accessible to anyone; items saved here are stored in a public GitHub repository. Reference tool — verify findings against the adopted ordinance, recorded documents and case files before relying on them. MCSR on file: 2016 edition, superseded in part by the 10/23/2024 amendment.</footer>
 <div id="toasts" aria-live="polite"></div>
-<script type="module" src="js/app.js"></script>
+<script type="module" src="js/app.js?v=240be4c4"></script>
 </body>
 </html>

@@ -75,3 +75,9 @@ The relay only forwards to an allow-list of `*.maricopa.gov` hosts. If county GI
 - MCSR: the built-in references use the **2016** text. The **10/23/2024** amendment supersedes parts of it, so verify MCSR citations before issuing comments.
 - GIS layer IDs follow the county's current PlanNet service. If the county republishes it and results look wrong, re-check the layer IDs in `js/lookup.js`.
 - This is a review aid. Verify findings against the adopted ordinance, recorded documents and case files.
+
+## Maintenance
+
+- **After editing any JS/CSS, run `python3 tools/stamp.py` before committing.** It stamps every file reference with a content version (`?v=…`) so browsers load the new code immediately instead of a cached copy.
+- **Security:** the page runs under a Content-Security-Policy that only allows its own scripts, Leaflet from cdnjs, and network calls to county GIS, the County Recorder, EDMS, GitHub and `*.workers.dev`. If you add a new data source, add its host to the `connect-src` list in `index.html` (and to `ALLOWED_HOSTS` in the relay if it needs the relay).
+- **Relay:** answers only requests from `https://randalkidd.github.io`, forwards only to allow-listed county hosts, and saves only under `data/`. After changing `worker/cors-proxy.js`, paste it into Cloudflare (Settings → Copy relay code) and Deploy.

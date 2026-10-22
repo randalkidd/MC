@@ -1,5 +1,5 @@
 // Parcel lookup — ports reference/workflow-standards.md to in-browser REST calls.
-import { arcgis, request } from './net.js';
+import { arcgis, request } from './net.js?v=240be4c4';
 
 const GIS = 'https://gis.maricopa.gov/arcgis/rest/services';
 export const EP = {
@@ -29,9 +29,9 @@ export const LINKS = {
   permitCenter: 'https://edms.maricopa.gov/eplpav',
   assessor: 'https://maps.mcassessor.maricopa.gov/',
   mczo: 'https://www.maricopa.gov/DocumentCenter/View/4785/P-18---Zoning-Ordinance-PDF?bidId=',
-  recDoc: (n) => `https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=${n}&suffix=`,
-  recBook: (b, p) => `https://recorder.maricopa.gov/recording/document-search-results.html?mode=book&docketBook=${b}&pageMap=${p}`,
-  assessorParcel: (apn) => `https://mcassessor.maricopa.gov/mcs/?q=${apn.replace(/-/g, '')}&mod=pd`,
+  recDoc: (n) => `https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=${encodeURIComponent(String(n).replace(/[^0-9A-Za-z-]/g, ''))}&suffix=`,
+  recBook: (b, p) => `https://recorder.maricopa.gov/recording/document-search-results.html?mode=book&docketBook=${encodeURIComponent(String(b).replace(/\D/g, ''))}&pageMap=${encodeURIComponent(String(p).replace(/\D/g, ''))}`,
+  assessorParcel: (apn) => `https://mcassessor.maricopa.gov/mcs/?q=${encodeURIComponent(String(apn).replace(/[^0-9A-Za-z]/g, ''))}&mod=pd`,
 };
 
 const PARCEL_FIELDS = 'APN,APNDash,Book,Map,Item,PropertyFullStreetAddress,PropertyCity,PropertyZipCode,OwnerName,OwnerAddressLine1,OwnerAddressLine2,OwnerCity,OwnerState,OwnerZipCode,OwnerCountry,MCRNumber,DeedNumber,DeedDate,SaleDate,Township,Range,Section,QuarterSection,SubdivisionName,Lot,Block,Tract,PropertyDescription,ElementarySchoolDistrict,HighSchoolDistrict,ParcelValuationYear,FullCashValue,LimitedPropertyValue,LandLegalClassCode,LandLegalClassDescription,ImprovementLegalClassCode,ImprovementLegalClassDescription,ExemptStatus,ExemptDescription,Rental';
@@ -155,7 +155,7 @@ export async function lookupParcel(apnInput, { onStep = () => {} } = {}) {
   const [idf, trs, fe, fp, ec, wgs, fcd, row] = await Promise.all([
     settle(arcgis(`${EP.plannet}/identify`, { geometry: gjson, geometryType: 'esriGeometryPolygon', sr: '2223', layers: 'all', tolerance: '0',
       mapExtent: `${bb.xmin},${bb.ymin},${bb.xmax},${bb.ymax}`, imageDisplay: '400,400,96', returnGeometry: 'false' })),
-    settle(arcgis(`${EP.trs}/query`, { geometry: env(2700), geometryType: 'esriGeometryEnvelope', inSR: '2223', outSR: '2223', spatialRel: 'esriSpatialRelIntersects', outFields: 'PLSSType', returnGeometry: 'true' })),
+    settle(arcgis(`${EP.trs}/query`, { geometry: env(2700), geometryType: 'esriGeometryEnvelope', inSR: '2223', outSR: '2223', spatialRel: 'esriSpatialRelIntersects', outFields: 'PLSSType', returnGeometry: 'true', maxAllowableOffset: '2' })),
     settle(arcgis(`${EP.floodEff}/query`, { ...polyQ, outFields: 'FloodZoneCode,FloodZoneDescription,StaticElevation_Feet,FIRMPanelNumber' })),
     settle(arcgis(`${EP.floodPre}/query`, { ...polyQ, outFields: 'FloodZoneCode,FloodZoneDescription' })),
     settle(arcgis(`${EP.elevCert}/query`, { where: `ParcelNumber='${apn}'`, outFields: 'ElevCertNumber,Address', returnGeometry: 'false' })),
@@ -310,7 +310,7 @@ export async function ping() {
 // Siblings = every Assessor parcel sharing the subject's book-map-item (suffix letters mark splits of one parent).
 export async function lookupSplit(R) {
   const apn = R.apn; const base = apn.slice(0, 10); // "BBB-MM-III"
-  const sib = await arcgis(`${EP.parcel}/query`, { where: `APNDash LIKE '${base}%'`, outFields: 'APNDash,OwnerName,DeedDate,SaleDate,SubdivisionName,Lot,PropertyFullStreetAddress,MCRNumber', returnGeometry: 'true', outSR: '2223' });
+  const sib = await arcgis(`${EP.parcel}/query`, { where: `APNDash LIKE '${base.replace(/[^0-9-]/g, '')}%'`, outFields: 'APNDash,OwnerName,DeedDate,SaleDate,SubdivisionName,Lot,PropertyFullStreetAddress,MCRNumber', returnGeometry: 'true', outSR: '2223', maxAllowableOffset: '1' });
   const parcels = (sib.features || []).filter(f => /^\d{3}-\d{2}-\d{3}[A-Z]?$/.test(f.attributes.APNDash || '')).map(f => {
     const a = f.attributes; const sq = Math.round(polygonAreaSqFt(f.geometry.rings));
     return { apn: a.APNDash, owner: a.OwnerName, deedDate: a.DeedDate ? new Date(a.DeedDate).toISOString().slice(0, 10) : null,
@@ -321,7 +321,7 @@ export async function lookupSplit(R) {
   try {
     const b = ringsBBox(R.rings2223);
     const q = await arcgis(`${EP.rit}/1/query`, { geometry: JSON.stringify({ xmin: b.xmin - 80, ymin: b.ymin - 80, xmax: b.xmax + 80, ymax: b.ymax + 80, spatialReference: { wkid: 2223 } }),
-      geometryType: 'esriGeometryEnvelope', inSR: '2223', outSR: '2223', spatialRel: 'esriSpatialRelIntersects', outFields: 'FullRouteName', returnGeometry: 'true' });
+      geometryType: 'esriGeometryEnvelope', inSR: '2223', outSR: '2223', spatialRel: 'esriSpatialRelIntersects', outFields: 'FullRouteName', returnGeometry: 'true', maxAllowableOffset: '2' });
     for (const f of q.features || []) { if (!f.geometry || !f.geometry.paths) continue; const d = polyToLineDist(R.rings2223, f.geometry.paths); if (!street || d < street.d) street = { d: Math.round(d), name: f.attributes.FullRouteName || 'unnamed road' }; }
   } catch (e) { street = { error: String(e.message || e) }; }
   return { base, parcels, street };

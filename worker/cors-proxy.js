@@ -11,7 +11,7 @@
 //   GITHUB_TOKEN = github_pat_...   (fine-grained, repo randalkidd/MC, Contents: Read and write)
 //   SITE_KEY     = a passphrase you choose (what you'll type in each browser)
 
-const RELAY_VERSION = '3';
+const RELAY_VERSION = '4';
 const ALLOWED_ORIGIN = 'https://randalkidd.github.io'; // only your site may use this relay
 const REPO = 'randalkidd/MC';
 const BRANCH = 'main';
@@ -78,8 +78,14 @@ export default {
   async fetch(req, env) {
     const origin = req.headers.get('Origin') || '';
     if (req.method === 'OPTIONS') return new Response(null, { headers: cors(origin) });
+    // Only your site may use the relay. Plain address-bar visits (no Origin) get a short health response.
+    if (ALLOWED_ORIGIN !== '*' && origin && origin !== ALLOWED_ORIGIN) return new Response('Forbidden origin', { status: 403, headers: cors(origin) });
+    if (!['GET', 'POST'].includes(req.method)) return new Response('Method not allowed', { status: 405, headers: cors(origin) });
     const u0 = new URL(req.url);
-    if (u0.pathname.startsWith('/gh/')) return handleGitHub(req, env, origin, u0.pathname);
+    if (u0.pathname.startsWith('/gh/')) {
+      if (origin !== ALLOWED_ORIGIN && ALLOWED_ORIGIN !== '*') return json({ error: 'Saving is only allowed from the site.' }, 403, origin);
+      return handleGitHub(req, env, origin, u0.pathname);
+    }
 
     const target = u0.searchParams.get('url');
     if (!target) return new Response('Missing ?url=', { status: 400, headers: cors(origin) });

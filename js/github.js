@@ -30,7 +30,7 @@ export const gh = {
   get canWrite() { return !!(this.owner && this.repo && (this.token || this.viaRelay)); },
 };
 
-import { settings } from './net.js';
+import { settings } from './net.js?v=240be4c4';
 const relayUrl = () => settings.proxy;
 
 async function relay(route, init = {}) {
@@ -52,7 +52,7 @@ async function relay(route, init = {}) {
 }
 
 const api = (path) => `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${path}`;
-const b64enc = (str) => btoa(String.fromCharCode(...new TextEncoder().encode(str)));
+const b64enc = (str) => { const b = new TextEncoder().encode(str); let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); };
 const b64dec = (b64) => new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\n/g, '')), c => c.charCodeAt(0)));
 
 async function ghFetch(url, init = {}) {
@@ -86,10 +86,14 @@ export async function readFile(path) {
 export async function writeFile(path, text, message) {
   if (!gh.canWrite) throw new Error('Not connected to GitHub yet — tap "⚙ Connect GitHub to save" (top right) and enter your passphrase (or token).');
   if (gh.viaRelay) return relay('/gh/write', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path, content: text, message }) });
-  const cur = await ghFetch(`${api(path)}?ref=${encodeURIComponent(gh.branch)}`);
-  const body = { message, content: b64enc(text), branch: gh.branch };
-  if (cur && cur.sha) body.sha = cur.sha;
-  return ghFetch(api(path), { method: 'PUT', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
+  const put = async () => {
+    const cur = await ghFetch(`${api(path)}?ref=${encodeURIComponent(gh.branch)}`);
+    const body = { message, content: b64enc(text), branch: gh.branch };
+    if (cur && cur.sha) body.sha = cur.sha;
+    return ghFetch(api(path), { method: 'PUT', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
+  };
+  try { return await put(); }
+  catch (e) { if (/409|conflict|does not match/i.test(e.message)) return put(); throw e; }
 }
 
 const dirCache = new Map();
