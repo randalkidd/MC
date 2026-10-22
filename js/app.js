@@ -437,6 +437,10 @@ $('#st-save').addEventListener('click', () => {
   loadDB().catch(() => {});
 });
 $('#st-forget').addEventListener('click', () => { gh.save({ owner: $('#st-owner').value, repo: $('#st-repo').value, branch: $('#st-branch').value, token: '' }); gh.passphrase = ''; renderSettings(); toast('Passphrase and token removed from this browser'); });
+$('#st-copy-relay').addEventListener('click', async () => {
+  try { const t = await (await fetch(`worker/cors-proxy.js?t=${Date.now()}`, { cache: 'no-store' })).text(); await navigator.clipboard.writeText(t); toast(`Relay code copied (${t.split('\n').length} lines) — paste it into Cloudflare and Deploy`, 'ok'); }
+  catch (e) { toast('Copy blocked by the browser — use "View relay code", then select all and copy', 'error'); }
+});
 $('#st-test-gis').addEventListener('click', async () => { const o = $('#st-test-out'); o.textContent = 'Testing county GIS…'; try { o.textContent = `County GIS reachable (${await ping()} ms).`; } catch (e) { o.textContent = e.message; } });
 $('#st-test-gh').addEventListener('click', async () => { const o = $('#st-test-out'); o.textContent = 'Testing GitHub…'; try { const r = await testAccess(); o.textContent = `${r.name}: ${r.canPush ? 'write access OK' : 'READ-ONLY — on GitHub, edit the token: Repository access must include randalkidd/MC and Contents must be Read and write'}${r.private ? ' (private repo — Pages needs a paid plan)' : ''}`; if (r.canPush && gh.viaRelay) { try { if (await shareRelayIfNeeded()) { o.textContent += ' · Relay address shared — other browsers now need only the passphrase.'; renderSettings(); } } catch (e) { o.textContent += ` · Couldn't share relay address: ${e.message}`; } } } catch (e) { o.textContent = e.message; } });
 

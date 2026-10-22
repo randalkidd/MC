@@ -200,7 +200,8 @@
       <label>Relay URL<input id="st-proxy" placeholder="https://mc-relay.yourname.workers.dev"></label>
       <p id="st-relay-note" class="sub"></p>
       <label class="rowc"><input type="checkbox" id="st-force"> Send all county requests through the relay</label>
-      <div class="actions"><button class="btn ghost" id="st-test-gis">Test county GIS</button></div>
+      <div class="actions"><button class="btn ghost" id="st-test-gis">Test county GIS</button><button class="btn ghost" id="st-copy-relay" type="button">Copy relay code</button><a class="btn ghost" href="worker/cors-proxy.js" target="_blank" rel="noopener">View relay code</a></div>
+      <p class="sub">To update the relay: Copy relay code → Cloudflare → mc-relay → Edit code → select all, paste → Deploy.</p>
       <p id="st-test-out" class="status"></p>
     </div>
   </div>
