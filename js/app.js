@@ -456,6 +456,8 @@ $('#theme-btn').addEventListener('click', () => {
 });
 syncThemeBtn();
 
+// Recorder search links: copy the number so it can be pasted into "Recorded Document Number" (the page can't be pre-filled).
+document.addEventListener('click', (e) => { const l = e.target.closest('a.rec-copy'); if (!l) return; navigator.clipboard?.writeText(l.dataset.num).then(() => toast(`${l.dataset.num} copied — paste it into "Recorded Document Number" on the Recorder page`, 'ok'), () => toast(`Type ${l.dataset.num} into "Recorded Document Number" on the Recorder page`)); });
 document.addEventListener('click', (e) => { const j = e.target.closest('[data-jump]'); if (!j) return; e.preventDefault(); showTab('p-ref'); setTimeout(() => document.getElementById(j.dataset.jump)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); });
 
 // Floating tooltip for ⚠ icons: fixed to the window and clamped to its edges, so it is never clipped by tables.

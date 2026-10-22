@@ -78,6 +78,24 @@ export function groupDistricts(list) {
   }).filter(g => g.items.length);
 }
 
+// Case/permit numbers that point at Recorder documents:
+//  • 11 digits (a recording number) → that document's detail page
+//  • starts with a year, "CPA" or "MCP" → Recorder document search (number is copied for pasting)
+export const REC_SEARCH = 'https://recorder.maricopa.gov/recording/document-search.html#tab-doc-search';
+export function permitLink(permit) {
+  const n = String(permit || '').trim();
+  if (/^\d{11}$/.test(n)) return { url: LINKS.recDoc(n), direct: true };
+  if (/^(\d{4}|CPA|MCP)/i.test(n)) return { url: REC_SEARCH, direct: false };
+  return null;
+}
+const permitHTML = (permit) => {
+  const n = String(permit || '').trim(); const L = permitLink(n);
+  if (!L) return esc(n || '—');
+  return L.direct
+    ? `<a href="${L.url}" target="_blank" rel="noopener" title="Open recorded document ${esc(n)}">${esc(n)}</a>`
+    : `<a href="${L.url}" target="_blank" rel="noopener" class="rec-copy" data-num="${esc(n)}" title="Opens Recorder document search — ${esc(n)} is copied; paste it into Recorded Document Number">${esc(n)}</a>`;
+};
+
 export function findPlat(R, db) {
   const n = (R.parcel.SubdivisionName || '').trim().toUpperCase();
   if (!n || !db) return null;
@@ -218,7 +236,7 @@ export function renderReportHTML(R, db) {
   out.push('<p class="sub">Also checked: patent easements, Flood Control District easements, MCDOT right-of-way, and easements recorded on plats in the subdivision database. Public utility, shared-well, ingress/egress and other private easements are not mapped — check the deed, the title report and the recorded plat.</p>');
 
   h('Zoning / Planning Cases');
-  const caseTable = (list) => list.length ? table(list.map(c => [esc(c.type), esc(dash(c.permit)), esc(dash(c.name)), esc(dash(c.status)), esc(dash(c.date)), esc(dash(c.request))]), ['Type', 'Permit #', 'Name', 'Status', 'Date', 'Request']) : out.push('<p>None found.</p>');
+  const caseTable = (list) => list.length ? table(list.map(c => [esc(c.type), permitHTML(c.permit), esc(dash(c.name)), esc(dash(c.status)), esc(dash(c.date)), esc(dash(c.request))]), ['Type', 'Permit #', 'Name', 'Status', 'Date', 'Request']) : out.push('<p>None found.</p>');
   out.push('<h4>Current / pending</h4>'); caseTable(R.currentCases);
   out.push('<h4>Historical (before June 2024)</h4>'); caseTable(R.historicCases);
 
@@ -301,9 +319,10 @@ export function renderReportMD(R, db, extras = {}) {
   { const ez = easementList(R, plat); ez.length ? t(ez.map(e => [e.kind, `${e.detail}${e.rec ? ` · ${mdLink(`Rec. #${e.rec}`, e.url || LINKS.recDoc(e.rec))}` : ''}`, e.source]), ['Intersecting easement', 'Details', 'Source']) : L.push('None found, verify', '');
     const d = R.recorder && R.recorder.deed; if (d) L.push(`Deed ${mdLink(`#${d.rec}`, LINKS.recDoc(d.rec))} (${d.codes.join(', ')}) checked: ${d.hasEasement ? 'recorded with an easement.' : 'no easement recorded with it;'} deed text exceptions not read automatically — review the deed.`, ''); }
   H('Zoning / Planning Cases'); L.push('**Current / pending:**', '');
-  R.currentCases.length ? t(R.currentCases.map(c => [c.type, c.permit, c.name, c.status, c.date]), ['Case type', 'Permit #', 'Name', 'Status', 'Date']) : L.push('None found.', '');
+  const pmd = (n) => { const k = permitLink(n); return k ? mdLink(n, k.url) : dash(n); };
+  R.currentCases.length ? t(R.currentCases.map(c => [c.type, pmd(c.permit), c.name, c.status, c.date]), ['Case type', 'Permit #', 'Name', 'Status', 'Date']) : L.push('None found.', '');
   L.push('**Historical (before June 2024):**', '');
-  R.historicCases.length ? t(R.historicCases.map(c => [c.type, c.permit, c.name, c.status, c.date]), ['Case type', 'Permit #', 'Name', 'Status', 'Date']) : L.push('None found.', '');
+  R.historicCases.length ? t(R.historicCases.map(c => [c.type, pmd(c.permit), c.name, c.status, c.date]), ['Case type', 'Permit #', 'Name', 'Status', 'Date']) : L.push('None found.', '');
   H('Additional Data');
   const add = [];
   if (R.flood.hit) add.push(['Floodplain', `Hit${R.flood.floodway ? ' (FLOODWAY)' : ''}: ${R.flood.effective.map(x => x.FloodZoneCode).join(', ')} — ${mdLink('Floodplain and Elevation Certificate Viewer', LINKS.flood)}`]);
