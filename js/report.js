@@ -1,6 +1,6 @@
 // Renders a lookup result in the project's parcel-report-template structure (HTML + Markdown).
-import { LINKS } from './lookup.js?v=f52f573f';
-import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=f52f573f';
+import { LINKS } from './lookup.js?v=94090eac';
+import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=94090eac';
 
 // Only allow http(s) URLs into href attributes; everything else becomes "#".
 const safeUrl = (u) => { try { const x = new URL(String(u), location.href); return /^https?:$/.test(x.protocol) ? x.href : '#'; } catch { return '#'; } };
@@ -204,7 +204,7 @@ export function renderReportHTML(R, db) {
   if (p.SubdivisionName) h('Subdivision Plat (MCR)');
   if (!p.SubdivisionName) { /* not platted — section hidden */ }
   else if (plat) {
-    const editBtn = ` <button type="button" class="btn sm" data-act="edit-plat" data-name="${esc(plat.name)}">✎ Edit in SubdivisionDB</button>`;
+    const editBtn = ` <button type="button" class="btn sm gated" data-act="edit-plat" data-name="${esc(plat.name)}">✎ Edit in SubdivisionDB</button>`;
     table([
       ['Subdivision', esc(plat.name)], ['MCR', esc(plat.mcr)],
       ['Plat', plat.rec ? a(`${plat.docType} #${plat.rec}, recorded ${plat.recorded}`, plat.platUrl) : `${a(`Find plat at the Recorder (MCR ${plat.mcr || '?'})`, plat.platUrl)} — recording number not entered yet`],
@@ -215,7 +215,7 @@ export function renderReportHTML(R, db) {
       ? `<div class="warn">⚠ ${nc.list.length} DMP / rezoning / CPA / overlay case(s) dated on or after the plat (${nc.y}): ${nc.list.map(c => esc(`${c.permit} (${c.date}, ${c.status || 'status ?'})`)).join(', ')}. Verify whether an approved newer case changes the standards.</div>`
       : (nc.y === '?' ? '<p class="sub">Plat recording date not entered — the newer-case check runs once it is.</p>' : `<p class="ok">No DMP / rezoning / CPA case postdates the ${nc.y} plat in GIS.</p>`));
   } else {
-    out.push(`<div class="note">Platted (<b>${esc(p.SubdivisionName)}</b>, MCR ${esc(dash(p.MCRNumber))}) but not yet in the subdivision database. It has been added to the <b>review list</b> in SubdivisionDB — use <b>Process with Claude</b> there to read the plat and fill it in, or open the plat via the ${p.MCRNumber ? a('Recorder book/page search', LINKS.recBook(...p.MCRNumber.split('-'))) : 'Recorder'} (row coded PLAT MAP) and <button class="link" data-act="add-sub">add it by hand</button>.</div>`);
+    out.push(`<div class="note">Platted (<b>${esc(p.SubdivisionName)}</b>, MCR ${esc(dash(p.MCRNumber))}) but not yet in the subdivision database. <span class="gated">It has been added to the <b>review list</b> in SubdivisionDB — use <b>Process with Claude</b> there to read the plat and fill it in, or </span>Open the plat via the ${p.MCRNumber ? a('Recorder book/page search', LINKS.recBook(...p.MCRNumber.split('-'))) : 'Recorder'} (row coded PLAT MAP)<span class="gated"> and <button class="link" data-act="add-sub">add it by hand</button></span>.</div>`);
   }
 
   h('Overlay Districts');

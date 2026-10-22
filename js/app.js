@@ -1,12 +1,12 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=f52f573f';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=f52f573f';
-import { settings, setSharedRelay } from './net.js?v=f52f573f';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=f52f573f';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=f52f573f';
-import { CHECKLISTS } from './checklists.js?v=f52f573f';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=f52f573f';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=94090eac';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=94090eac';
+import { settings, setSharedRelay } from './net.js?v=94090eac';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=94090eac';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=94090eac';
+import { CHECKLISTS } from './checklists.js?v=94090eac';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=94090eac';
 let REF = null; // js/refdata.js (76 KB) loads the first time the Reference tab opens
-import { findPlatDoc } from './recorder.js?v=f52f573f';
+import { findPlatDoc } from './recorder.js?v=94090eac';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -24,7 +24,47 @@ function download(name, text) { const a = document.createElement('a'); a.href = 
 const S = { R: null, md: '', extras: {}, db: null, dbSha: null, dbDirty: false, map: null, layer: null, review: loadDraft() };
 
 // ---------------- tabs ----------------
+// ---------------- access gate ----------------
+// Plan review, Land division, SubdivisionDB and Saved appear only after this browser has a passphrase and a relay that
+// passed "Test GitHub" (write access through the relay). Client-side only: it hides the tools, it does not secure
+// public data — saving is what the relay's passphrase actually protects.
+const GATED = ['p-review', 'p-division', 'p-subs', 'p-saved'];
+let unlocked = false;
+const ACCESS_KEY = 'mc.access';
+async function accessFingerprint() {
+  if (!gh.viaRelay) return '';
+  const data = new TextEncoder().encode(`${settings.proxy}\n${gh.passphrase}`);
+  const d = await crypto.subtle.digest('SHA-256', data);
+  return [...new Uint8Array(d)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+function applyAccess(on) {
+  unlocked = !!on;
+  document.documentElement.classList.toggle('locked', !unlocked);
+  $$('.tab.gated').forEach(b => (b.hidden = !unlocked));
+  $('#landing').hidden = unlocked;
+  if (!unlocked && GATED.includes(S.tab)) showTab('p-lookup');
+}
+async function grantAccess() {
+  try { localStorage.setItem(ACCESS_KEY, await accessFingerprint()); } catch {}
+  applyAccess(true);
+}
+function revokeAccess() { try { localStorage.removeItem(ACCESS_KEY); } catch {} applyAccess(false); }
+// On load (and after settings change): unlock at once if this passphrase + relay were tested before, then re-check quietly.
+async function checkAccess() {
+  let saved = ''; try { saved = localStorage.getItem(ACCESS_KEY) || ''; } catch {}
+  const fp = await accessFingerprint().catch(() => '');
+  if (!fp || fp !== saved) return applyAccess(false);
+  applyAccess(true);
+  verifyAccess(); // network re-check runs in the background; it can only lock, never delay the page
+}
+function verifyAccess() {
+  testAccess().then((r) => { if (!r.canPush) revokeAccess(); })
+    .catch((e) => { if (/passphrase|token|GitHub \d|not the relay|old code/i.test(e.message)) { revokeAccess(); toast(`Locked staff tools: ${e.message}`, 'error'); } }); // offline → keep the tested state
+}
+
 function showTab(id) {
+  if (!unlocked && GATED.includes(id)) { id = 'p-lookup'; toast('Connect in ⚙ Settings (relay + passphrase, then Test GitHub) to use this tool.'); }
+  S.tab = id;
   $$('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === id));
   $$('.panel').forEach(p => (p.hidden = p.id !== id));
   try { localStorage.setItem('mc.tab', id); } catch {}
@@ -34,6 +74,7 @@ function showTab(id) {
   history.replaceState(null, '', `#${id.slice(2)}`);
 }
 $$('.tab').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+document.addEventListener('click', (e) => { const g = e.target.closest('[data-goto]'); if (g) { showTab(g.dataset.goto); if (g.dataset.goto === 'p-settings') setTimeout(() => $('#st-pass')?.focus(), 50); } });
 
 // ---------------- subdivision DB ----------------
 async function loadDB() {
@@ -251,7 +292,7 @@ async function runLookup(apn, { force = false } = {}) {
     if (!force && hit && Date.now() - hit.t < 15 * 60000) S.R = hit.R;
     else { S.R = await lookupParcel(apn, { onStep: (m) => (st.textContent = `Querying: ${m}…`) }); lookupCache.set(S.R.apn, { R: S.R, t: Date.now() }); }
     st.hidden = true;
-    if (S.R.parcel.SubdivisionName && !findPlat(S.R, S.db) && !S.R.outsideCounty) queueSubdivision(S.R); // background
+    if (unlocked && S.R.parcel.SubdivisionName && !findPlat(S.R, S.db) && !S.R.outsideCounty) queueSubdivision(S.R); // background
     out.innerHTML = renderReportHTML(S.R, S.db);
     const age = Math.round((Date.now() - lookupCache.get(S.R.apn).t) / 60000);
     if (age >= 1) out.insertAdjacentHTML('afterbegin', `<p class="meta">Cached result from ${age} min ago · <button class="link" data-act="refresh">refresh from county GIS</button></p>`);
@@ -274,6 +315,7 @@ $('#lookup-form').addEventListener('submit', (e) => { e.preventDefault(); runLoo
 $('#report').addEventListener('click', async (e) => {
   const act = e.target.dataset.act; if (!act || !S.R) return;
   if (act === 'refresh') { runLookup(S.R.apn, { force: true }); return; }
+  if ((act === 'edit-plat' || act === 'add-sub') && !unlocked) { showTab('p-subs'); return; }
   if (act === 'edit-plat') { const rec = (S.db?.subdivisions || []).find(x => x.name === e.target.dataset.name); if (rec) { showTab('p-subs'); renderDB(); openEditor(rec); } else toast('That subdivision is no longer in the database', 'error'); return; }
   if (act === 'multi') { const open = e.target.getAttribute('aria-expanded') !== 'true'; e.target.setAttribute('aria-expanded', open); e.target.textContent = e.target.textContent.replace(/^[▸▾]/, open ? '▾' : '▸'); $$(`#report tr.multi-row[data-grp="${e.target.dataset.grp}"]`).forEach(tr => (tr.hidden = !open)); return; }
   if (act === 'addl') { const open = e.target.getAttribute('aria-expanded') !== 'true'; e.target.setAttribute('aria-expanded', open); e.target.textContent = `${open ? '▾' : '▸'} Additional Info`; $$('#report tr.addl').forEach(tr => (tr.hidden = !open)); return; }
@@ -539,7 +581,7 @@ async function renderSaved() {
 // ---------------- reference ----------------
 let refP = null;
 function renderReference() {
-  return (refP ||= import('./refdata.js?v=f52f573f').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
+  return (refP ||= import('./refdata.js?v=94090eac').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
 }
 function fillReference() {
   const { DIRECTIVES, MCSR_QUICK, REG_DOCS, REG_LOOKUP } = REF;
@@ -579,15 +621,15 @@ $('#st-save').addEventListener('click', () => {
   renderSettings();
   if (gh.canWrite) { toast(`Saved — connected to ${gh.owner}/${gh.repo}. Now tap Test GitHub.`, 'ok'); }
   else toast(`Not connected yet: ${gh.passphrase && !settings.proxy ? 'add the Relay URL (the passphrase works through the relay)' : !gh.token && !gh.passphrase ? 'enter your passphrase (or a token)' : 'owner and repository are required'}.`, 'error');
-  loadDB().catch(() => {}); showRelayVersion();
+  loadDB().catch(() => {}); showRelayVersion(); checkAccess();
 });
-$('#st-forget').addEventListener('click', () => { gh.save({ owner: $('#st-owner').value, repo: $('#st-repo').value, branch: $('#st-branch').value, token: '' }); gh.passphrase = ''; renderSettings(); toast('Passphrase and token removed from this browser'); });
+$('#st-forget').addEventListener('click', () => { revokeAccess(); gh.save({ owner: $('#st-owner').value, repo: $('#st-repo').value, branch: $('#st-branch').value, token: '' }); gh.passphrase = ''; renderSettings(); toast('Passphrase and token removed from this browser'); });
 $('#st-copy-relay').addEventListener('click', async () => {
   try { const t = await (await fetch(`worker/cors-proxy.js?t=${Date.now()}`, { cache: 'no-store' })).text(); await navigator.clipboard.writeText(t); toast(`Relay code copied (${t.split('\n').length} lines) — paste it into Cloudflare and Deploy`, 'ok'); }
   catch (e) { toast('Copy blocked by the browser — use "View relay code", then select all and copy', 'error'); }
 });
 $('#st-test-gis').addEventListener('click', async () => { const o = $('#st-test-out'); o.textContent = 'Testing county GIS…'; try { o.textContent = `County GIS reachable (${await ping()} ms).`; } catch (e) { o.textContent = e.message; } });
-$('#st-test-gh').addEventListener('click', async () => { const o = $('#st-test-out'); o.textContent = 'Testing GitHub…'; try { const r = await testAccess(); o.textContent = `${r.name}: ${r.canPush ? 'write access OK' : 'READ-ONLY — on GitHub, edit the token: Repository access must include randalkidd/MC and Contents must be Read and write'}${r.private ? ' (private repo — Pages needs a paid plan)' : ''}`; if (r.canPush && gh.viaRelay) { try { if (await shareRelayIfNeeded()) { o.textContent += ' · Relay address shared — other browsers now need only the passphrase.'; renderSettings(); } } catch (e) { o.textContent += ` · Couldn't share relay address: ${e.message}`; } } } catch (e) { o.textContent = e.message; } });
+$('#st-test-gh').addEventListener('click', async () => { const o = $('#st-test-out'); o.textContent = 'Testing GitHub…'; try { const r = await testAccess(); o.textContent = `${r.name}: ${r.canPush ? 'write access OK' : 'READ-ONLY — on GitHub, edit the token: Repository access must include randalkidd/MC and Contents must be Read and write'}${r.private ? ' (private repo — Pages needs a paid plan)' : ''}`; if (r.canPush && gh.viaRelay) { await grantAccess(); toast('Connected — Plan review, Land division, SubdivisionDB and Saved are unlocked', 'ok'); } else revokeAccess(); if (r.canPush && gh.viaRelay) { try { if (await shareRelayIfNeeded()) { o.textContent += ' · Relay address shared — other browsers now need only the passphrase.'; renderSettings(); } } catch (e) { o.textContent += ` · Couldn't share relay address: ${e.message}`; } } } catch (e) { o.textContent = e.message; revokeAccess(); } });
 
 $('#gh-badge').addEventListener('click', () => { showTab('p-settings'); setTimeout(() => $('#st-pass').focus(), 50); });
 
@@ -659,5 +701,8 @@ loadDB().catch(e => { $('#db-source').textContent = `Could not load database: ${
 const qApn = new URLSearchParams(location.search).get('apn');
 const hashTab = location.hash ? `p-${location.hash.slice(1)}` : null;
 let start = 'p-lookup'; try { start = localStorage.getItem('mc.tab') || start; } catch {}
-showTab(document.getElementById(hashTab || '') ? hashTab : start);
+applyAccess(false); // fail closed until checked
+let navigated = false; $$('.tab').forEach(b => b.addEventListener('click', () => { navigated = true; }));
+checkAccess().finally(() => { if (!qApn && !navigated) showTab(document.getElementById(hashTab || '') ? hashTab : start); });
+showTab('p-lookup');
 if (qApn) { showTab('p-lookup'); $('#lookup-apn').value = qApn; runLookup(qApn); }

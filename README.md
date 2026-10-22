@@ -30,6 +30,12 @@ Questions, corrections or suggestions? Email the designer, Randal Kidd, at [rand
   - **County codes, ordinances & regulations**: every document on the county's [Ordinances, Regulations and Codes](https://www.maricopa.gov/2271/Ordinances-Regulations-and-Codes) page with its edition, whether it's current or superseded, and links.
   - **Regulation lookup**: one searchable table (about 200 rules) covering the MCSR, Local Additions & Addenda (building-code amendments and fees), Abatement P-11, Hours of Construction P-22, Noise P-23, Military Airport Zoning P-16, the Addressing Regulations and the 36 Staff Interpretations. Each row links to its source PDF.
 
+## Access
+
+Anyone can use **Parcel lookup**, **Reference** and **⚙ Settings**. **Plan review, Land division, SubdivisionDB and Saved** appear only in a browser that has the relay URL and passphrase saved **and** has passed **Test GitHub** (write access through the relay). Each later visit opens at once from that saved record. The site then re-checks quietly in the background and locks the tools again if the passphrase is rejected or changed in Cloudflare. **Forget on this browser** locks them too.
+
+This only hides the staff tools from casual visitors. The repo, its code and its `data/` files stay public. What's actually protected is **saving**, because the relay only commits with the correct passphrase. While locked, parcel lookups don't add anything to the subdivision review list.
+
 ## Publish on GitHub Pages (about 5 minutes)
 
 1. (Done for `randalkidd/mc`.) Create a repository, e.g. `mc-zoning`. It must be **public** for free GitHub Pages; Pages on a private repo needs a paid plan.
