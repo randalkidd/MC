@@ -11,7 +11,7 @@
 //   GITHUB_TOKEN = github_pat_...   (fine-grained, repo randalkidd/MC, Contents: Read and write)
 //   SITE_KEY     = a passphrase you choose (what you'll type in each browser)
 
-const RELAY_VERSION = '7';
+const RELAY_VERSION = '8';
 const ALLOWED_ORIGIN = 'https://randalkidd.github.io'; // only your site may use this relay
 const REPO = 'randalkidd/MC';
 const BRANCH = 'main';
@@ -72,11 +72,17 @@ async function handleGitHub(req, env, origin, route) {
     const { path, content, message } = body || {};
     if (typeof path !== 'string' || !/^data\/[A-Za-z0-9._\/-]+$/.test(path) || path.includes('..')) return json({ error: 'Only files under data/ may be written.' }, 400, origin);
     if (typeof content !== 'string' || content.length > 900000) return json({ error: 'Missing or oversized content.' }, 400, origin);
-    const cur = await gh(env, `contents/${path}?ref=${BRANCH}`);
-    const sha = cur.ok ? (await cur.json()).sha : undefined;
-    const put = await gh(env, `contents/${path}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: String(message || `Update ${path}`).slice(0, 200), content: b64(content), branch: BRANCH, ...(sha ? { sha } : {}) }) });
-    const out = await put.json().catch(() => ({}));
+    // Re-read the file's current version and retry when another save landed first (GitHub answers 409/422).
+    let put, out = {};
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const cur = await gh(env, `contents/${path}?ref=${BRANCH}`);
+      const sha = cur.ok ? (await cur.json()).sha : undefined;
+      put = await gh(env, `contents/${path}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: String(message || `Update ${path}`).slice(0, 200), content: b64(content), branch: BRANCH, ...(sha ? { sha } : {}) }) });
+      out = await put.json().catch(() => ({}));
+      if (put.status !== 409 && put.status !== 422) break;
+      await new Promise(r => setTimeout(r, 400 * (attempt + 1)));
+    }
     if (!put.ok) return json({ error: put.status === 404 || put.status === 401 || put.status === 403 ? await tokenProblem(env, put.status) : `GitHub ${put.status}: ${out.message || 'save failed'}` }, 502, origin);
     return json({ ok: true, commit: out.commit && out.commit.sha }, 200, origin);
   }

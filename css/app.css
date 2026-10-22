@@ -125,3 +125,6 @@ th button.link[data-sort] { color: inherit; text-decoration: none; font: inherit
 .db-scroll { max-height: 24rem; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius); }
 .db-scroll thead th { position: sticky; top: 0; background: var(--surface); z-index: 1; }
 #allsubs, #queue { margin-top: 1rem; }
+button.wl-pill { font: inherit; font-size: .72rem; background: transparent; color: inherit; cursor: pointer; }
+button.wl-pill .wl-off { display: none; } button.wl-pill:hover, button.wl-pill:focus-visible { color: var(--bad); border-color: currentColor; }
+button.wl-pill:hover .wl-on, button.wl-pill:focus-visible .wl-on { display: none; } button.wl-pill:hover .wl-off, button.wl-pill:focus-visible .wl-off { display: inline; }

@@ -1,13 +1,13 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=2d116c7e';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=2d116c7e';
-import { settings, setSharedRelay } from './net.js?v=2d116c7e';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=2d116c7e';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=2d116c7e';
-import { CHECKLISTS } from './checklists.js?v=2d116c7e';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=2d116c7e';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=d3c15e0b';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=d3c15e0b';
+import { settings, setSharedRelay } from './net.js?v=d3c15e0b';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=d3c15e0b';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=d3c15e0b';
+import { CHECKLISTS } from './checklists.js?v=d3c15e0b';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=d3c15e0b';
 let REF = null; // js/refdata.js (76 KB) loads the first time the Reference tab opens
-import { findPlatDoc } from './recorder.js?v=2d116c7e';
-import { loadAllSubdivisions } from './subdivisions.js?v=2d116c7e';
+import { findPlatDoc } from './recorder.js?v=d3c15e0b';
+import { loadAllSubdivisions } from './subdivisions.js?v=d3c15e0b';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -240,16 +240,36 @@ async function loadQueue() {
   renderQueue();
 }
 // Read the latest published list, apply fn, drop anything already in SubdivisionDB or removed here, commit.
-async function saveQueue(fn, message) {
-  const q = parseQueue(await readFile(QUEUE).catch(() => null));
-  // keep items added in this browser that the published copy doesn't show yet (Pages lags ~1 min)
-  for (const it of S.queue?.items || []) if (!q.items.some(x => sameName(x.name, it.name))) q.items.push(it);
-  fn(q);
-  q.items = q.items.filter(x => !inDB(x.name) && !S.queueGone.has(x.name.toUpperCase()));
-  q.updated = new Date().toISOString();
-  S.queue = q; renderQueue();
-  if (gh.canWrite) await writeFile(QUEUE, JSON.stringify(q, null, 2) + '\n', message);
-  else toast('Waitlist updated in this browser only — connect GitHub to save it', 'info');
+// Waitlist saves: changes apply locally at once, then quick successive changes are batched into ONE commit and
+// commits run strictly one after another (parallel writes to the same file collide on GitHub with a 409).
+let qPending = [], qWaiters = [], qTimer = null, qChain = Promise.resolve();
+function saveQueue(fn, message) {
+  S.queue = S.queue || { schema: 1, items: [] }; S.queueGone = S.queueGone || new Set();
+  fn(S.queue);
+  S.queue.items = S.queue.items.filter(x => !inDB(x.name) && !S.queueGone.has(x.name.toUpperCase()));
+  renderQueue();
+  if (!gh.canWrite) { toast('Waitlist updated in this browser only — connect GitHub to save it', 'info'); return Promise.resolve(); }
+  qPending.push(message);
+  return new Promise((res, rej) => { qWaiters.push({ res, rej }); clearTimeout(qTimer); qTimer = setTimeout(flushQueue, 900); });
+}
+function flushQueue() {
+  const waiters = qWaiters.splice(0), msgs = qPending.splice(0);
+  if (!waiters.length) return;
+  qChain = qChain.then(async () => {
+    const write = async () => {
+      const q = parseQueue(await readFile(QUEUE).catch(() => null));
+      // published copy + everything this browser knows (Pages lags ~1 min); removals made here stay removed
+      for (const it of q.items) if (!S.queue.items.some(x => sameName(x.name, it.name))) S.queue.items.push(it);
+      S.queue.items = S.queue.items.filter(x => !inDB(x.name) && !S.queueGone.has(x.name.toUpperCase()));
+      S.queue.updated = new Date().toISOString();
+      const msg = msgs.length === 1 ? msgs[0] : `Plat Automation Waitlist: ${msgs.length} changes — ${msgs.map(m => m.replace(/^Plat Automation Waitlist:\s*/, '')).join('; ')}`.slice(0, 200);
+      await writeFile(QUEUE, JSON.stringify(S.queue, null, 2) + '\n', msg);
+    };
+    try { await write(); }
+    catch (e) { if (!/409|422|does not match|expected/i.test(e.message)) throw e; await new Promise(r => setTimeout(r, 1500)); await write(); } // one retry on a version collision
+    renderQueue();
+  }).then(() => waiters.forEach(w => w.res()), (e) => { waiters.forEach(w => w.rej(e)); });
+  qChain = qChain.catch(() => {}); // keep the chain alive after a failure
 }
 async function queueSubdivision(R) {
   const p = R.parcel; const name = p.SubdivisionName;
@@ -493,7 +513,7 @@ function renderAllSubs() {
     const plat = rec ? LINKS.recDoc(rec) : r.link ? safeUrl(r.link) : (book && page ? LINKS.recBook(book, page) : '');
     return `<tr><td><b>${esc(titleCase(r.name))}</b>${r.n > 1 ? ` <span class="sub">(${r.n} areas)</span>` : ''}</td><td>${esc(r.mcr || '—')}</td>
       <td>${plat ? `<a href="${esc(plat)}" target="_blank" rel="noopener noreferrer">${rec ? `Plat #${esc(rec)}` : 'Find plat'}</a>` : '—'}</td>
-      <td>${st === 'db' ? '<span class="pill ok-pill">✓ SubdivisionDB</span>' : st === 'queue' ? '<span class="pill">⏳ Waitlist</span>' : '<span class="sub">—</span>'}</td>
+      <td>${st === 'db' ? '<span class="pill ok-pill">✓ SubdivisionDB</span>' : st === 'queue' ? `<button type="button" class="pill wl-pill" data-as-unqueue="${esc(r.name)}" title="Click to remove from the Plat Automation Waitlist"><span class="wl-on">⏳ Waitlist</span><span class="wl-off">✕ Remove</span></button>` : '<span class="sub">—</span>'}</td>
       <td>${st === 'db' ? `<button class="btn sm ghost" type="button" data-as-edit="${esc(r.name)}">Open</button>` : st === 'none' ? `<button class="btn sm ghost" type="button" data-as-queue="${esc(r.name)}" data-mcr="${esc(r.mcr)}">Add to waitlist</button>` : ''}</td></tr>`;
   }).join('') || '<tr><td colspan="5" class="sub">No matches.</td></tr>';
   $('#as-page').textContent = rows.length ? `${(start + 1).toLocaleString()}–${(start + view.length).toLocaleString()} of ${rows.length.toLocaleString()}` : '0 results';
@@ -514,6 +534,14 @@ $('#as-export').addEventListener('click', () => {
 });
 $('#as-body').addEventListener('click', async (e) => {
   const ed = e.target.dataset.asEdit; if (ed) { const rec = S.db.subdivisions.find(x => sameName(x.name, ed)); if (rec) openEditor(rec); return; }
+  const un = e.target.closest('[data-as-unqueue]')?.dataset.asUnqueue;
+  if (un) {
+    const it = (S.queue?.items || []).find(x => sameName(x.name, un)); if (!it) return;
+    (S.queueGone ||= new Set()).add(it.name.toUpperCase());
+    try { await saveQueue(q => { q.items = q.items.filter(x => !sameName(x.name, un)); }, `Plat Automation Waitlist: remove ${titleCase(un)}`); toast(`${titleCase(un)} removed from the Plat Automation Waitlist`); }
+    catch (err) { toast(err.message, 'error'); }
+    renderAllSubs(); return;
+  }
   const qn = e.target.dataset.asQueue; if (!qn) return;
   e.target.disabled = true; e.target.textContent = 'Adding…';
   try { await queueByName(qn, e.target.dataset.mcr); renderAllSubs(); } catch (err) { toast(err.message, 'error'); e.target.disabled = false; e.target.textContent = 'Add to waitlist'; }
@@ -680,7 +708,7 @@ async function renderSaved() {
 // ---------------- reference ----------------
 let refP = null;
 function renderReference() {
-  return (refP ||= import('./refdata.js?v=2d116c7e').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
+  return (refP ||= import('./refdata.js?v=d3c15e0b').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
 }
 function fillReference() {
   const { DIRECTIVES, MCSR_QUICK, REG_DOCS, REG_LOOKUP } = REF;
