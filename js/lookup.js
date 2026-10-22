@@ -98,6 +98,23 @@ function lineDirection(paths, c) {
   if (w >= h) { const y = (b.ymin + b.ymax) / 2; return { dir: y > c[1] ? 'north' : 'south', orient: 'E–W' }; }
   const x = (b.xmin + b.xmax) / 2; return { dir: x > c[0] ? 'east' : 'west', orient: 'N–S' };
 }
+// Distinct nearby lines, closest first. Segments of the same line are merged: a second hit only counts
+// if it runs the other way (N–S vs E–W) or sits > 500 ft from an already-picked parallel line.
+function nearestLines(features, rings, c, count = 2) {
+  const cand = [];
+  for (const f of features) {
+    const paths = f.geometry && f.geometry.paths; if (!paths) continue;
+    const b = ringsBBox(paths); const ld = lineDirection(paths, c);
+    cand.push({ d: polyToLineDist(rings, paths), type: f.attributes.PLSSType, ...ld, pos: ld.orient === 'N–S' ? (b.xmin + b.xmax) / 2 : (b.ymin + b.ymax) / 2 });
+  }
+  cand.sort((x, y) => x.d - y.d);
+  const out = [];
+  for (const k of cand) {
+    if (out.some(o => o.orient === k.orient && Math.abs(o.pos - k.pos) < 500)) continue;
+    out.push(k); if (out.length >= count) break;
+  }
+  return out;
+}
 function nearestLine(features, rings, c) {
   let best = null;
   for (const f of features) {
@@ -153,6 +170,8 @@ export async function lookupParcel(apnInput, { onStep = () => {} } = {}) {
     const sec = nearestLine(feats.filter(f => f.attributes.PLSSType === 'Section'), rings, c);
     const any = sec || nearestLine(feats.filter(f => f.attributes.PLSSType !== 'Quarter Section'), rings, c);
     R.sectionLine = any ? { distance: Math.round(any.d), dir: any.dir, orient: any.orient, type: any.type, fallback: !sec } : null;
+    const pool = sec ? feats.filter(f => f.attributes.PLSSType === 'Section') : feats.filter(f => f.attributes.PLSSType !== 'Quarter Section');
+    R.sectionLines = nearestLines(pool, rings, c, 2).map(k => ({ distance: Math.round(k.d), dir: k.dir, orient: k.orient, type: k.type, fallback: !sec }));
     const q = nearestLine(feats.filter(f => f.attributes.PLSSType === 'Quarter Section'), rings, c);
     R.midsectionLine = q ? { distance: Math.round(q.d), dir: q.dir, orient: q.orient, type: q.type } : null;
   }
