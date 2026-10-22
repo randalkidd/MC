@@ -5,10 +5,14 @@ const LS = (k, v) => { try { if (v === undefined) return localStorage.getItem(k)
 function guessRepo() {
   // https://<owner>.github.io/<repo>/  or  https://<owner>.github.io/
   const h = location.hostname;
-  if (!h.endsWith('.github.io')) return { owner: '', repo: '' };
+  if (!h.endsWith('.github.io')) return { owner: 'randalkidd', repo: 'MC' }; // default repo when opened from another host
   const owner = h.replace('.github.io', '');
   const seg = location.pathname.split('/').filter(Boolean)[0];
   return { owner, repo: seg || `${owner}.github.io` };
+}
+
+export function storageWorks() {
+  try { localStorage.setItem('mc.__t', '1'); const ok = localStorage.getItem('mc.__t') === '1'; localStorage.removeItem('mc.__t'); return ok; } catch { return false; }
 }
 
 export const gh = {
@@ -33,9 +37,15 @@ async function ghFetch(url, init = {}) {
   const r = await fetch(url, { ...init, headers, cache: 'no-store' });
   if (r.status === 404) return null;
   if (!r.ok) {
-    let msg = `GitHub ${r.status}`;
-    try { msg += `: ${(await r.json()).message}`; } catch {}
-    throw new Error(msg);
+    let detail = ''; try { detail = (await r.json()).message || ''; } catch {}
+    const why = {
+      401: 'GitHub rejected the token (expired, mistyped, or revoked). Create a new token and paste it in Settings.',
+      403: /rate limit/i.test(detail) ? 'GitHub rate limit reached — wait a few minutes.' : 'The token does not have write permission. Edit the token on GitHub: Repository permissions → Contents → Read and write.',
+      404: 'The token cannot see this repository. Edit the token on GitHub: Repository access → Only select repositories → add randalkidd/MC.',
+      409: 'GitHub reported a conflict (file changed elsewhere). Reload and try again.',
+      422: 'GitHub refused the save (invalid request).',
+    }[r.status];
+    throw new Error(`${why || `GitHub error ${r.status}`}${detail ? ` [GitHub says: ${detail}]` : ''}`);
   }
   return r.json();
 }
