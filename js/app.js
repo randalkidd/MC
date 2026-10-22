@@ -1,12 +1,12 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=71aa2276';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=71aa2276';
-import { settings, setSharedRelay } from './net.js?v=71aa2276';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=71aa2276';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=71aa2276';
-import { CHECKLISTS } from './checklists.js?v=71aa2276';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=71aa2276';
-import { DIRECTIVES, MCSR_QUICK } from './refdata.js?v=71aa2276';
-import { findPlatDoc } from './recorder.js?v=71aa2276';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=b508ad25';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=b508ad25';
+import { settings, setSharedRelay } from './net.js?v=b508ad25';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=b508ad25';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=b508ad25';
+import { CHECKLISTS } from './checklists.js?v=b508ad25';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=b508ad25';
+import { DIRECTIVES, MCSR_QUICK, REG_DOCS, REG_LOOKUP } from './refdata.js?v=b508ad25';
+import { findPlatDoc } from './recorder.js?v=b508ad25';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -373,6 +373,20 @@ async function drawMap(R) {
   } catch (e) { console.warn('map', e); }
 }
 
+// ---------------- regulation lookup (Reference tab) ----------------
+function renderRegLookup() {
+  const terms = ($('#rl-q').value || '').toLowerCase().split(/\s+/).filter(Boolean); const doc = $('#rl-doc').value;
+  const hits = REG_LOOKUP.filter(r => (!doc || r.d === doc) && terms.every(w => `${r.d} ${r.s} ${r.t} ${r.r}`.toLowerCase().includes(w)));
+  const phrase = terms.join(' '); const wb = (t, w) => new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i').test(t);
+  const score = (r) => (phrase && r.t.toLowerCase().includes(phrase) ? 8 : 0) + (phrase && r.r.toLowerCase().includes(phrase) ? 4 : 0) + terms.filter(w => wb(r.t, w)).length * 2 + terms.filter(w => wb(r.r, w)).length;
+  if (terms.length) hits.sort((x, y) => score(y) - score(x));
+  const mark = (t) => { let h = esc(t); for (const w of terms) h = h.replace(new RegExp(`(${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'), '<mark>$1</mark>'); return h; };
+  $('#rl-count').textContent = `${hits.length} of ${REG_LOOKUP.length} rules`;
+  $('#rl-body').innerHTML = hits.slice(0, 200).map(r => `<tr><td><a href="${esc(r.u)}" target="_blank" rel="noopener">${esc(r.d)}</a></td><td>${mark(r.s)}</td><td>${mark(r.t)}</td><td>${mark(r.r)}</td></tr>`).join('') || '<tr><td colspan="4" class="sub">No matches.</td></tr>';
+}
+$('#rl-q').addEventListener('input', renderRegLookup);
+$('#rl-doc').addEventListener('change', renderRegLookup);
+
 // ---------------- plan review ----------------
 function renderReview() {
   const s = S.review;
@@ -518,6 +532,9 @@ async function renderSaved() {
 // ---------------- reference ----------------
 function renderReference() {
   $('#ref-mcsr').innerHTML = MCSR_QUICK.map(r => `<tr><td>${esc(r.topic)}</td><td>${esc(r.std)}</td><td>${esc(r.cite)}</td></tr>`).join('');
+  $('#ref-regs').innerHTML = REG_DOCS.map(d => `<tr><td><b>${esc(d.n)}</b></td><td>${esc(d.e)}</td><td>${esc(d.st)}</td><td>${d.l.map(l => `<a href="${esc(l.u)}" target="_blank" rel="noopener">${esc(l.t)}</a>`).join(' · ') || '—'}</td></tr>`).join('');
+  $('#rl-doc').insertAdjacentHTML('beforeend', [...new Set(REG_LOOKUP.map(r => r.d))].map(d => `<option>${esc(d)}</option>`).join(''));
+  renderRegLookup();
   $('#ref-dirs').innerHTML = DIRECTIVES.map(d => `<li><a href="${d.u}" target="_blank" rel="noopener">${esc(d.t)}</a></li>`).join('');
   $('#ref-acc').innerHTML = ACCESSORY_RULES.map(r => `<li>${esc(r)}</li>`).join('');
   $('#ref-septic').innerHTML = SEPTIC_SAMPLE_SETBACKS.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('');

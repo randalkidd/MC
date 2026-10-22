@@ -26,7 +26,9 @@ Questions, corrections or suggestions? Email the designer, Randal Kidd, at [rand
 - **Subdivision review list.** When a lookup lands in a subdivision that isn't in SubdivisionDB, nothing opens automatically. The subdivision is added to the review list (`data/subdivision-queue.json`) at the top of the SubdivisionDB tab, with its plat recording number (found by name at the County Recorder), lot count, zoning and the APNs that found it.
   - **✦ Process with Claude** opens Claude with the request prefilled (it's also copied to the clipboard). Claude follows [`tools/process-subdivision-queue.md`](tools/process-subdivision-queue.md): it reads each plat in the Claude desktop app's browser, adds the full record to SubdivisionDB, removes the subdivision from the list, and commits.
   - Plats Claude can't read stay on the list marked ⚠ needs-manual. Use ✕ to drop an item yourself.
-- **Reference.** MCZO §502/504/506 tables, accessory rules, the MCSR quick reference, all 88 P&D directives, and county tool links.
+- **Reference.** MCZO §502/504/506 tables, accessory rules, the MCSR quick reference, all 88 P&D directives, and county tool links, plus:
+  - **County codes, ordinances & regulations**: every document on the county's [Ordinances, Regulations and Codes](https://www.maricopa.gov/2271/Ordinances-Regulations-and-Codes) page with its edition, whether it's current or superseded, and links.
+  - **Regulation lookup**: one searchable table (about 200 rules) covering the MCSR, Local Additions & Addenda (building-code amendments and fees), Abatement P-11, Hours of Construction P-22, Noise P-23, Military Airport Zoning P-16, the Addressing Regulations and the 36 Staff Interpretations. Each row links to its source PDF.
 
 ## Publish on GitHub Pages (about 5 minutes)
 
@@ -86,3 +88,5 @@ The relay only forwards to an allow-list of `*.maricopa.gov` hosts. If county GI
 - **Relay:** answers only requests from `https://randalkidd.github.io`, forwards only to allow-listed county hosts, and saves only under `data/`. After changing `worker/cors-proxy.js`, paste it into Cloudflare (Settings → Copy relay code) and Deploy.
 
 The footer shows **Version MM.DD.YY.NNN**: the Arizona date of the last code change, plus that day's build count. `tools/stamp.py` sets it, together with the `?v=` cache-busting stamps, so run it before every commit. If the footer still shows the old number after a deploy, press Ctrl+Shift+R.
+
+The Reference tab's document index and Regulation lookup come from the project's reference docs (`county-ordinances-regulations.md`, `local-additions-addenda.md`, `staff-interpretations.md`, and the MCSR `README.md`). After editing those docs, rebuild with `python3 tools/build_reglookup.py <folder with the docs>`, then run `tools/stamp.py`.
