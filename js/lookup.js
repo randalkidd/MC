@@ -259,3 +259,24 @@ export async function ping() {
   await arcgis(`${EP.parcel}/query`, { where: '1=0', returnCountOnly: 'true' });
   return Date.now() - t;
 }
+
+// ---------- lot-split legality screen ----------
+// Siblings = every Assessor parcel sharing the subject's book-map-item (suffix letters mark splits of one parent).
+export async function lookupSplit(R) {
+  const apn = R.apn; const base = apn.slice(0, 10); // "BBB-MM-III"
+  const sib = await arcgis(`${EP.parcel}/query`, { where: `APNDash LIKE '${base}%'`, outFields: 'APNDash,OwnerName,DeedDate,SaleDate,SubdivisionName,Lot,PropertyFullStreetAddress,MCRNumber', returnGeometry: 'true', outSR: '2223' });
+  const parcels = (sib.features || []).filter(f => /^\d{3}-\d{2}-\d{3}[A-Z]?$/.test(f.attributes.APNDash || '')).map(f => {
+    const a = f.attributes; const sq = Math.round(polygonAreaSqFt(f.geometry.rings));
+    return { apn: a.APNDash, owner: a.OwnerName, deedDate: a.DeedDate ? new Date(a.DeedDate).toISOString().slice(0, 10) : null,
+      sub: a.SubdivisionName, lot: a.Lot, addr: a.PropertyFullStreetAddress, sqft: sq, acres: +(sq / 43560).toFixed(2) };
+  }).sort((x, y) => x.apn.localeCompare(y.apn));
+  // nearest street centerline (RIT street network) to the subject parcel
+  let street = null;
+  try {
+    const b = ringsBBox(R.rings2223);
+    const q = await arcgis(`${EP.rit}/1/query`, { geometry: JSON.stringify({ xmin: b.xmin - 80, ymin: b.ymin - 80, xmax: b.xmax + 80, ymax: b.ymax + 80, spatialReference: { wkid: 2223 } }),
+      geometryType: 'esriGeometryEnvelope', inSR: '2223', outSR: '2223', spatialRel: 'esriSpatialRelIntersects', outFields: 'FullRouteName', returnGeometry: 'true' });
+    for (const f of q.features || []) { if (!f.geometry || !f.geometry.paths) continue; const d = polyToLineDist(R.rings2223, f.geometry.paths); if (!street || d < street.d) street = { d: Math.round(d), name: f.attributes.FullRouteName || 'unnamed road' }; }
+  } catch (e) { street = { error: String(e.message || e) }; }
+  return { base, parcels, street };
+}

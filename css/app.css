@@ -90,3 +90,7 @@ fieldset.stbl { border: 1px solid var(--line); border-radius: 8px; margin: .5rem
 details.miss { margin: .4rem 0 .2rem; font-size: .85rem; } details.miss summary { color: var(--muted); cursor: pointer; } details.miss summary:hover { color: var(--accent); }
 .brand small a { color: var(--accent); text-decoration: none; } .brand small a:hover { text-decoration: underline; }
 #ref-dirs-card { scroll-margin-top: 64px; }
+.result.bad { border-color: var(--bad); } .result.warn { border-color: var(--warn-line); } .result.ok { border-color: color-mix(in srgb, var(--ok) 60%, var(--line)); }
+tr.me td { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.card.result, .findings li { color: var(--ink); }
+.result.bad h3 { color: var(--bad); } .result.ok h3 { color: var(--ok); } .result.warn h3 { color: #e0a85f; }

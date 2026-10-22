@@ -1,4 +1,4 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, normalizeApn } from './lookup.js';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, normalizeApn, lookupSplit } from './lookup.js';
 import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js';
 import { settings, setSharedRelay } from './net.js';
 import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js';
@@ -299,6 +299,52 @@ function classify() {
   $('#ld-out').innerHTML = out.map(o => `<div class="card result"><h3>${esc(o.cls)}</h3><p>${esc(o.proc)}</p><p class="sub">Basis: ${esc(o.cites)}</p>${o.warn.map(w => `<p class="warn">${esc(w)}</p>`).join('')}</div>`).join('');
 }
 $('#ld-form').addEventListener('input', classify);
+
+// ---------------- lot-split legality screen ----------------
+async function checkSplit(apnIn) {
+  const st = $('#ls-status'), out = $('#ls-out'); out.innerHTML = ''; st.hidden = false; st.className = 'status';
+  try {
+    const key = normalizeApn(apnIn); if (!key) throw new Error('Enter an APN like 401-52-034C.');
+    st.textContent = 'Looking up the parcel…';
+    const hit = lookupCache.get(key);
+    const R = hit && Date.now() - hit.t < 15 * 60000 ? hit.R : await lookupParcel(key);
+    lookupCache.set(R.apn, { R, t: Date.now() });
+    if (R.outsideCounty) { st.hidden = true; out.innerHTML = `<div class="note">${esc(R.apn)} is inside ${esc(R.city || 'an incorporated city')} — county land-division rules don't apply; the city's rules govern.</div>`; return; }
+    st.textContent = 'Finding parcels split from the same parent…';
+    const S2 = await lookupSplit(R); st.hidden = true;
+    const zone = R.zoning[0]?.zone; const dk = normalizeDistrict(zone); const d = dk ? DISTRICTS[dk] : null;
+    const ps = S2.parcels; const n = ps.length; const suffixed = ps.filter(p => /[A-Z]$/.test(p.apn)).length;
+    const all36 = n > 0 && ps.every(p => p.acres >= 36);
+    const small = d ? ps.filter(p => p.sqft < d.area) : [];
+    const subj = ps.find(p => p.apn === R.apn) || { sqft: R.parcel.areaSqFt, acres: R.parcel.areaAcres };
+    const platted = !!R.parcel.SubdivisionName;
+    const owners = [...new Set(ps.map(p => p.owner).filter(Boolean))];
+    const findings = []; // [status, text]
+    let verdict, cls; const noSplit = n <= 1 && !/[A-Z]$/.test(R.apn);
+    if (n <= 1 && !/[A-Z]$/.test(R.apn)) { verdict = 'No split detected'; cls = 'ok'; findings.push(['ok', `No other parcels share ${S2.base}; the Assessor record shows no split of this parcel.`]); }
+    else if (all36) { verdict = 'Exempt — all parcels are 36 acres or more'; cls = 'ok'; findings.push(['ok', `All ${n} parcels from ${S2.base} are ≥ 36 ac, so this is neither a subdivision nor a minor land division (MCSR §105.24/.38).`]); }
+    else if (n >= 6) { verdict = 'Possible illegal subdivision — refer for review'; cls = 'bad'; findings.push(['bad', `${n} parcels have been created from parent ${S2.base} and not all are ≥ 36 ac. Six or more lots requires a recorded subdivision plat (MCSR §103, §105.38; A.R.S. 32-2101).${platted ? ' Inside a recorded subdivision, 6+ adjoining lots requires a replat (MCSR §204).' : ''} Per DD-2013-10, no zoning approval unless ADRE confirms in writing that the split is lawful.`]); }
+    else { verdict = small.length ? 'Split count OK — but lot size problem' : 'Appears consistent with a lawful minor land division'; cls = small.length ? 'warn' : 'ok'; findings.push(['ok', `${n} parcel${n > 1 ? 's' : ''} from parent ${S2.base} — within the 5-lot minor land division limit (MCSR §105.24; DD-2013-10).`]); }
+    if (d) {
+      if (small.length) findings.push(['bad', `${small.length} parcel${small.length > 1 ? 's are' : ' is'} below the ${dk} minimum of ${d.area.toLocaleString()} sq ft: ${small.map(p => `${p.apn} (${p.sqft.toLocaleString()} sf)`).join(', ')}. A lot created below the minimum after zoning applied is not a lawful lot; one created earlier may be legal nonconforming — check the deed date.`]);
+      else if (n) findings.push(['ok', `All parcels meet the ${dk} minimum lot area of ${d.area.toLocaleString()} sq ft.`]);
+      if (d.width && !noSplit && !all36) findings.push(['verify', `Lot width minimum ${d.width} ft (${dk}) — measure each new lot on the survey; not computed here.`]);
+    } else findings.push(['verify', `Zoning "${zone || '—'}" not matched to a standards table — check lot area and width manually.`]);
+    if (S2.street?.error) findings.push(['verify', `Street access not checked (${S2.street.error}).`]);
+    else if (S2.street && S2.street.d <= 60) findings.push(['ok', `Street frontage likely: ${S2.street.name} is ~${S2.street.d} ft from the parcel.`]);
+    else findings.push(['verify', `No street centerline within ~60 ft${S2.street ? ` (nearest: ${S2.street.name}, ~${S2.street.d} ft)` : ''}. Each lot needs legal access — confirm a recorded ingress/egress easement (MCR #) (MCSR §105.21).`]);
+    if (!all36 && owners.length && owners.length < n && n > 1) findings.push(['verify', `${n} parcels, ${owners.length} owner${owners.length > 1 ? 's' : ''} — parcels sold by one owner or a group acting together can count as one common promotional plan (MCSR §105.10).`]);
+    if (!noSplit && !all36) findings.push(['verify', 'Confirm the division was made by recorded deeds and that existing buildings meet setbacks to the new lot lines (DD-2013-10 ¶2).']);
+    if (noSplit) findings.push(['verify', 'Some splits get new Assessor item numbers instead of suffix letters — if this lot looks carved from a neighbor, check the Assessor parcel history.']);
+    else if (suffixed < n - 1) findings.push(['verify', 'Some splits may carry new Assessor item numbers instead of suffix letters; check the Assessor parcel history for parcels not listed here.']);
+    const icon = { ok: '✅', bad: '❌', verify: '⚠️' };
+    out.innerHTML = `<div class="card result ${cls}"><h3>${esc(verdict)}</h3><p class="sub">${esc(R.apn)} · ${esc(zone || 'zoning ?')} · ${subj.sqft?.toLocaleString?.() || '—'} sf (${subj.acres} ac)${platted ? ` · ${esc(R.parcel.SubdivisionName)}${R.parcel.Lot ? ` lot ${esc(R.parcel.Lot)}` : ''}` : ''}</p>
+      <ul class="findings">${findings.map(([k, t]) => `<li class="${k === 'bad' ? 'deficient' : k}">${icon[k]} ${esc(t)}</li>`).join('')}</ul></div>
+      <div class="tw"><table><thead><tr><th>Parcel</th><th>Area</th><th>Owner</th><th>Deed date</th><th>Address</th></tr></thead><tbody>${ps.map(p => `<tr${p.apn === R.apn ? ' class="me"' : ''}><td><a href="?apn=${p.apn}#lookup">${esc(p.apn)}</a></td><td>${p.sqft.toLocaleString()} sf · ${p.acres} ac${d && p.sqft < d.area ? ' <b class="bad">below min</b>' : ''}</td><td>${esc(p.owner || '—')}</td><td>${esc(p.deedDate || '—')}</td><td>${esc(p.addr || '—')}</td></tr>`).join('')}</tbody></table></div>
+      <p class="sub">Screening based on Assessor records, not a legal determination. Basis: MCSR §103, §105.10, §105.21, §105.24, §105.38, §204; <a href="https://www.maricopa.gov/6416/Subdivisions---Replats-and-Lot-Splits-20" target="_blank" rel="noopener">DD-2013-10</a>; A.R.S. 11-831, 32-2101.</p>`;
+  } catch (e) { st.className = 'status err'; st.textContent = e.message; }
+}
+$('#ls-form').addEventListener('submit', (e) => { e.preventDefault(); checkSplit($('#ls-apn').value); });
 
 // ---------------- saved (GitHub) ----------------
 async function renderSaved() {
