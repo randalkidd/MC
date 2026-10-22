@@ -26,8 +26,8 @@ export function saveDraft(s) { try { localStorage.setItem(KEY, JSON.stringify(s)
 const num = (v) => (v === '' || v == null || isNaN(+v) ? null : +v);
 const fmt = (n) => (n == null ? 'not shown' : `${(+n).toLocaleString()} ft`);
 
-// Effective minimum: more restrictive of zoning and recorded plat BSL.
-function minOf(zoning, plat) { const p = num(plat); if (zoning == null) return p; return p != null ? Math.max(zoning, p) : zoning; }
+// Effective minimum: the recorded plat's figure controls when entered (it may reflect an approved RUPD/UPD); otherwise zoning.
+function minOf(zoning, plat) { const p = num(plat); return p != null ? p : zoning; }
 
 export function computeFindings(s) {
   const key = normalizeDistrict(s.district);
@@ -56,8 +56,8 @@ export function computeFindings(s) {
     if (req == null && num(shown) == null) continue;
     if (label.startsWith('Side-street') && num(shown) == null) continue; // interior lot
     const v = num(shown);
-    const platNote = Object.values(s.platSetbacks).some(x => num(x) != null) ? ' (more restrictive of zoning / recorded plat)' : '';
-    push('Site plan — residence', label, fmt(v), req == null ? 'None required' : `≥ ${req} ft${platNote}`, cite(sec), v == null ? false : req == null ? true : v >= req,
+    const platNote = num(s.platSetbacks[{ 'Front setback (primary)': 'front', 'Rear setback (primary)': 'rear', 'Side-street setback (primary)': 'street' }[label] || 'side']) != null ? ' (recorded plat)' : '';
+    push('Site plan — residence', label, fmt(v), req == null ? 'None required' : `≥ ${req} ft${platNote}`, platNote ? `Recorded plat; ${cite(sec)}` : cite(sec), v == null ? false : req == null ? true : v >= req,
       v == null ? `Dimension the ${label.toLowerCase().replace(' (primary)', '')} from the residence to the property line.` : `Increase to ≥ ${req} ft (relocate or reduce the structure), or seek a variance.`);
   }
   if (d.frontGarage && num(p.garage) != null) push('Site plan — garage', 'Front-facing garage plane to front lot line', fmt(num(p.garage)), `≥ ${d.frontGarage} ft`, cite(sec), num(p.garage) >= d.frontGarage, `Set the front-facing garage plane back ≥ ${d.frontGarage} ft.`);

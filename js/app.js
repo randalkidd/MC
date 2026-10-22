@@ -1,5 +1,5 @@
 import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, normalizeApn } from './lookup.js';
-import { renderReportHTML, renderReportMD, findPlat } from './report.js';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js';
 import { settings, setSharedRelay } from './net.js';
 import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js';
 import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js';
@@ -60,6 +60,7 @@ $('#db-new').addEventListener('click', () => openEditor(null));
 $('#db-reload').addEventListener('click', () => loadDB().then(() => toast('Reloaded')));
 $('#db-export').addEventListener('click', () => download('subdivision-plats.json', JSON.stringify(S.db, null, 2)));
 
+const STBL = [['lots', 'Lots'], ['district', 'District'], ['front', 'Front ft'], ['rear', 'Rear ft'], ['side', 'Side ft'], ['street', 'Street-side ft'], ['height', 'Height'], ['coverage', 'Coverage'], ['width', 'Min width ft'], ['other', 'Other']];
 const FIELDS = [
   ['name', 'Subdivision name (exact Assessor SubdivisionName)'], ['mcr', 'MCR book-page (e.g. 754-39)'], ['docType', 'Document type (PLAT MAP / SUR MAP)'],
   ['rec', 'Recording number'], ['recorded', 'Recorded date (YYYY-MM-DD)'], ['totalLots', 'Total lots (current Assessor count)'],
@@ -74,7 +75,13 @@ function openEditor(rec, prefill = {}) {
     const v = Array.isArray(r[k]) ? r[k].join(', ') : (r[k] ?? '');
     const big = ['notes', 'controllingCases', 'setbacks', 'height'].includes(k);
     return `<label>${l}${big ? `<textarea name="${k}" rows="${k === 'notes' ? 5 : 2}">${esc(v)}</textarea>` : `<input name="${k}" value="${esc(v)}">`}</label>`;
-  }).join('') + `<label class="row"><input type="checkbox" name="platControls" ${r.platControls ? 'checked' : ''}> Plat standards confirmed controlling (no newer case supersedes)</label>`;
+  }).join('') + `<label class="row"><input type="checkbox" name="platControls" ${r.platControls ? 'checked' : ''}> Plat standards confirmed controlling (no newer case supersedes)</label>`
+    + `<fieldset class="stbl"><legend>Recorded setback table (shown as the controlling table in Section 3)</legend><p class="sub">One row per lot range. Leave empty if the plat shows no setbacks. Lots: "All", "1-268", or "1-10, 15".</p><div class="tw"><table class="edit"><thead><tr>${STBL.map(([, l]) => `<th>${l}</th>`).join('')}<th></th></tr></thead><tbody id="ed-stbl"></tbody></table></div><button class="btn sm" type="button" id="ed-stbl-add">+ Add lot range</button></fieldset>`;
+  const rowsIn = Array.isArray(r.setbackTable) && r.setbackTable.length ? r.setbackTable : [];
+  const addRow = (x = {}) => $('#ed-stbl').insertAdjacentHTML('beforeend', `<tr>${STBL.map(([k]) => `<td><input data-s="${k}" value="${esc(x[k] ?? '')}" ${['front', 'rear', 'side', 'street', 'width'].includes(k) ? 'inputmode="decimal"' : ''}></td>`).join('')}<td><button class="btn sm ghost" type="button" data-sdel>✕</button></td></tr>`);
+  rowsIn.forEach(addRow);
+  $('#ed-stbl-add').onclick = () => addRow({ lots: rowsIn.length ? '' : 'All' });
+  $('#ed-stbl').onclick = (e) => { if (e.target.hasAttribute('data-sdel')) e.target.closest('tr').remove(); };
   d.dataset.orig = isNew ? '' : rec.name;
   $('#ed-delete').hidden = isNew;
   $('#ed-count').onclick = async () => { const n = $('#ed-form [name=name]').value.trim(); if (!n) return; try { $('#ed-form [name=totalLots]').value = await countSubdivisionLots(n.toUpperCase()); } catch (e) { toast(e.message, 'error'); } };
@@ -94,6 +101,8 @@ $('#ed-save').addEventListener('click', (e) => {
   r.totalLots = r.totalLots === '' ? null : +r.totalLots;
   r.parcelsChecked = r.parcelsChecked ? r.parcelsChecked.split(/[,\s]+/).map(normalizeApn).filter(Boolean) : [];
   r.platControls = !!f.get('platControls');
+  r.setbackTable = $$('#ed-stbl tr').map(tr => Object.fromEntries($$('input[data-s]', tr).map(i => { const k = i.dataset.s, v = i.value.trim(); return [k, ['front', 'rear', 'side', 'street', 'width'].includes(k) && v !== '' && !isNaN(+v) ? +v : v]; }))).filter(x => ['front', 'rear', 'side', 'street'].some(k => x[k] !== ''));
+  if (r.setbackTable.length) { const m = r.setbackTable; r.setbacks = m.map(x => `${m.length > 1 ? `Lots ${x.lots}${x.district ? ` (${x.district})` : ''}: ` : ''}${x.front} ft / ${x.rear} ft / ${x.side} ft / ${x.street} ft`).join('. ') + (m.length === 1 ? ' (Front / Rear / Side / Street-side)' : ''); }
   r.platUrl = LINKS.recDoc(r.rec);
   r.lastUpdated = new Date().toISOString().slice(0, 10);
   const orig = $('#db-editor').dataset.orig;
@@ -136,7 +145,9 @@ async function runLookup(apn, { force = false } = {}) {
     const z = S.R.zoning[0]?.zone; const k = normalizeDistrict(z);
     Object.assign(S.review, { apn: S.R.apn, lotArea: S.R.parcel.areaSqFt, district: k || S.review.district });
     const plat = findPlat(S.R, S.db);
-    if (plat) $('#plat-hint').innerHTML = `Recorded plat on file: <b>${esc(plat.name)}</b> — ${esc(plat.setbacks)}. Enter the BSLs below if they're more restrictive.`;
+    const ps = platSetbacks(plat, S.R.parcel.Lot);
+    if (ps.match) { S.review.platSetbacks = { front: ps.match.front ?? '', rear: ps.match.rear ?? '', side: ps.match.side ?? '', street: ps.match.street ?? '' }; $('#plat-hint').innerHTML = `Recorded plat setbacks filled in from <b>${esc(plat.name)}</b>${ps.rows.length > 1 ? ` (lots ${esc(ps.match.lots)})` : ''}.`; }
+    else { S.review.platSetbacks = { front: '', rear: '', side: '', street: '' }; $('#plat-hint').innerHTML = plat ? (ps.rows.length ? `Plat <b>${esc(plat.name)}</b> has several lot ranges — enter the applicable BSLs below.` : `Plat <b>${esc(plat.name)}</b> shows no setbacks — MCZO governs.`) : ''; }
     saveDraft(S.review); renderReview();
   } catch (e) { st.className = 'status err'; st.textContent = e.message; }
 }

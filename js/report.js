@@ -7,6 +7,47 @@ const dash = (v) => (v == null || v === '' ? '—' : v);
 const mdLink = (t, u) => `[${t}](${u})`;
 const ftDir = (l) => l ? `≈ ${l.distance.toLocaleString()} ft ${l.dir} (${l.type} line, ${l.orient})${l.fallback ? ' — no plain "Section" feature in range; nearest higher-order PLSS line (likely coincident with the section grid)' : ''}` : null;
 
+// ---------- recorded-plat setbacks ----------
+const num = (v) => (v === '' || v == null || isNaN(+v) ? null : +v);
+function inRange(lot, spec) {
+  const n = parseInt(String(lot || '').replace(/\D+/g, ''), 10); if (!n) return false;
+  if (/^all$/i.test(String(spec).trim())) return true;
+  return String(spec).split(/[,;]/).some(part => { const m = part.match(/(\d+)\s*[-–]\s*(\d+)/); if (m) return n >= +m[1] && n <= +m[2]; const k = part.match(/\d+/); return k ? +k[0] === n : false; });
+}
+// Structured table if the DB row has one; otherwise parse "20 ft / 15 ft / 5 ft / 10 ft" style text.
+export function platSetbacks(plat, lot) {
+  if (!plat) return { rows: [], match: null };
+  let rows = Array.isArray(plat.setbackTable) ? plat.setbackTable.filter(r => ['front', 'rear', 'side', 'street'].some(k => num(r[k]) != null)) : [];
+  if (!rows.length && plat.setbacks && !/N\/A|none/i.test(plat.setbacks)) {
+    const segs = String(plat.setbacks).split(/\.\s+(?=Lots)/);
+    for (const seg of segs) {
+      const m = seg.match(/(\d+)\s*ft\s*\/\s*(\d+)\s*ft\s*\/\s*(\d+)\s*ft\s*\/\s*(\d+)\s*ft/i);
+      if (!m) continue;
+      const lots = (seg.match(/Lots?\s+([\d–\-, ]+)/i) || [])[1] || 'All';
+      const dist = (seg.match(/\(([A-Z0-9-]+)\)/) || [])[1] || '';
+      rows.push({ lots: lots.trim(), district: dist, front: +m[1], rear: +m[2], side: +m[3], street: +m[4], height: plat.height && !/N\/A/.test(plat.height) ? plat.height : '' });
+    }
+  }
+  const match = rows.length === 1 ? rows[0] : rows.find(r => inRange(lot, r.lots)) || null;
+  return { rows, match };
+}
+const PLAT_FIELDS = [['Front setback', 'front', ' ft'], ['Rear setback', 'rear', ' ft'], ['Side-interior setback', 'side', ' ft'], ['Side-street setback', 'street', ' ft'], ['Height maximum', 'height', ''], ['Lot coverage maximum', 'coverage', ''], ['Lot width minimum', 'width', ' ft'], ['Other recorded restrictions', 'other', '']];
+export function platRows(rows) {
+  const val = (r, k, u) => (r[k] == null || r[k] === '' ? '—' : `${r[k]}${typeof r[k] === 'number' ? u : ''}`);
+  return PLAT_FIELDS.filter(([, k]) => rows.some(r => r[k] != null && r[k] !== '')).map(([lab, k, u]) => [lab, ...rows.map(r => val(r, k, u))]);
+}
+const platHead = (rows) => ['Standard', ...rows.map(r => rows.length > 1 ? `Lots ${r.lots}${r.district ? ` (${r.district})` : ''}` : `Recorded plat${r.district ? ` (${r.district})` : ''}`)];
+// Plat values looser than base zoning are only valid through an approved RUPD/UPD/case — list them for verification.
+function looserThanZoning(row, zoneKey) {
+  const d = DISTRICTS[zoneKey]; if (!d || !row) return [];
+  const pairs = [['front', 'front setback', d.front], ['rear', 'rear setback', d.rear], ['side', 'side-interior setback', d.side], ['street', 'side-street setback', d.street], ['width', 'lot width', d.width]];
+  return pairs.filter(([k, , z]) => num(row[k]) != null && z != null && num(row[k]) < z).map(([k, lab, z]) => `${lab} ${row[k]} ft vs ${z} ft`);
+}
+function newerCases(R, plat) {
+  const y = +String(plat.recorded).slice(0, 4);
+  return { y, list: [...R.currentCases, ...R.historicCases].filter(c => /Rezoning|Zoning Case|Development Master|Comprehensive|Overlay/.test(c.type) && c.date && new Date(c.date).getFullYear() >= y) };
+}
+
 export function findPlat(R, db) {
   const n = (R.parcel.SubdivisionName || '').trim().toUpperCase();
   if (!n || !db) return null;
@@ -81,6 +122,19 @@ export function renderReportHTML(R, db) {
   ]);
 
   h('3. Setbacks &amp; Development Standards');
+  const ps = platSetbacks(plat, p.Lot);
+  const nc = plat ? newerCases(R, plat) : { list: [] };
+  if (ps.rows.length) {
+    const shown = ps.match ? [ps.match] : ps.rows;
+    out.push(`<p><b>${a(`Recorded plat — ${plat.name} (${plat.docType} #${plat.rec}, ${plat.recorded})`, plat.platUrl)}</b> <span class="pill">controlling standard</span></p>`);
+    if (ps.match && ps.rows.length > 1) out.push(`<p class="sub">Lot ${esc(p.Lot)} falls in lot range ${esc(ps.match.lots)}. Other ranges on this plat: ${ps.rows.filter(r => r !== ps.match).map(r => esc(`Lots ${r.lots}${r.district ? ` (${r.district})` : ''}`)).join('; ')}.</p>`);
+    else if (!ps.match && ps.rows.length > 1) out.push(`<p class="sub">Lot number ${p.Lot ? esc(p.Lot) + ' not matched to a range' : 'unknown'} — confirm which lot range applies.</p>`);
+    table(platRows(shown).map(r => r.map(esc)), platHead(shown));
+    const zk = normalizeDistrict(zones[0]); const loose = shown.flatMap(r => looserThanZoning(r, normalizeDistrict(r.district) || zk));
+    if (loose.length) out.push(`<div class="note">Plat is less restrictive than base ${esc(zk || 'zoning')} for: ${esc([...new Set(loose)].join('; '))}. That is valid only through an approved RUPD/UPD or zoning case — confirm the controlling case${plat.controllingCases ? ` (${esc(plat.controllingCases)})` : ''}.</div>`);
+    if (nc.list.length) out.push(`<div class="warn">⚠ ${nc.list.length} DMP / rezoning / CPA / overlay case(s) dated on or after the ${nc.y} plat: ${nc.list.map(c => esc(`${c.permit} (${c.date}, ${c.status || 'status ?'})`)).join(', ')}. Verify these plat figures are still current before relying on them.</div>`);
+    out.push('<h4>Standard zoning (MCZO) — baseline</h4>');
+  }
   for (const z of zones) {
     const key = normalizeDistrict(z); const ov = overlaySuffixes(z);
     if (!key) { out.push(`<p>${esc(z)}: no table match — check ${a('MCZO', MCZO_URL)} manually.</p>`); continue; }
@@ -94,14 +148,12 @@ export function renderReportHTML(R, db) {
     table([
       ['Subdivision', esc(plat.name)], ['MCR', esc(plat.mcr)],
       ['Plat', a(`${plat.docType} #${plat.rec}, recorded ${plat.recorded}`, plat.platUrl)],
-      ['Recorded setbacks', esc(plat.setbacks)], ['Height limit', esc(plat.height)],
+      ['Recorded setbacks', ps.rows.length ? 'Yes — shown as the controlling table in Section 3' : 'None on plat — MCZO standards in Section 3 govern'],
       ['Controlling cases', esc(dash(plat.controllingCases))], ['Notes', esc(plat.notes)], ['Last updated', esc(plat.lastUpdated)],
     ]);
-    const platYear = +String(plat.recorded).slice(0, 4);
-    const newer = [...R.currentCases, ...R.historicCases].filter(c => /Rezoning|Zoning Case|Development Master|Comprehensive|Overlay/.test(c.type) && c.date && new Date(c.date).getFullYear() >= platYear);
-    out.push(newer.length
-      ? `<div class="warn">⚠ ${newer.length} DMP / rezoning / CPA / overlay case(s) dated on or after the plat (${platYear}): ${newer.map(c => esc(`${c.permit} (${c.date}, ${c.status || 'status ?'})`)).join(', ')}. Verify whether an approved newer case supersedes the plat's standards.</div>`
-      : `<p class="ok">No DMP / rezoning / CPA case postdates the ${platYear} plat in GIS.</p>`);
+    if (!ps.rows.length) out.push(nc.list.length
+      ? `<div class="warn">⚠ ${nc.list.length} DMP / rezoning / CPA / overlay case(s) dated on or after the plat (${nc.y}): ${nc.list.map(c => esc(`${c.permit} (${c.date}, ${c.status || 'status ?'})`)).join(', ')}. Verify whether an approved newer case changes the standards.</div>`
+      : `<p class="ok">No DMP / rezoning / CPA case postdates the ${nc.y} plat in GIS.</p>`);
   } else {
     out.push(`<div class="note">Platted (<b>${esc(p.SubdivisionName)}</b>, MCR ${esc(dash(p.MCRNumber))}) but not yet in the subdivision database. Open the plat via the ${p.MCRNumber ? a('Recorder book/page search', LINKS.recBook(...p.MCRNumber.split('-'))) : 'Recorder'} (row coded PLAT MAP), then <button class="link" data-act="add-sub">add it to the database</button>.</div>`);
   }
@@ -154,12 +206,23 @@ export function renderReportMD(R, db, extras = {}) {
   if (R.outsideCounty) { L.push(`Sections 2–6: N/A — outside Maricopa County jurisdiction (${R.city || 'incorporated city'}).`, ''); return L.join('\n'); }
   const zones = R.zoning.map(z => z.zone);
   L.push('### 2. Zoning', ''); t([['Base zoning district(s)', zones.join(', ') || '—'], ['Split zoning? (Y/N)', zones.length > 1 ? 'Y — Needs Verification' : 'N'], ['Jurisdiction (per zoning layer)', [...new Set(R.zoning.map(z => z.juris).filter(Boolean))].join(', ') || '—']]);
-  L.push('### 3. Setbacks & Development Standards (per base district)', '');
+  const ps = platSetbacks(plat, p.Lot);
+  L.push('### 3. Setbacks & Development Standards', '');
+  if (ps.rows.length) {
+    const shown = ps.match ? [ps.match] : ps.rows;
+    L.push(`**${mdLink(`Recorded plat — ${plat.name} (${plat.docType} #${plat.rec}, recorded ${plat.recorded})`, plat.platUrl)}** — controlling standard${ps.match && ps.rows.length > 1 ? ` (lot ${p.Lot}: lots ${ps.match.lots})` : ''}:`, '');
+    t(platRows(shown), platHead(shown));
+    const loose = shown.flatMap(r => looserThanZoning(r, normalizeDistrict(r.district) || normalizeDistrict(zones[0])));
+    if (loose.length) L.push(`Note: plat is less restrictive than base zoning for ${[...new Set(loose)].join('; ')} — valid only through an approved RUPD/UPD or zoning case; confirm.`, '');
+    const nc = newerCases(R, plat);
+    if (nc.list.length) L.push(`⚠️ Case(s) dated on/after the ${nc.y} plat: ${nc.list.map(c => `${c.permit} (${c.date})`).join(', ')} — verify the plat figures are still current.`, '');
+    L.push('**Standard zoning (MCZO) — baseline:**', '');
+  }
   for (const z of zones) { const k = normalizeDistrict(z); if (!k) continue; L.push(`**[${k} (MCZO Ch. 5 §${DISTRICTS[k].section})](${MCZO_URL}):**`, ''); t(standardsRows(k), ['Standard', 'Requirement']); }
   L.push(`Rear/side required yard coverage maximum per [§806](${MCZO_URL}).`, '');
   L.push('### 4. Subdivision Plat (MCR) — setback check', '');
   if (!p.SubdivisionName) L.push('Not platted — N/A.', '');
-  else if (plat) t([['Subdivision name', plat.name], ['Book / Map', plat.mcr], ['Plat recording # / date', mdLink(`${plat.docType} #${plat.rec}, recorded ${plat.recorded}`, plat.platUrl)], ['Setback line (BSL) shown on plat? (Y/N)', /N\/A|None/i.test(plat.setbacks) ? 'N' : 'Y'], ['If yes — dimension(s) and location', plat.setbacks], ['Notes', plat.notes]]);
+  else if (plat) t([['Subdivision name', plat.name], ['Book / Map', plat.mcr], ['Plat recording # / date', mdLink(`${plat.docType} #${plat.rec}, recorded ${plat.recorded}`, plat.platUrl)], ['Setback line (BSL) shown on plat? (Y/N)', ps.rows.length ? 'Y — see Section 3 (controlling table)' : 'N — MCZO governs (Section 3)'], ['Notes', plat.notes]]);
   else L.push(`${p.SubdivisionName} (MCR ${p.MCRNumber || '—'}) — not yet in the subdivision database; plat not checked.`, '');
   L.push('### 5. Overlay Districts', ''); t(R.overlays.map(o => [o.name, o.hit ? 'Yes' : 'No', o.notes || '—']), ['Overlay', 'Intersects parcel?', 'Notes']);
   L.push('### 6. Zoning / Planning Cases', '', '**Current / pending:**', '');
@@ -175,7 +238,7 @@ export function renderReportMD(R, db, extras = {}) {
   add.push(['Districts', R.district.map(x => `${x.layer}: ${x.value}`).join('; ') || '—']);
   t(add);
   L.push('---', '', '## Compliance-ready summary', '');
-  L.push(`- Base district: ${zones.join(', ') || '—'}`, `- Plat setback (if platted): ${plat ? plat.setbacks : (p.SubdivisionName ? 'not checked' : 'N/A')}`,
+  L.push(`- Base district: ${zones.join(', ') || '—'}`, `- Plat setback (if platted): ${ps.match ? `F ${ps.match.front} / R ${ps.match.rear} / S ${ps.match.side} / SS ${ps.match.street} ft (lots ${ps.match.lots})` : plat ? plat.setbacks : (p.SubdivisionName ? 'not checked' : 'N/A')}`,
     `- Overlays: ${R.overlays.filter(o => o.hit).map(o => o.name).join(', ') || 'none'}`,
     `- Pending cases: ${R.currentCases.map(c => c.permit).join(', ') || 'None'}`, `- Historical cases: ${R.historicCases.length}`,
     `- Flags needing verification: ${[zones.length > 1 && 'split zoning', zones.some(z => overlaySuffixes(z).length) && 'overlay stipulations', R.errors.length && 'some sources failed'].filter(Boolean).join('; ') || 'none'}`);

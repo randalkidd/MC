@@ -86,3 +86,4 @@ dialog::backdrop { background: rgb(0 0 0 / .4); }
 .theme-btn { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 999px; width: 30px; height: 30px; cursor: pointer; font-size: .9rem; line-height: 1; }
 .theme-btn:hover { color: var(--accent); border-color: var(--accent); }
 .top-right { display: flex; gap: .5rem; align-items: center; }
+fieldset.stbl { border: 1px solid var(--line); border-radius: 8px; margin: .5rem 0; padding: .5rem .75rem; } fieldset.stbl legend { font-size: .82rem; color: var(--ink); padding: 0 .3rem; } fieldset.stbl input { width: 5.5rem; }

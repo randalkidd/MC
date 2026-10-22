@@ -21,7 +21,21 @@
         "503-54-481",
         "503-54-487"
       ],
-      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=20070026086&suffix="
+      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=20070026086&suffix=",
+      "setbackTable": [
+        {
+          "lots": "All",
+          "district": "R1-6 RUPD",
+          "front": 20,
+          "rear": 15,
+          "side": 5,
+          "street": 10,
+          "height": "30 ft or 2 stories",
+          "coverage": "45%",
+          "width": 50,
+          "other": "Min. 5 ft building separation"
+        }
+      ]
     },
     {
       "name": "Valencia Heights",
@@ -59,7 +73,33 @@
       "parcelsChecked": [
         "502-27-629"
       ],
-      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=20050810388&suffix="
+      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=20050810388&suffix=",
+      "setbackTable": [
+        {
+          "lots": "1-268",
+          "district": "R1-10",
+          "front": 20,
+          "rear": 25,
+          "side": 7,
+          "street": 10,
+          "height": "30 ft / 2 story",
+          "coverage": "30% (⚠ may be 36% per Z2006166 RUPD)",
+          "width": null,
+          "other": "One-story only: lots 258–279, 30–33, 80–83, 127–130"
+        },
+        {
+          "lots": "269-319",
+          "district": "R1-18",
+          "front": 30,
+          "rear": 30,
+          "side": 10,
+          "street": 15,
+          "height": "30 ft / 2 story",
+          "coverage": "25%",
+          "width": null,
+          "other": "One-story only: lots 308–311, 295–298, 278–281"
+        }
+      ]
     },
     {
       "name": "Sun City West 39A",
