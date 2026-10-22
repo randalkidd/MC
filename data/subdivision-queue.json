@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated": "2026-10-22T20:51:10.821Z",
+  "updated": "2026-10-22T20:51:30.470Z",
   "items": [
     {
       "name": "ARROYO NORTE UNITS 8 9 & 10",
@@ -133,6 +133,21 @@
       "rec": "",
       "recorded": "",
       "totalLots": 107,
+      "baseZoning": "",
+      "controllingCases": "",
+      "apns": [],
+      "firstSeen": "2026-10-22",
+      "lastSeen": "2026-10-22",
+      "status": "pending",
+      "note": "Added from All Subdivisions (no parcel lookup yet)"
+    },
+    {
+      "name": "RANCHO CABRILLO PARCEL G Q & U PHASE 2",
+      "displayName": "Rancho Cabrillo Parcel G Q & U Phase 2",
+      "mcr": "1559-22",
+      "rec": "",
+      "recorded": "",
+      "totalLots": 65,
       "baseZoning": "",
       "controllingCases": "",
       "apns": [],
