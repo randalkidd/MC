@@ -3,9 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d1418">
+<script>try{if(localStorage.getItem("mc.theme")==="light")document.documentElement.dataset.theme="light"}catch(e){}</script>
 <title>MC Zoning Review</title>
 <meta name="description" content="Maricopa County parcel lookup, MCZO/MCSR standards, subdivision plat database and plan-review deficiency builder.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23b4532a'/><path d='M7 24V9l9 7 9-7v15' fill='none' stroke='white' stroke-width='3' stroke-linejoin='round'/></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%232ec4d0'/><path d='M7 24V9l9 7 9-7v15' fill='none' stroke='%2304161a' stroke-width='3' stroke-linejoin='round'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/app.css">
@@ -14,7 +16,7 @@
 <body>
 <header class="top">
   <div class="brand"><span class="mark">MC</span><div><b>Zoning Review</b><small>Unincorporated Maricopa County · MCZO · MCSR · Directives</small></div></div>
-  <button id="gh-badge" class="badge" type="button" title="GitHub saving settings"></button>
+  <div class="top-right"><button id="gh-badge" class="badge" type="button" title="GitHub saving settings"></button><button id="theme-btn" class="theme-btn" type="button" aria-label="Switch light/dark theme" title="Switch light/dark theme">☀</button></div>
 </header>
 <nav class="tabs" role="tablist">
   <button class="tab" role="tab" data-tab="p-lookup">Parcel lookup</button>

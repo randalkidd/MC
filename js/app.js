@@ -201,7 +201,7 @@ async function drawMap(R) {
     img.addTo(S.map); L.control.layers({ Aerial: img, Streets: st }).addTo(S.map);
   }
   if (S.layer) S.layer.remove();
-  S.layer = L.polygon(R.wgsRings.map(r => r.map(([x, y]) => [y, x])), { color: '#ff3b30', weight: 3, fillOpacity: 0.08 }).addTo(S.map);
+  S.layer = L.polygon(R.wgsRings.map(r => r.map(([x, y]) => [y, x])), { color: '#2ec4d0', weight: 3, fillOpacity: 0.12 }).addTo(S.map);
   S.map.fitBounds(S.layer.getBounds(), { padding: [30, 30], maxZoom: 19 });
   setTimeout(() => S.map.invalidateSize(), 50);
 }
@@ -257,9 +257,10 @@ function bindReview() {
   $('#rv-check').addEventListener('input', (e) => { const tr = e.target.closest('tr'); const k = e.target.dataset.c; if (!tr || !k) return; const id = tr.dataset.id; S.review.checks[id] = { ...(S.review.checks[id] || {}), [k]: e.target.value }; upd(); });
   $('#rv-allok').addEventListener('click', () => { for (const r of checklistRows(S.review)) if (!S.review.checks[r.id]?.status) S.review.checks[r.id] = { ...(S.review.checks[r.id] || {}), status: 'ok' }; saveDraft(S.review); renderChecklist(); renderOutput(); });
   $('#rv-reset').addEventListener('click', () => { if (!confirm('Clear this review?')) return; S.review = blankReview(); saveDraft(S.review); renderReview(); });
-  $('#rv-copy').addEventListener('click', () => copy($('#rv-md').value));
-  $('#rv-dl').addEventListener('click', () => download(`review-${S.review.apn || 'plan'}-${S.review.date}.md`, $('#rv-md').value));
+  $('#rv-copy').addEventListener('click', () => { renderOutput(); copy($('#rv-md').value); });
+  $('#rv-dl').addEventListener('click', () => renderOutput() || download(`review-${S.review.apn || 'plan'}-${S.review.date}.md`, $('#rv-md').value));
   $('#rv-save').addEventListener('click', async () => {
+    renderOutput();
     try { const p = `data/reviews/${S.review.apn || 'no-apn'}-${S.review.date}-${S.review.type}.md`; await writeFile(p, $('#rv-md').value + '\n', `Plan review ${S.review.apn} ${S.review.type}`); await writeFile(p.replace(/\.md$/, '.json'), JSON.stringify(S.review, null, 2), `Plan review data ${S.review.apn}`); clearDirCache(); toast('Review saved to GitHub', 'ok'); } catch (e) { toast(e.message, 'error'); }
   });
 }
@@ -343,6 +344,15 @@ $('#st-test-gis').addEventListener('click', async () => { const o = $('#st-test-
 $('#st-test-gh').addEventListener('click', async () => { const o = $('#st-test-out'); o.textContent = 'Testing GitHub…'; try { const r = await testAccess(); o.textContent = `${r.name}: ${r.canPush ? 'write access OK' : 'READ-ONLY — on GitHub, edit the token: Repository access must include randalkidd/MC and Contents must be Read and write'}${r.private ? ' (private repo — Pages needs a paid plan)' : ''}`; if (r.canPush && gh.viaRelay) { try { if (await shareRelayIfNeeded()) { o.textContent += ' · Relay address shared — other browsers now need only the passphrase.'; renderSettings(); } } catch (e) { o.textContent += ` · Couldn't share relay address: ${e.message}`; } } } catch (e) { o.textContent = e.message; } });
 
 $('#gh-badge').addEventListener('click', () => { showTab('p-settings'); setTimeout(() => $('#st-pass').focus(), 50); });
+
+function syncThemeBtn() { const light = document.documentElement.dataset.theme === 'light'; $('#theme-btn').textContent = light ? '☾' : '☀'; document.querySelector('meta[name=theme-color]').content = light ? '#f2f6f7' : '#0d1418'; }
+$('#theme-btn').addEventListener('click', () => {
+  const light = document.documentElement.dataset.theme !== 'light';
+  if (light) document.documentElement.dataset.theme = 'light'; else delete document.documentElement.dataset.theme;
+  try { localStorage.setItem('mc.theme', light ? 'light' : 'dark'); } catch {}
+  syncThemeBtn();
+});
+syncThemeBtn();
 
 // ---------------- init ----------------
 async function loadSharedConfig() {
