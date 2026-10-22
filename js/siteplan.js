@@ -1,11 +1,11 @@
 // Plan review → "Read a site plan PDF": sends the PDF through the relay to Claude (POST /ai/siteplan), maps the
 // structured result onto the review form, and checks the plan's APN / owner / address / lot area / zoning against
 // the Assessor record and the recorded deed.
-import { relayFetch } from './github.js?v=b970d2ec';
-import { request } from './net.js?v=b970d2ec';
-import { EP, normalizeApn } from './lookup.js?v=b970d2ec';
-import { CHECKLISTS } from './checklists.js?v=b970d2ec';
-import { normalizeDistrict } from './standards.js?v=b970d2ec';
+import { relayFetch } from './github.js?v=00fcfa75';
+import { request } from './net.js?v=00fcfa75';
+import { EP, normalizeApn } from './lookup.js?v=00fcfa75';
+import { CHECKLISTS } from './checklists.js?v=00fcfa75';
+import { normalizeDistrict } from './standards.js?v=00fcfa75';
 
 export const MAX_PDF_MB = 30;
 const b64 = (str) => { const b = new TextEncoder().encode(str); let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); };
@@ -91,17 +91,19 @@ export function compareToRecords(res, R, deed) {
 
 // ---------- map the result onto the review form ----------
 const n = (v) => (v == null || v === '' || isNaN(+v) ? '' : String(+(+v).toFixed(2)));
-export function applyToReview(s, res, compare) {
+export function applyToReview(s, res, compare, { merge = false } = {}) {
   const P = res.parcel || {}, pl = res.plan || {}, pr = res.primary || {};
   const title = [pl.title, pl.revision && `rev. ${pl.revision}`, pl.date].filter(Boolean).join(' · ');
   if (title) s.planTitle = title;
   if (!s.apn && P.apn) s.apn = normalizeApn(P.apn) || P.apn;
   if (!s.lotArea && P.lot_area_sf) s.lotArea = String(Math.round(P.lot_area_sf));
   if (!s.district && P.zoning_shown) s.district = normalizeDistrict(P.zoning_shown) || s.district;
-  s.primary = { front: n(pr.front), rear: n(pr.rear), sideA: n(pr.side_a), sideB: n(pr.side_b), street: n(pr.side_street), height: n(pr.height), garage: n(pr.garage_plane) };
+  const P2 = { front: n(pr.front), rear: n(pr.rear), sideA: n(pr.side_a), sideB: n(pr.side_b), street: n(pr.side_street), height: n(pr.height), garage: n(pr.garage_plane) };
+  // The free reader only fills what it found and keeps what the reviewer already entered.
+  s.primary = merge ? Object.fromEntries(Object.entries(P2).map(([k, v]) => [k, v !== '' ? v : (s.primary[k] ?? '')])) : P2;
   const st = (res.structures || []).filter(x => x && x.name);
   if (st.length) s.structures = st.map(x => ({
-    name: `${x.name}${x.status === 'existing' ? ' (existing)' : x.status === 'new' ? ' (new)' : ''}`, kind: ['primary', 'accessory', 'adu'].includes(x.kind) ? x.kind : 'accessory',
+    name: `${x.name}${/\b(new|exist)/i.test(x.name) ? '' : x.status === 'existing' ? ' (existing)' : x.status === 'new' ? ' (new)' : ''}`, kind: ['primary', 'accessory', 'adu'].includes(x.kind) ? x.kind : 'accessory',
     sf: n(x.sqft), cover: x.cover === 'open' ? 'open' : 'solid', height: n(x.height),
     front: n(x.front), rear: n(x.rear), side: n(x.side), street: n(x.street), inYard: !!x.in_required_yard,
   }));

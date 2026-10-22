@@ -1,13 +1,13 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=b970d2ec';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=b970d2ec';
-import { settings, setSharedRelay } from './net.js?v=b970d2ec';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=b970d2ec';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=b970d2ec';
-import { CHECKLISTS } from './checklists.js?v=b970d2ec';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=b970d2ec';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=00fcfa75';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=00fcfa75';
+import { settings, setSharedRelay } from './net.js?v=00fcfa75';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=00fcfa75';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=00fcfa75';
+import { CHECKLISTS } from './checklists.js?v=00fcfa75';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=00fcfa75';
 let REF = null; // js/refdata.js (76 KB) loads the first time the Reference tab opens
-import { findPlatDoc } from './recorder.js?v=b970d2ec';
-import { loadAllSubdivisions } from './subdivisions.js?v=b970d2ec';
+import { findPlatDoc } from './recorder.js?v=00fcfa75';
+import { loadAllSubdivisions } from './subdivisions.js?v=00fcfa75';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -411,7 +411,7 @@ $('#rep-save').addEventListener('click', async () => {
 $('#rep-pdf').addEventListener('click', async (e) => {
   const b = e.currentTarget; if (b.disabled || !S.md) return;
   b.disabled = true; const label = b.textContent; b.textContent = 'Building PDF…';
-  try { const { reportPDF } = await import('./pdf.js?v=b970d2ec'); await reportPDF(S.md, { apn: S.R.apn }); toast('PDF saved', 'ok'); }
+  try { const { reportPDF } = await import('./pdf.js?v=00fcfa75'); await reportPDF(S.md, { apn: S.R.apn }); toast('PDF saved', 'ok'); }
   catch (err) { toast(`PDF failed: ${err.message}`, 'error'); }
   finally { b.disabled = false; b.textContent = label; }
 });
@@ -750,7 +750,7 @@ async function renderSaved() {
 // ---------------- reference ----------------
 let refP = null;
 function renderReference() {
-  return (refP ||= import('./refdata.js?v=b970d2ec').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
+  return (refP ||= import('./refdata.js?v=00fcfa75').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
 }
 function fillReference() {
   const { DIRECTIVES, MCSR_QUICK, REG_DOCS, REG_LOOKUP } = REF;
@@ -871,7 +871,7 @@ const spIcon = (st) => ({ ok: '✅', verify: '⚠️', deficient: '❌', na: '�
 function spPick(f) {
   if (!f) return;
   if (!/\.pdf$/i.test(f.name) && f.type !== 'application/pdf') { toast('Choose a PDF file.', 'error'); return; }
-  SP.file = f; $('#sp-name').textContent = `${f.name} · ${(f.size / 1048576).toFixed(1)} MB`; $('#sp-run').disabled = SP.busy;
+  SP.file = f; $('#sp-name').textContent = `${f.name} · ${(f.size / 1048576).toFixed(1)} MB`; $('#sp-free').disabled = SP.busy; $('#sp-run').hidden = true; $('#sp-run').disabled = SP.busy;
 }
 function renderSitePlan() {
   const a = S.review.ai; const el = $('#sp-out');
@@ -894,7 +894,7 @@ function renderSitePlan() {
   const u = a.usage || {};
   const nIss = (a.compare || []).filter(c => c[3] !== 'ok').length + computeFindings(S.review).F.filter(f => f.status !== 'ok').length + Object.values(S.review.checks || {}).filter(c => c.status === 'deficient' || c.status === 'verify').length + (r.other_findings || []).length + (r.uncertain || []).length;
   el.innerHTML = `<div class="actions"><button class="btn primary" type="button" id="sp-view">🔍 Open plan viewer — ${nIss} issue${nIss === 1 ? '' : 's'} marked on the PDF</button></div>
-    <p class="meta">Read <b>${esc(a.file)}</b> with ${esc(a.model || 'Claude')} on ${esc(new Date(a.at).toLocaleString())}${u.input_tokens ? ` · ${u.input_tokens.toLocaleString()} in / ${(u.output_tokens || 0).toLocaleString()} out tokens` : ''}. The form below has been filled in — check each value against the plan.</p>
+    <p class="meta">Read <b>${esc(a.file)}</b> with ${esc(a.engine === 'free' ? 'the free in-browser text reader' : (a.model || 'Claude'))} on ${esc(new Date(a.at).toLocaleString())}${u.input_tokens ? ` · ${u.input_tokens.toLocaleString()} in / ${(u.output_tokens || 0).toLocaleString()} out tokens` : ''}. The form below has been filled in — check each value against the plan.</p>
     ${a.truncated ? '<div class="warn">The answer was cut off (very large plan). Some items may be missing — verify the checklist.</div>' : ''}
     ${a.lookupError ? `<div class="warn">Couldn't look up the parcel for the record checks: ${esc(a.lookupError)}</div>` : ''}
     <h3>Plan vs. Assessor record and recorded deed</h3>
@@ -906,39 +906,67 @@ function renderSitePlan() {
     ${(r.uncertain || []).length ? `<div class="warn"><b>Hard to read / inferred — verify:</b><ul>${r.uncertain.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
     ${r.summary ? `<p><b>Summary:</b> ${esc(r.summary)}</p>` : ''}`;
 }
+// Shared by both readers: look up the parcel, check the deed, compare, fill the form.
+async function finishRead(res, meta, st) {
+  const sp = await import('./siteplan.js?v=00fcfa75');
+  const planApn = normalizeApn(res.parcel && res.parcel.apn);
+  let R = S.R && S.review.apn && S.R.apn === normalizeApn(S.review.apn) ? S.R : null, lookupError = '';
+  const target = normalizeApn(S.review.apn) || planApn;
+  if (!R && target) {
+    const hit = lookupCache.get(target);
+    if (hit) R = hit.R;
+    else try { st.textContent = `Looking up parcel ${target} for the record checks…`; R = await lookupParcel(target, { onStep: (m) => (st.textContent = `Looking up ${target}: ${m}…`) }); lookupCache.set(R.apn, { R, t: Date.now() }); }
+    catch (e) { lookupError = e.message; }
+  }
+  if (R && !S.review.apn) carryToReview(R);
+  st.textContent = 'Checking the recorded deed…';
+  const deed = R ? await sp.deedNames(R.parcel.DeedNumber) : null;
+  const compare = sp.compareToRecords(res, R, deed);
+  sp.applyToReview(S.review, res, compare, { merge: meta.engine === 'free' });
+  S.review.ai = { file: SP.file.name, at: new Date().toISOString(), ...meta, result: res, compare, deedNames: deed, apn: R ? R.apn : null, lookupError };
+  saveDraft(S.review); renderReview();
+  import('./planviewer.js?v=00fcfa75').then(m => m.savePdf(SP.file)).catch(() => {});
+  return compare.filter(c => c[3] === 'deficient').length;
+}
+async function runFreeRead() {
+  if (!SP.file || SP.busy) return;
+  SP.busy = true; $('#sp-free').disabled = true; $('#sp-run').disabled = true;
+  const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'Reading the PDF text in your browser…';
+  const claude = $('#sp-run');
+  try {
+    const fr = await import('./freeread.js?v=00fcfa75');
+    const out = await fr.freeReadSitePlan(SP.file, S.review.type);
+    if (out.quality === 'none') {
+      st.className = 'status warn'; st.textContent = 'The free reader couldn\'t read this plan: the PDF has no selectable text (it\'s a scan or was flattened). Read it with Claude instead?';
+      claude.hidden = false; claude.className = 'btn primary'; return;
+    }
+    const bad = await finishRead(out.result, { engine: 'free', model: 'In-browser text reader (free)', quality: out.quality, found: out.found, missing: out.missing }, st);
+    claude.hidden = false;
+    if (out.quality === 'good') {
+      claude.className = 'btn ghost'; claude.textContent = 'Not right? Read with Claude';
+      st.className = `status ${bad ? 'warn' : 'ok'}`; st.textContent = `Free read done — found ${out.found.join(', ')}.${out.missing.length ? ` Not found: ${out.missing.join(', ')}.` : ''}${bad ? ` ${bad} record mismatch${bad > 1 ? 'es' : ''} (see below).` : ''} Verify every value.`;
+    } else {
+      claude.className = 'btn primary'; claude.textContent = 'Read with Claude';
+      st.className = 'status warn'; st.textContent = `The free reader only found ${out.found.join(', ') || 'very little'} (not found: ${out.missing.join(', ')}). What it found is filled in below. For the rest, read the plan with Claude?`;
+    }
+  } catch (e) { st.className = 'status err'; st.textContent = `Free reader failed: ${e.message}. Read it with Claude instead?`; claude.hidden = false; claude.className = 'btn primary'; }
+  finally { SP.busy = false; $('#sp-free').disabled = !SP.file; claude.disabled = !SP.file; }
+}
 async function runSitePlan() {
   if (!SP.file || SP.busy) return;
-  SP.busy = true; $('#sp-run').disabled = true;
+  SP.busy = true; $('#sp-run').disabled = true; $('#sp-free').disabled = true;
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'Sending the PDF to Claude — reading every sheet usually takes 30–90 seconds…';
   try {
-    const sp = await import('./siteplan.js?v=b970d2ec');
+    const sp = await import('./siteplan.js?v=00fcfa75');
     const d = await sp.readSitePlan(SP.file, S.review.type);
-    const res = d.result || {};
-    const planApn = normalizeApn(res.parcel && res.parcel.apn);
-    let R = S.R && S.review.apn && S.R.apn === normalizeApn(S.review.apn) ? S.R : null, lookupError = '';
-    const target = normalizeApn(S.review.apn) || planApn;
-    if (!R && target) {
-      const hit = lookupCache.get(target);
-      if (hit) R = hit.R;
-      else try { st.textContent = `Looking up parcel ${target} for the record checks…`; R = await lookupParcel(target, { onStep: (m) => (st.textContent = `Looking up ${target}: ${m}…`) }); lookupCache.set(R.apn, { R, t: Date.now() }); }
-      catch (e) { lookupError = e.message; }
-    }
-    if (R && !S.review.apn) carryToReview(R);
-    st.textContent = 'Checking the recorded deed…';
-    const deed = R ? await sp.deedNames(R.parcel.DeedNumber) : null;
-    const compare = sp.compareToRecords(res, R, deed);
-    sp.applyToReview(S.review, res, compare);
-    S.review.ai = { file: SP.file.name, at: new Date().toISOString(), relay: d.relay || null, model: d.model, usage: d.usage, truncated: !!d.truncated, result: res, compare, deedNames: deed, apn: R ? R.apn : null, lookupError };
-    saveDraft(S.review); renderReview();
-    import('./planviewer.js?v=b970d2ec').then(m => m.savePdf(SP.file)).catch(() => {});
-    const bad = compare.filter(c => c[3] === 'deficient').length;
+    const bad = await finishRead(d.result || {}, { engine: 'claude', relay: d.relay || null, model: d.model, usage: d.usage, truncated: !!d.truncated }, st);
     st.className = `status ${bad ? 'warn' : 'ok'}`; st.textContent = `Done — the form is filled in from the plan.${bad ? ` ${bad} record mismatch${bad > 1 ? 'es' : ''} found (see below).` : ''} Verify every value before issuing comments.`;
   } catch (e) { st.className = 'status err'; st.textContent = e.message; }
-  finally { SP.busy = false; $('#sp-run').disabled = !SP.file; }
+  finally { SP.busy = false; $('#sp-run').disabled = !SP.file; $('#sp-free').disabled = !SP.file; }
 }
 async function openPlanViewer() {
   const a = S.review.ai; if (!a || !a.result) return;
-  const pv = await import('./planviewer.js?v=b970d2ec');
+  const pv = await import('./planviewer.js?v=00fcfa75');
   const blob = SP.file && SP.file.name === a.file ? SP.file : await pv.loadPdf(a.file);
   if (!blob) { toast(`Choose ${a.file} again above (it isn't stored in this browser), then open the viewer.`, 'error'); return; }
   pv.openViewer(blob, a, S.review, computeFindings(S.review).F, a.file);
@@ -946,6 +974,7 @@ async function openPlanViewer() {
 $('#sp-out').addEventListener('click', (e) => { if (e.target.closest('#sp-view')) openPlanViewer(); });
 $('#sp-file').addEventListener('change', (e) => spPick(e.target.files[0]));
 $('#sp-run').addEventListener('click', runSitePlan);
+$('#sp-free').addEventListener('click', runFreeRead);
 { const dz = $('#sp-drop');
   ['dragenter', 'dragover'].forEach(t => dz.addEventListener(t, (e) => { e.preventDefault(); dz.classList.add('over'); }));
   ['dragleave', 'drop'].forEach(t => dz.addEventListener(t, (e) => { e.preventDefault(); dz.classList.remove('over'); }));

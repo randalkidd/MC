@@ -1,6 +1,6 @@
 // Plan viewer: shows the site-plan PDF with Claude's issue/value locations drawn on top. Click an item in the list to
 // jump to it on the plan; click a box on the plan to find it in the list. Uses vendored pdf.js (same origin, lazy).
-import { CHECKLISTS } from './checklists.js?v=b970d2ec';
+import { CHECKLISTS } from './checklists.js?v=00fcfa75';
 
 const PDFJS = './js/vendor/pdfjs-3.2.146/';
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -16,7 +16,7 @@ export async function loadPdf(name) {
 }
 
 let libP = null;
-function loadPdfjs() {
+export function loadPdfjs() {
   if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
   if (!libP) libP = new Promise((res, rej) => {
     const s = Object.assign(document.createElement('script'), { src: `${PDFJS}pdf.min.js`, async: true });
@@ -185,7 +185,7 @@ function list() {
   const el = V.dlg.querySelector('.pv-list'); let html = ''; let g = '';
   const its = visible();
   const counts = { deficient: its.filter(i => i.sev === 'deficient').length, verify: its.filter(i => i.sev === 'verify').length };
-  html += `<p class="sub pv-sum">${counts.deficient} deficienc${counts.deficient === 1 ? 'y' : 'ies'} · ${counts.verify} to verify${V.showInfo ? ` · ${its.length - counts.deficient - counts.verify} values` : ''}. Click an item to find it on the plan. Boxes are Claude's estimate of the location.</p>`;
+  html += `<p class="sub pv-sum">${counts.deficient} deficienc${counts.deficient === 1 ? 'y' : 'ies'} · ${counts.verify} to verify${V.showInfo ? ` · ${its.length - counts.deficient - counts.verify} values` : ''}. Click an item to find it on the plan. ${V.engine === 'free' ? 'Boxes are exact positions of the plan text.' : 'Boxes are Claude\'s estimate of the location; boxes from text matching are exact.'}</p>`;
   for (const it of its) {
     if (it.group !== g) { if (g) html += '</ol>'; g = it.group; html += `<h3>${esc(g)}</h3><ol class="pv-ol">`; }
     const where = it.boxes.length ? `p. ${[...new Set(it.boxes.map(b => b.page))].join(', ')}` : 'location not marked';
@@ -228,7 +228,7 @@ async function select(n, fromList) {
 
 export async function openViewer(blob, ai, review, F, fileName) {
   const d = ensureDialog();
-  V.items = buildItems(ai, review, F); V.sel = null; V.page = 1; V.zoom = 1; V.fileName = fileName || '';
+  V.engine = ai.engine || 'claude'; V.items = buildItems(ai, review, F); V.sel = null; V.page = 1; V.zoom = 1; V.fileName = fileName || '';
   d.querySelector('.pv-file').textContent = fileName ? ` · ${fileName}` : '';
   d.querySelector('.pv-msg').textContent = 'Loading the plan…';
   const diag = d.querySelector('.pv-diag'); diag.hidden = true;
@@ -242,10 +242,11 @@ export async function openViewer(blob, ai, review, F, fileName) {
     let extra = [], runs = 0;
     try { const t = await textLocate(V.doc, r, new Set(claudeAnn.map(a => a.ref))); extra = t.ann; runs = t.textRuns; } catch {}
     V.items = buildItems({ ...ai, result: { ...r, annotations: [...(r.annotations || []), ...extra] } }, review, F);
-    const old = !ai.relay || +ai.relay < 12;
+    const old = ai.engine !== 'free' && (!ai.relay || +ai.relay < 12);
     const msgs = [];
-    if (!claudeAnn.length) msgs.push(old ? `This plan was read before the relay could return locations (relay ${ai.relay ? `v${ai.relay}` : 'v11 or older'}). Deploy the latest relay (v13) in Cloudflare and click <b>Read with Claude</b> again to get Claude's boxes.` : 'Claude did not return any locations for this plan — try <b>Read with Claude</b> again.');
-    else msgs.push(`Claude marked ${claudeAnn.length} location${claudeAnn.length === 1 ? '' : 's'}.`);
+    if (ai.engine === 'free') msgs.push(`Free text reader: ${claudeAnn.length} location${claudeAnn.length === 1 ? '' : 's'} marked on the plan (exact text positions; tick “Show values read”). Items it couldn't find show “location not marked” — use <b>Read with Claude</b> for those.`);
+    else if (!claudeAnn.length) msgs.push(old ? `This plan was read before the relay could return locations (relay ${ai.relay ? `v${ai.relay}` : 'v11 or older'}). Deploy the latest relay (v13) in Cloudflare and click <b>Read with Claude</b> again to get Claude's boxes.` : 'Claude did not return any locations for this plan — try <b>Read with Claude</b> again.');
+    else if (ai.engine !== 'free') msgs.push(`Claude marked ${claudeAnn.length} location${claudeAnn.length === 1 ? '' : 's'}.`);
     if (extra.length) msgs.push(`${extra.length} ${claudeAnn.length ? 'more ' : ''}value${extra.length === 1 ? '' : 's'} located by matching the plan's own text (exact positions; tick “Show values read”).`);
     else if (!runs) msgs.push('This PDF has no selectable text (scanned or flattened), so values can only be located by Claude.');
     diag.innerHTML = msgs.join(' '); diag.hidden = false;
