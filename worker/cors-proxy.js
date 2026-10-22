@@ -13,7 +13,7 @@
 //   ANTHROPIC_API_KEY = sk-ant-...  (optional; enables Plan review → "Read a site plan PDF" via POST /ai/siteplan)
 //   ANTHROPIC_MODEL   = optional Text variable to override the model (default below)
 
-const RELAY_VERSION = '11';
+const RELAY_VERSION = '12';
 // Settings. Defaults below; each can be overridden by a Cloudflare variable (Worker → Settings → Variables and
 // Secrets, Type: Text) or, for local `wrangler dev`, by worker/.dev.vars (never committed — see .dev.vars.example).
 //   ALLOWED_ORIGIN = https://randalkidd.github.io   (comma-separate to add e.g. http://localhost:8000 for local testing)
@@ -132,6 +132,10 @@ const SITE_PLAN_TOOL = {
       checklist: { type: 'array', items: { type: 'object', required: ['id', 'status'], properties: { id: { type: 'string' }, status: { type: 'string', enum: ['ok', 'deficient', 'verify', 'na'] }, shows: { type: 'string' }, correction: { type: 'string' } } } },
       other_findings: { type: 'array', items: { type: 'object', properties: { location: S_, item: { type: 'string' }, shows: S_, required: S_, status: { type: 'string', enum: ['deficient', 'verify'] }, correction: S_ } } },
       uncertain: { type: 'array', items: { type: 'string' }, description: 'Values that were hard to read or inferred; name the field and why.' },
+      annotations: { type: 'array', description: 'Where each value/issue is on the plan, for an on-screen overlay.', items: { type: 'object', required: ['ref', 'page', 'box'], properties: {
+        ref: { type: 'string' }, page: { type: 'integer', description: '1-based PDF page number' },
+        box: { type: 'array', items: { type: 'number' }, minItems: 4, maxItems: 4, description: '[x0, y0, x1, y1] as fractions (0–1) of the page width/height, origin at the top-left of the page as displayed' },
+        note: { type: 'string' } } } },
       summary: { type: 'string' },
     },
   },
@@ -148,6 +152,13 @@ Rules:
 - Owner name, APN and address: copy them exactly as printed on the plan (APN format like 304-88-146 or 30488146A).
 - Checklist: return one entry for EVERY item id below. status "ok" = clearly shown and compliant; "deficient" = missing, not shown, or non-compliant (give a specific one-sentence correction); "verify" = partly shown or can't be determined from the plan; "na" = does not apply to this project. "shows" = a short note on what the plan actually shows.
 - other_findings: anything else a zoning plan reviewer would red-line (e.g. structures in easements, "future"/"not for construction" notes, inconsistent dimensions, missing dimensions to a property line).
+- annotations: mark WHERE on the plan things are, so the reviewer can click each one. box = [x0, y0, x1, y1] as fractions (0–1) of the page width and height, measured from the top-left corner of the page as it is displayed; draw it tightly around the text or feature. Add one annotation for:
+  • every checklist item with status "deficient" or "verify" → ref "checklist:<id>" (box where the item is, or where it should be — e.g. the title block for a missing owner name);
+  • every other_findings entry → ref "finding:<index from 0>";
+  • where the plan shows each parcel field you filled → ref "parcel:apn", "parcel:owner_name", "parcel:site_address", "parcel:lot_area_sf", "parcel:zoning_shown", "parcel:subdivision", "parcel:lot", "parcel:legal_description";
+  • each primary dimension you read → ref "primary:front", "primary:rear", "primary:side_a", "primary:side_b", "primary:side_street", "primary:height", "primary:garage_plane";
+  • each structure's area and setback dimensions → ref "structure:<index from 0>:sqft", "structure:<i>:front", "structure:<i>:rear", "structure:<i>:side", "structure:<i>:street", "structure:<i>:height" (or "structure:<i>" for the whole footprint);
+  • the coverage table or note → ref "coverage"; each "uncertain" entry → ref "uncertain:<index from 0>"; scale / north arrow / vicinity map → ref "plan:scale", "plan:north_arrow", "plan:vicinity_map".
 
 Checklist items:
 ${items || '- (none supplied)'}`;
