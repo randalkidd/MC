@@ -1,6 +1,6 @@
 // Plan viewer: shows the site-plan PDF with Claude's issue/value locations drawn on top. Click an item in the list to
 // jump to it on the plan; click a box on the plan to find it in the list. Uses vendored pdf.js (same origin, lazy).
-import { CHECKLISTS } from './checklists.js?v=ea99db89';
+import { CHECKLISTS } from './checklists.js?v=b7c4fc2c';
 
 const PDFJS = './js/vendor/pdfjs-3.2.146/';
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -46,6 +46,7 @@ function valueOf(r, ref) {
 }
 function refLabel(r, ref) {
   if (LABEL[ref]) return LABEL[ref];
+  const ck = ref.match(/^checklist:(.+)$/); if (ck) { for (const t of Object.values(CHECKLISTS)) { const it = t.items.find(i => i[0] === ck[1]); if (it) return `Checklist: ${it[1]}`; } }
   const m = ref.match(/^structure:(\d+)(?::(\w+))?$/);
   if (m) { const s = (r.structures || [])[+m[1]] || {}; const f = { sqft: 'area', front: 'front setback', rear: 'rear setback', side: 'side setback', street: 'side-street setback', height: 'height' }[m[2]] || 'footprint'; return `${s.name || `Structure ${+m[1] + 1}`} ${f}`; }
   return ref;
@@ -176,7 +177,17 @@ function ensureDialog() {
   });
   d.querySelector('[data-pv=info]').addEventListener('change', (e) => { V.showInfo = e.target.checked; list(); render(); });
   d.addEventListener('keydown', (e) => { if (e.target.closest('input')) return; if (e.key === 'ArrowRight' || e.key === 'PageDown') d.querySelector('[data-pv=next]').click(); if (e.key === 'ArrowLeft' || e.key === 'PageUp') d.querySelector('[data-pv=prev]').click(); });
-  d.addEventListener('close', () => { V.doc && V.doc.destroy(); V.doc = null; });
+  d.addEventListener('close', () => { V.doc && V.doc.destroy(); V.doc = null; document.documentElement.classList.remove('pv-open'); });
+  // Scrolling past the bottom of a page goes to the next page; past the top goes to the previous one. Ctrl/⌘ + wheel zooms.
+  const sc = d.querySelector('.pv-scroll'); let wheelLock = 0, push = 0;
+  sc.addEventListener('wheel', (e) => {
+    if (e.ctrlKey || e.metaKey) { e.preventDefault(); V.zoom = Math.min(6, Math.max(0.3, V.zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15))); render(); return; }
+    if (!V.doc || Date.now() < wheelLock) { if (V.doc && Date.now() < wheelLock) e.preventDefault(); return; }
+    const atBottom = sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 2, atTop = sc.scrollTop <= 1;
+    if (e.deltaY > 0 && atBottom && V.page < V.doc.numPages) { push += e.deltaY; if (push > 120) { e.preventDefault(); push = 0; wheelLock = Date.now() + 500; V.page++; render().then(() => sc.scrollTo({ top: 0 })); } }
+    else if (e.deltaY < 0 && atTop && V.page > 1) { push += e.deltaY; if (push < -120) { e.preventDefault(); push = 0; wheelLock = Date.now() + 500; V.page--; render().then(() => sc.scrollTo({ top: sc.scrollHeight })); } }
+    else push = 0;
+  }, { passive: false });
   window.addEventListener('resize', () => { if (d.open) render(); });
   V.dlg = d; return d;
 }
@@ -218,13 +229,24 @@ async function select(n, fromList) {
   V.sel = n; const it = V.items.find(i => i.n === n); if (!it) return;
   if (!V.showInfo && it.sev === 'info') { V.showInfo = true; V.dlg.querySelector('[data-pv=info]').checked = true; }
   list();
-  const li = V.dlg.querySelector(`.pv-item[data-n="${n}"]`); if (li && !fromList) li.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  // keep the comment in view in the list (clicking a box on the plan brings its comment up)
+  const li = V.dlg.querySelector(`.pv-item[data-n="${n}"]`); const aside = V.dlg.querySelector('.pv-list');
+  if (li) { const top = li.offsetTop - aside.clientHeight / 2 + li.offsetHeight / 2; if (!fromList || li.offsetTop < aside.scrollTop || li.offsetTop + li.offsetHeight > aside.scrollTop + aside.clientHeight) aside.scrollTo({ top: Math.max(0, top), behavior: 'smooth' }); }
   const b = it.boxes[0];
   if (b && b.page !== V.page) V.page = b.page;
+  // zoom in so a small box is easy to see (never zooms out from where the reviewer set it)
+  if (b && fromList) { const w = Math.max(0.01, b.box[2] - b.box[0], b.box[3] - b.box[1]); V.zoom = Math.max(V.zoom, Math.min(2.5, Math.max(1, 0.12 / w))); }
   await render();
   const box = V.dlg.querySelector(`.pv-box[data-n="${n}"]`);
+  if (box) {
+    const sc = V.dlg.querySelector('.pv-scroll'); const pageEl = V.dlg.querySelector('.pv-page');
+    const x = pageEl.offsetLeft + box.offsetLeft + box.offsetWidth / 2, y = pageEl.offsetTop + box.offsetTop + box.offsetHeight / 2;
+    sc.scrollTo({ left: Math.max(0, x - sc.clientWidth / 2), top: Math.max(0, y - sc.clientHeight / 2), behavior: 'smooth' });
+    V.dlg.querySelectorAll('.pv-box.ripple').forEach(x2 => x2.classList.remove('ripple'));
+    void box.offsetWidth; box.classList.add('ripple');
+  }
   const note = V.dlg.querySelector('.pv-note');
-  if (box) { note.hidden = true; box.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' }); box.classList.remove('flash'); void box.offsetWidth; box.classList.add('flash'); }
+  if (box) note.hidden = true;
   else {
     // Nothing on the plan to point at (missing item, or one that covers the whole submittal): say so and flash the sheet.
     note.innerHTML = `<b>${n}. ${esc(it.title)}</b> — not tied to one spot on this plan${it.sev === 'info' ? '' : ' (it is either missing from the plan or covers the whole submittal)'}. Check it on the sheets yourself${V.engine === 'free' ? ', or use <b>Read with Claude</b> to have it located' : ''}.`;
@@ -239,7 +261,7 @@ export async function openViewer(blob, ai, review, F, fileName) {
   d.querySelector('.pv-file').textContent = fileName ? ` · ${fileName}` : '';
   d.querySelector('.pv-msg').textContent = 'Loading the plan…';
   const diag = d.querySelector('.pv-diag'); diag.hidden = true;
-  list(); if (!d.open) d.showModal();
+  list(); if (!d.open) { d.showModal(); document.documentElement.classList.add('pv-open'); }
   try {
     const lib = await loadPdfjs();
     const data = new Uint8Array(await blob.arrayBuffer());
