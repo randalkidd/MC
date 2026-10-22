@@ -14,7 +14,7 @@
 <body>
 <header class="top">
   <div class="brand"><span class="mark">MC</span><div><b>Zoning Review</b><small>Unincorporated Maricopa County · MCZO · MCSR · Directives</small></div></div>
-  <span id="gh-badge" class="badge"></span>
+  <button id="gh-badge" class="badge" type="button" title="GitHub saving settings"></button>
 </header>
 <nav class="tabs" role="tablist">
   <button class="tab" role="tab" data-tab="p-lookup">Parcel lookup</button>
@@ -23,7 +23,7 @@
   <button class="tab" role="tab" data-tab="p-subs">Subdivisions DB</button>
   <button class="tab" role="tab" data-tab="p-saved">Saved</button>
   <button class="tab" role="tab" data-tab="p-ref">Reference</button>
-  <button class="tab" role="tab" data-tab="p-settings">Settings</button>
+  <button class="tab" role="tab" data-tab="p-settings">⚙ Settings</button>
 </nav>
 
 <main>
@@ -176,7 +176,7 @@
 <section class="panel" id="p-settings" hidden>
   <div class="grid2">
     <div class="card">
-      <h2>GitHub storage</h2>
+      <h2>GitHub storage — paste your token here</h2>
       <p class="sub">Saving to the subdivision database, parcel reports and reviews commits files to your repo through GitHub's API. Create a <b>fine-grained personal access token</b> limited to this one repository with <b>Contents: Read and write</b>. It is stored only in this browser.</p>
       <div class="row3"><label>Owner<input id="st-owner"></label><label>Repository<input id="st-repo"></label><label>Branch<input id="st-branch" placeholder="main"></label></div>
       <label>Token<input id="st-token" type="password" autocomplete="off" placeholder="github_pat_…"></label>

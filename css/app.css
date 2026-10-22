@@ -20,9 +20,10 @@ code { font-family: var(--mono); font-size: .85em; background: var(--soft); padd
 .brand { display: flex; gap: .7rem; align-items: center; } .brand small { display: block; color: var(--muted); font-size: .75rem; }
 .mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); font-weight: 600; font-size: .8rem; }
 .badge { font-size: .75rem; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: .2rem .6rem; white-space: nowrap; } .badge.ok { color: var(--ok); border-color: currentColor; }
+button.badge { font: inherit; font-size: .75rem; background: var(--surface); cursor: pointer; } button.badge:not(.ok) { color: var(--accent); border-color: var(--accent); font-weight: 500; }
 
-.tabs { display: flex; gap: .25rem; overflow-x: auto; padding: 0 12px; background: var(--surface); border-bottom: 1px solid var(--line); scrollbar-width: none; position: sticky; top: 0; z-index: 500; }
-.tab { border: 0; background: none; padding: .75rem .8rem; font: inherit; font-size: .9rem; color: var(--muted); border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; }
+.tabs { display: flex; flex-wrap: wrap; gap: 0 .25rem; padding: 0 12px; background: var(--surface); border-bottom: 1px solid var(--line); scrollbar-width: none; position: sticky; top: 0; z-index: 500; }
+.tab { border: 0; background: none; padding: .6rem .7rem; font: inherit; font-size: .9rem; color: var(--muted); border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; }
 .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); font-weight: 500; }
 
 main { max-width: 1180px; margin: 0 auto; padding: 1.25rem 16px 3rem; }

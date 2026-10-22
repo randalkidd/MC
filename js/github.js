@@ -56,7 +56,7 @@ export async function readFile(path) {
 
 // Create or update a file with a commit. Retries once on a sha conflict by re-reading.
 export async function writeFile(path, text, message) {
-  if (!gh.canWrite) throw new Error('Add your GitHub repo and token in Settings to save.');
+  if (!gh.canWrite) throw new Error('Not connected to GitHub yet — tap "⚙ Connect GitHub to save" (top right) and paste your token.');
   const cur = await ghFetch(`${api(path)}?ref=${encodeURIComponent(gh.branch)}`);
   const body = { message, content: b64enc(text), branch: gh.branch };
   if (cur && cur.sha) body.sha = cur.sha;

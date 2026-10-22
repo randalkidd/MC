@@ -302,7 +302,7 @@ function renderReference() {
 function renderSettings() {
   $('#st-proxy').value = settings.proxy; $('#st-force').checked = settings.forceProxy;
   $('#st-owner').value = gh.owner; $('#st-repo').value = gh.repo; $('#st-branch').value = gh.branch; $('#st-token').value = gh.token ? '••••••••' : '';
-  $('#gh-badge').textContent = gh.canWrite ? `Saving to ${gh.owner}/${gh.repo}` : 'Read-only (no GitHub token)';
+  $('#gh-badge').textContent = gh.canWrite ? `✓ Saving to ${gh.owner}/${gh.repo}` : '⚙ Connect GitHub to save';
   $('#gh-badge').className = `badge ${gh.canWrite ? 'ok' : ''}`;
 }
 $('#st-save').addEventListener('click', () => {
@@ -313,6 +313,8 @@ $('#st-save').addEventListener('click', () => {
 $('#st-forget').addEventListener('click', () => { gh.save({ owner: $('#st-owner').value, repo: $('#st-repo').value, branch: $('#st-branch').value, token: '' }); renderSettings(); toast('Token removed from this browser'); });
 $('#st-test-gis').addEventListener('click', async () => { const o = $('#st-test-out'); o.textContent = 'Testing county GIS…'; try { o.textContent = `County GIS reachable (${await ping()} ms).`; } catch (e) { o.textContent = e.message; } });
 $('#st-test-gh').addEventListener('click', async () => { const o = $('#st-test-out'); o.textContent = 'Testing GitHub…'; try { const r = await testAccess(); o.textContent = `${r.name}: ${r.canPush ? 'write access OK' : 'READ-ONLY — token lacks Contents: write'}${r.private ? ' (private repo — Pages needs a paid plan)' : ''}`; } catch (e) { o.textContent = e.message; } });
+
+$('#gh-badge').addEventListener('click', () => { showTab('p-settings'); setTimeout(() => $('#st-token').focus(), 50); });
 
 // ---------------- init ----------------
 bindReview(); renderReview(); renderReference(); renderSettings(); classify();
