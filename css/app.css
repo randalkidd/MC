@@ -101,3 +101,5 @@ tr.me td { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .warnico { position: relative; display: inline-block; color: #e0a85f; cursor: help; font-size: .9em; line-height: 1; outline: none; }
 .floattip { position: fixed; z-index: 3000; max-width: min(340px, calc(100vw - 16px)); background: var(--surface); color: var(--ink); border: 1px solid #e0a85f; border-radius: 8px;
   padding: .5rem .65rem; font-size: .8rem; line-height: 1.45; box-shadow: 0 8px 24px rgb(0 0 0 / .35); pointer-events: none; }
+.addl-btn { text-decoration: none !important; font-weight: 500; } .addl-toggle td { padding-top: .5rem; padding-bottom: .5rem; } tr.addl td { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+@media print { tr.addl[hidden] { display: table-row !important; } .addl-toggle { display: none; } }

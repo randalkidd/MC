@@ -94,11 +94,14 @@ export function renderReportHTML(R, db) {
   h('1. Property &amp; Owner');
   const owner = [p.OwnerAddressLine1, p.OwnerAddressLine2, [p.OwnerCity, p.OwnerState, p.OwnerZipCode].filter(Boolean).join(' ')].filter(Boolean).join(', ');
   const juris = R.outsideCounty ? `Incorporated — ${esc(R.city || 'city not identified')}` : 'Unincorporated Maricopa County';
-  table([
+  const valuation = esc(p.FullCashValue ? `FCV $${Number(p.FullCashValue).toLocaleString()} · LPV $${Number(p.LimitedPropertyValue || 0).toLocaleString()} (${p.ParcelValuationYear || ''})` : '—');
+  const schools = esc(dash([p.ElementarySchoolDistrict, p.HighSchoolDistrict].filter(Boolean).join(' / ')));
+  const mainRows = [
     ['APN', `${esc(p.APNDash)} · ${a('Assessor', LINKS.assessorParcel(p.APNDash))} · ${a('Parcel Viewer', LINKS.assessor)}`],
     ['Owner name', esc(dash(p.OwnerName))], ['Owner mailing address', esc(dash(owner))],
     ['Site address', esc(dash([p.PropertyFullStreetAddress, p.PropertyCity, p.PropertyZipCode].filter(Boolean).join(', ')))],
-    ['Jurisdiction', juris], ['Legal description', esc(dash(p.PropertyDescription))],
+    ...(R.outsideCounty ? [['Jurisdiction', `<b class="bad">${juris}</b>`]] : []),
+    ['Legal description', esc(dash(p.PropertyDescription))],
     ['Subdivision / Lot / Block / Tract', esc([p.SubdivisionName, p.Lot && `Lot ${p.Lot}`, p.Block && `Block ${p.Block}`, p.Tract && `Tract ${p.Tract}`].filter(Boolean).join(' · ') || '—')],
     ['MCR (plat book/page)', p.MCRNumber ? `${esc(p.MCRNumber)} · ${a('Recorder book/page search', LINKS.recBook(...p.MCRNumber.split('-')))}` : '—'],
     ['Deed (# / date)', p.DeedNumber ? a(`#${p.DeedNumber}, recorded ${p.DeedDate || '—'}`, LINKS.recDoc(p.DeedNumber)) : '—'],
@@ -107,9 +110,14 @@ export function renderReportHTML(R, db) {
     ['Nearest midsection line', esc(R.midsectionLine ? ftDir(R.midsectionLine) : 'Not available in county PLSS data for this section')],
     ['Lot size (GIS polygon)', `${p.areaSqFt.toLocaleString()} sq ft (${p.areaAcres} ac)`],
     ['Property use / legal class', esc(dash([p.LandLegalClassDescription, p.ImprovementLegalClassDescription].filter(Boolean).join(' / ')))],
-    ['Valuation', esc(p.FullCashValue ? `FCV $${Number(p.FullCashValue).toLocaleString()} · LPV $${Number(p.LimitedPropertyValue || 0).toLocaleString()} (${p.ParcelValuationYear || ''})` : '—')],
-    ['School districts', esc(dash([p.ElementarySchoolDistrict, p.HighSchoolDistrict].filter(Boolean).join(' / ')))],
-  ]);
+  ];
+  // Hidden until "Additional Info" is clicked. Jurisdiction stays visible above when the parcel is inside a city.
+  const extraRows = [...(R.outsideCounty ? [] : [['Jurisdiction', juris]]), ['Valuation', valuation], ['School districts', schools]];
+  out.push(`<div class="tw"><table class="s1"><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody>
+    ${mainRows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}
+    <tr class="addl-toggle"><td colspan="2"><button type="button" class="link addl-btn" aria-expanded="false" data-act="addl">▸ Additional Info</button></td></tr>
+    ${extraRows.map(r => `<tr class="addl" hidden><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}
+  </tbody></table></div>`);
 
   if (R.outsideCounty) {
     out.push(`<div class="note">Zoning, setbacks, overlays and cases: <b>N/A — outside Maricopa County jurisdiction (${esc(R.city || 'incorporated city')})</b>. The city's own ordinance governs; MCZO does not apply.</div>`);

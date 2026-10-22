@@ -194,6 +194,7 @@ $('#lookup-form').addEventListener('submit', (e) => { e.preventDefault(); runLoo
 $('#report').addEventListener('click', async (e) => {
   const act = e.target.dataset.act; if (!act || !S.R) return;
   if (act === 'refresh') { runLookup(S.R.apn, { force: true }); return; }
+  if (act === 'addl') { const open = e.target.getAttribute('aria-expanded') !== 'true'; e.target.setAttribute('aria-expanded', open); e.target.textContent = `${open ? '▾' : '▸'} Additional Info`; $$('#report tr.addl').forEach(tr => (tr.hidden = !open)); return; }
   const cell = (id, html) => { const c = $(id); if (c) c.innerHTML = html; };
   try {
     if (act === 'septic') {
