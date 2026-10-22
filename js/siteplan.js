@@ -1,11 +1,11 @@
 // Plan review → "Read a site plan PDF": sends the PDF through the relay to Claude (POST /ai/siteplan), maps the
 // structured result onto the review form, and checks the plan's APN / owner / address / lot area / zoning against
 // the Assessor record and the recorded deed.
-import { relayFetch } from './github.js?v=00fcfa75';
-import { request } from './net.js?v=00fcfa75';
-import { EP, normalizeApn } from './lookup.js?v=00fcfa75';
-import { CHECKLISTS } from './checklists.js?v=00fcfa75';
-import { normalizeDistrict } from './standards.js?v=00fcfa75';
+import { relayFetch } from './github.js?v=ea99db89';
+import { request } from './net.js?v=ea99db89';
+import { EP, normalizeApn } from './lookup.js?v=ea99db89';
+import { CHECKLISTS } from './checklists.js?v=ea99db89';
+import { normalizeDistrict } from './standards.js?v=ea99db89';
 
 export const MAX_PDF_MB = 30;
 const b64 = (str) => { const b = new TextEncoder().encode(str); let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); };
@@ -80,11 +80,19 @@ export function compareToRecords(res, R, deed) {
     const st = !P.zoning_shown ? 'verify' : zs.some(z => normalizeDistrict(z) === k) ? 'ok' : 'deficient';
     rows.push(['Zoning district', P.zoning_shown || 'not shown', zs.join(', ') || '—', st, st === 'deficient' ? `Plan shows ${P.zoning_shown}; GIS shows ${zs.join(', ')} — correct the plan.` : st === 'verify' ? 'Consider adding the zoning district to the plan.' : '']);
   }
-  if (P.subdivision || P.lot || p.SubdivisionName) {
-    const sOk = P.subdivision && p.SubdivisionName ? nameMatch(P.subdivision, p.SubdivisionName).status : 'verify';
+  if (P.subdivision || P.lot || P.mcr || p.SubdivisionName) {
+    const mcrN = (v) => String(v || '').replace(/[^0-9-]/g, '').replace(/^0+/, '').replace(/-0+(?=\d)/, '-');
+    const mcrOk = P.mcr && p.MCRNumber ? mcrN(P.mcr) === mcrN(p.MCRNumber) : null;
+    const sOk = P.subdivision && p.SubdivisionName ? nameMatch(P.subdivision, p.SubdivisionName).status : null;
     const lOk = P.lot && p.Lot ? String(P.lot).replace(/\D/g, '') === String(p.Lot).replace(/\D/g, '') : null;
-    const st = sOk === 'ok' && lOk !== false ? 'ok' : lOk === false || sOk === 'deficient' ? 'deficient' : 'verify';
-    rows.push(['Subdivision / lot', [P.subdivision, P.lot && `Lot ${P.lot}`].filter(Boolean).join(' · ') || 'not shown', [p.SubdivisionName, p.Lot && `Lot ${p.Lot}`].filter(Boolean).join(' · ') || '— (not platted)', st, st === 'deficient' ? 'Subdivision/lot on the plan does not match the Assessor record.' : '']);
+    const survey = /LOT SPLIT|SURVEY|LAND DIVISION/i.test(P.legal_description || '');
+    let st;
+    if (lOk === false || sOk === 'deficient' || mcrOk === false) st = 'deficient';
+    else if (mcrOk || sOk === 'ok' || (!p.SubdivisionName && survey && !P.subdivision)) st = 'ok';
+    else st = 'verify';
+    const plan = [P.subdivision || (survey ? 'Lot-split survey' : ''), P.lot && `Lot ${P.lot}`, P.mcr && `MCR ${P.mcr}`].filter(Boolean).join(' · ') || 'not shown';
+    const rec = [p.SubdivisionName, p.Lot && `Lot ${p.Lot}`, p.MCRNumber && `MCR ${p.MCRNumber}`].filter(Boolean).join(' · ') || '— (not platted)';
+    rows.push(['Subdivision / lot', plan, rec, st, st === 'deficient' ? `Subdivision/lot/recording on the plan does not match the Assessor record (${rec}).` : st === 'verify' ? 'Confirm the lot and recording against the Assessor record.' : '']);
   }
   return rows;
 }

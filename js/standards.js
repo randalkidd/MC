@@ -40,6 +40,7 @@ export const DISTRICTS = {
 export function normalizeDistrict(zone) {
   if (!zone) return null;
   let z = String(zone).toUpperCase().trim();
+  z = z.replace(/^RURAL\s*\(\s*R?U?\s*-?\s*(\d+)\s*\)/, 'RU-$1');
   z = z.replace(/RURAL[-\s]?/, 'RU-').replace(/^RU(\d)/, 'RU-$1');
   z = z.replace(/^IND\s?-?\s?(\d)/, 'IND-$1').replace(/^C\s?-?\s?(O|S|\d)/, 'C-$1');
   z = z.replace(/^R\s?1\s?-\s?(\d+)/, 'R1-$1').replace(/^R\s?-\s?(\d)\b/, 'R-$1');

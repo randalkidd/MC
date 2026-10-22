@@ -1,6 +1,6 @@
 // Plan viewer: shows the site-plan PDF with Claude's issue/value locations drawn on top. Click an item in the list to
 // jump to it on the plan; click a box on the plan to find it in the list. Uses vendored pdf.js (same origin, lazy).
-import { CHECKLISTS } from './checklists.js?v=00fcfa75';
+import { CHECKLISTS } from './checklists.js?v=ea99db89';
 
 const PDFJS = './js/vendor/pdfjs-3.2.146/';
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -159,7 +159,7 @@ function ensureDialog() {
         <label class="rowc sub"><input type="checkbox" data-pv="info"> Show values read</label>
         <button class="btn sm ghost" data-pv="close" aria-label="Close">✕</button>
       </span></div>
-    <div class="pv-diag sub" hidden></div><div class="pv-body"><div class="pv-scroll"><div class="pv-page"><canvas></canvas><div class="pv-layer"></div></div><p class="pv-msg sub"></p></div><aside class="pv-list" aria-label="Issues"></aside></div>`;
+    <div class="pv-diag sub" hidden></div><div class="pv-body"><div class="pv-scroll"><div class="pv-note" hidden></div><div class="pv-page"><canvas></canvas><div class="pv-layer"></div></div><p class="pv-msg sub"></p></div><aside class="pv-list" aria-label="Issues"></aside></div>`;
   document.body.appendChild(d);
   d.addEventListener('click', (e) => {
     const b = e.target.closest('[data-pv]'); const box = e.target.closest('.pv-box'); const li = e.target.closest('.pv-item');
@@ -223,7 +223,14 @@ async function select(n, fromList) {
   if (b && b.page !== V.page) V.page = b.page;
   await render();
   const box = V.dlg.querySelector(`.pv-box[data-n="${n}"]`);
-  if (box) { box.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' }); box.classList.remove('flash'); void box.offsetWidth; box.classList.add('flash'); }
+  const note = V.dlg.querySelector('.pv-note');
+  if (box) { note.hidden = true; box.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' }); box.classList.remove('flash'); void box.offsetWidth; box.classList.add('flash'); }
+  else {
+    // Nothing on the plan to point at (missing item, or one that covers the whole submittal): say so and flash the sheet.
+    note.innerHTML = `<b>${n}. ${esc(it.title)}</b> — not tied to one spot on this plan${it.sev === 'info' ? '' : ' (it is either missing from the plan or covers the whole submittal)'}. Check it on the sheets yourself${V.engine === 'free' ? ', or use <b>Read with Claude</b> to have it located' : ''}.`;
+    note.hidden = false; const pgEl = V.dlg.querySelector('.pv-page'); pgEl.classList.remove('flash'); void pgEl.offsetWidth; pgEl.classList.add('flash');
+    V.dlg.querySelector('.pv-scroll').scrollTo({ top: 0, behavior: 'smooth' });
+  }
 }
 
 export async function openViewer(blob, ai, review, F, fileName) {
