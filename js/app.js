@@ -65,7 +65,7 @@ function zoningCell(z) {
   const t = String(z || ''); if (!t) return '';
   if (!/unresolved|\bvs\b|conflict|\?/i.test(t)) return esc(t);
   const keys = [...new Set(t.split(/[\/,;]|\bvs\b/i).map(x => normalizeDistrict(x.trim())).filter(Boolean))];
-  return `${esc(keys.join(' / ') || t)} ${warnIco(`Zoning unresolved — ${t}`)}`;
+  return `${esc(keys.join(' / ') || t)} ${warnIco(`Zoning unresolved — ${t.replace(/\s*[—-]\s*unresolved\s*$/i, '')}. Confirm which applies.`)}`;
 }
 // Lot coverage per lot range: plat figure, any later change (and the case that made it); else base-zoning maximum.
 function coverageCell(s) {
@@ -451,6 +451,25 @@ $('#theme-btn').addEventListener('click', () => {
 syncThemeBtn();
 
 document.addEventListener('click', (e) => { const j = e.target.closest('[data-jump]'); if (!j) return; e.preventDefault(); showTab('p-ref'); setTimeout(() => document.getElementById(j.dataset.jump)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); });
+
+// Floating tooltip for ⚠ icons: fixed to the window and clamped to its edges, so it is never clipped by tables.
+(() => {
+  let tip = null, owner = null, shownAt = 0;
+  const hide = () => { tip?.remove(); tip = null; owner = null; };
+  const show = (el) => {
+    if (owner === el) return; hide(); owner = el; shownAt = Date.now();
+    tip = document.createElement('div'); tip.className = 'floattip'; tip.textContent = el.dataset.tip; document.body.append(tip);
+    const r = el.getBoundingClientRect(), t = tip.getBoundingClientRect(), pad = 8;
+    let left = r.left + r.width / 2 - t.width / 2; left = Math.max(pad, Math.min(left, window.innerWidth - t.width - pad));
+    let top = r.top - t.height - 8; if (top < pad) top = r.bottom + 8;
+    tip.style.left = `${left}px`; tip.style.top = `${top}px`;
+  };
+  document.addEventListener('mouseover', (e) => { const w = e.target.closest('.warnico'); if (w) show(w); else if (owner && !e.target.closest('.floattip')) hide(); });
+  document.addEventListener('focusin', (e) => { const w = e.target.closest('.warnico'); if (w) show(w); });
+  document.addEventListener('focusout', (e) => { if (e.target.closest('.warnico')) hide(); });
+  document.addEventListener('click', (e) => { const w = e.target.closest('.warnico'); if (w) { if (owner === w && Date.now() - shownAt > 400) hide(); else show(w); } else hide(); });
+  window.addEventListener('scroll', hide, true); window.addEventListener('resize', hide);
+})();
 
 // ---------------- init ----------------
 async function loadSharedConfig() {
