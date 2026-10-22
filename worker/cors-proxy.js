@@ -13,7 +13,7 @@
 //   ANTHROPIC_API_KEY = sk-ant-...  (optional; enables Plan review → "Read a site plan PDF" via POST /ai/siteplan)
 //   ANTHROPIC_MODEL   = optional Text variable to override the model (default below)
 
-const RELAY_VERSION = '10';
+const RELAY_VERSION = '11';
 // Settings. Defaults below; each can be overridden by a Cloudflare variable (Worker → Settings → Variables and
 // Secrets, Type: Text) or, for local `wrangler dev`, by worker/.dev.vars (never committed — see .dev.vars.example).
 //   ALLOWED_ORIGIN = https://randalkidd.github.io   (comma-separate to add e.g. http://localhost:8000 for local testing)
@@ -172,13 +172,22 @@ async function handleAI(req, env, origin, route, ctxW) {
   const cleanup = () => fetch(`https://api.anthropic.com/v1/files/${encodeURIComponent(upd.id)}`, { method: 'DELETE', headers: H }).catch(() => {});
   try {
     const model = /^claude-[a-z0-9.-]+$/.test(env.ANTHROPIC_MODEL || '') ? env.ANTHROPIC_MODEL : AI_MODEL;
-    const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { ...H, 'content-type': 'application/json' }, body: JSON.stringify({
-      model, max_tokens: 12000, tools: [SITE_PLAN_TOOL], tool_choice: { type: 'tool', name: 'site_plan_review' },
-      messages: [{ role: 'user', content: [{ type: 'document', source: { type: 'file', file_id: upd.id } }, { type: 'text', text: sitePlanPrompt(ctx) }] }],
-    }) });
-    const d = await r.json().catch(() => ({}));
+    // Newer models reject a forced tool_choice, so ask with "auto" and nudge once if Claude answers in text.
+    const msgs = [{ role: 'user', content: [{ type: 'document', source: { type: 'file', file_id: upd.id } }, { type: 'text', text: sitePlanPrompt(ctx) + '\n\nYou must finish by calling the site_plan_review tool exactly once.' }] }];
+    const ask = async () => {
+      const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { ...H, 'content-type': 'application/json' }, body: JSON.stringify({
+        model, max_tokens: 16000, tools: [SITE_PLAN_TOOL], tool_choice: { type: 'auto' }, messages: msgs }) });
+      return { r, d: await r.json().catch(() => ({})) };
+    };
+    let { r, d } = await ask();
     if (!r.ok) return json({ error: `Claude API error ${r.status}: ${(d.error && d.error.message) || 'request failed'}` }, 502, origin);
-    const tool = (d.content || []).find(c => c.type === 'tool_use');
+    let tool = (d.content || []).find(c => c.type === 'tool_use' && c.name === 'site_plan_review');
+    if (!tool && d.stop_reason !== 'max_tokens') {
+      msgs.push({ role: 'assistant', content: d.content }, { role: 'user', content: 'Now call the site_plan_review tool with your findings.' });
+      ({ r, d } = await ask());
+      if (!r.ok) return json({ error: `Claude API error ${r.status}: ${(d.error && d.error.message) || 'request failed'}` }, 502, origin);
+      tool = (d.content || []).find(c => c.type === 'tool_use' && c.name === 'site_plan_review');
+    }
     if (!tool) return json({ error: `Claude did not return a structured result (stop: ${d.stop_reason || '?'}).` }, 502, origin);
     return json({ ok: true, result: tool.input, model: d.model || model, usage: d.usage || null, truncated: d.stop_reason === 'max_tokens' }, 200, origin);
   } finally {
