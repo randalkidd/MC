@@ -114,3 +114,4 @@ tr.me td { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 #rl-body mark { background: var(--warn-bg); color: inherit; padding: 0 1px; border-radius: 2px; }
 .rl-bar select { width: auto; max-width: 100%; } #rl-body td { white-space: normal; vertical-align: top; } #rl-body td:nth-child(4) { min-width: 320px; } #rl-body td:nth-child(1), #rl-body td:nth-child(2) { white-space: nowrap; }
 #ref-regs td { white-space: normal; vertical-align: top; }
+#relay-ver.old { color: var(--bad); }

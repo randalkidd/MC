@@ -1,12 +1,12 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=8031595c';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=8031595c';
-import { settings, setSharedRelay } from './net.js?v=8031595c';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=8031595c';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=8031595c';
-import { CHECKLISTS } from './checklists.js?v=8031595c';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=8031595c';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=f52f573f';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=f52f573f';
+import { settings, setSharedRelay } from './net.js?v=f52f573f';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=f52f573f';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=f52f573f';
+import { CHECKLISTS } from './checklists.js?v=f52f573f';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=f52f573f';
 let REF = null; // js/refdata.js (76 KB) loads the first time the Reference tab opens
-import { findPlatDoc } from './recorder.js?v=8031595c';
+import { findPlatDoc } from './recorder.js?v=f52f573f';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -539,7 +539,7 @@ async function renderSaved() {
 // ---------------- reference ----------------
 let refP = null;
 function renderReference() {
-  return (refP ||= import('./refdata.js?v=8031595c').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
+  return (refP ||= import('./refdata.js?v=f52f573f').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
 }
 function fillReference() {
   const { DIRECTIVES, MCSR_QUICK, REG_DOCS, REG_LOOKUP } = REF;
@@ -579,7 +579,7 @@ $('#st-save').addEventListener('click', () => {
   renderSettings();
   if (gh.canWrite) { toast(`Saved — connected to ${gh.owner}/${gh.repo}. Now tap Test GitHub.`, 'ok'); }
   else toast(`Not connected yet: ${gh.passphrase && !settings.proxy ? 'add the Relay URL (the passphrase works through the relay)' : !gh.token && !gh.passphrase ? 'enter your passphrase (or a token)' : 'owner and repository are required'}.`, 'error');
-  loadDB().catch(() => {});
+  loadDB().catch(() => {}); showRelayVersion();
 });
 $('#st-forget').addEventListener('click', () => { gh.save({ owner: $('#st-owner').value, repo: $('#st-repo').value, branch: $('#st-branch').value, token: '' }); gh.passphrase = ''; renderSettings(); toast('Passphrase and token removed from this browser'); });
 $('#st-copy-relay').addEventListener('click', async () => {
@@ -629,7 +629,23 @@ window.addEventListener('unhandledrejection', (e) => { const m = (e.reason && (e
 // ---------------- init ----------------
 async function loadSharedConfig() {
   try { const f = await readFile('data/site-config.json'); if (f.text) { const c = JSON.parse(f.text); setSharedRelay(c.relayUrl); } } catch {}
-  renderSettings();
+  renderSettings(); showRelayVersion();
+}
+// Footer: version of the relay code actually deployed in Cloudflare (every relay response carries X-Relay-Version).
+async function showRelayVersion() {
+  const el = $('#relay-ver'); if (!el) return;
+  const latest = +el.dataset.latest || 0; const base = settings.proxy;
+  const set = (txt, tip, old) => { el.textContent = txt; el.title = tip; el.classList.toggle('old', !!old); };
+  if (!base) return set('Relay: not set', 'No relay URL — add one in ⚙ Settings', true);
+  const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 8000);
+  try {
+    const r = await fetch(`${base}/`, { cache: 'no-store', signal: ctl.signal });
+    const v = r.headers.get('X-Relay-Version');
+    if (!v) return set('Relay: old code', 'The relay predates version numbers — paste the latest code: ⚙ Settings → Copy relay code → Cloudflare → Deploy', true);
+    if (latest && +v < latest) return set(`Relay v${v} (v${latest} available)`, `Update: ⚙ Settings → Copy relay code → Cloudflare mc-relay → Edit code → paste → Deploy`, true);
+    set(`Relay v${v}`, `Cloudflare relay ${base.replace(/^https:\/\//, '')} is running the latest code`, false);
+  } catch { set('Relay: unreachable', `Couldn't reach ${base.replace(/^https:\/\//, '')} — check the Worker in Cloudflare`, true); }
+  finally { clearTimeout(timer); }
 }
 // After a successful relay test, publish the relay address for every browser (address only — never the passphrase or token).
 async function shareRelayIfNeeded() {

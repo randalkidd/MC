@@ -42,6 +42,10 @@ if state.get('hash') != bh:
     state = {'date': today, 'n': state.get('n', 0) + 1 if state.get('date') == today else 1, 'hash': bh}
     vf.write_text(json.dumps(state, indent=2) + '\n')
 build = f"{state['date']}.{state['n']:03d}"
+# Footer: latest relay version, read from the worker source, so the site can flag an out-of-date Cloudflare relay.
+rv = re.search(r"RELAY_VERSION = '(\d+)'", (root / 'worker' / 'cors-proxy.js').read_text()).group(1)
+_h = idx.read_text(encoding='utf-8'); _n = re.sub(r'(<span id="relay-ver" data-latest=")\d+(")', rf'\g<1>{rv}\g<2>', _h)
+if _n != _h: idx.write_text(_n, encoding='utf-8'); changed += 1
 html = idx.read_text(encoding='utf-8'); new = re.sub(r'(<span id="build">)[^<]*(</span>)', rf'\g<1>{build}\g<2>', html)
 if new != html: idx.write_text(new, encoding='utf-8'); changed += 1
 print(f'version {v} · build {build} — {changed} file(s) updated')
