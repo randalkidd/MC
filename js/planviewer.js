@@ -1,6 +1,6 @@
 // Plan viewer: shows the site-plan PDF with Claude's issue/value locations drawn on top. Click an item in the list to
 // jump to it on the plan; click a box on the plan to find it in the list. Uses vendored pdf.js (same origin, lazy).
-import { CHECKLISTS } from './checklists.js?v=4bcf8d61';
+import { CHECKLISTS } from './checklists.js?v=b970d2ec';
 
 const PDFJS = './js/vendor/pdfjs-3.2.146/';
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -91,6 +91,61 @@ function normAnn(a) {
   return { ref: String(a.ref), page: Math.max(1, parseInt(a.page, 10) || 1), box: [cl(x0), cl(y0), cl(x1), cl(y1)], note: a.note || '' };
 }
 
+// ---------- fallback: find values by matching the PDF's own text (CAD-exported plans have real text) ----------
+const up = (x) => String(x ?? '').toUpperCase().replace(/\s+/g, ' ').trim();
+async function pageTexts(doc) {
+  const pages = [];
+  for (let i = 1; i <= Math.min(doc.numPages, 40); i++) {
+    const pg = await doc.getPage(i); const vp = pg.getViewport({ scale: 1 });
+    const tc = await pg.getTextContent();
+    const runs = [];
+    for (const it of tc.items) {
+      if (!it.str || !it.str.trim()) continue;
+      const [a, b, c, d, e, f] = it.transform; const fs = Math.hypot(c, d) || Math.hypot(a, b) || 8;
+      const ang = Math.atan2(b, a); const w = it.width || it.str.length * fs * 0.5;
+      const ux = Math.cos(ang), uy = Math.sin(ang), nx = -uy, ny = ux;
+      const pts = [[e, f], [e + w * ux, f + w * uy], [e + nx * fs, f + ny * fs], [e + w * ux + nx * fs, f + w * uy + ny * fs]].map(([x, y]) => vp.convertToViewportPoint(x, y));
+      const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]); const pad = fs * 0.15;
+      runs.push({ s: up(it.str), box: [(Math.min(...xs) - pad) / vp.width, (Math.min(...ys) - pad) / vp.height, (Math.max(...xs) + pad) / vp.width, (Math.max(...ys) + pad) / vp.height] });
+    }
+    pages.push(runs);
+  }
+  return pages;
+}
+function dimPatterns(v) {
+  if (v == null || v === '' || isNaN(+v)) return null;
+  const ft = Math.floor(+v), inch = Math.round((+v - ft) * 12);
+  const alts = inch ? [`${ft}'\\s*-?\\s*${inch}"`, `${(+v).toFixed(1)}'`, `${+v}'`, `${+v}\\s*FT`] : [`${ft}'(?:\\s*-?\\s*0"?)?`, `${ft}\\.0+'`, `${ft}\\s*FT\\b`, `${ft}\\s*FEET`];
+  return new RegExp(`(^|[^0-9.])(${alts.join('|')})`, 'i');
+}
+export async function textLocate(doc, r, have) {
+  const pages = await pageTexts(doc);
+  const total = pages.reduce((t, p) => t + p.length, 0);
+  const out = []; if (!total) return { ann: out, textRuns: 0 };
+  const P = r.parcel || {};
+  const find = (ref, test, max = 3) => {
+    if (have.has(ref)) return;
+    const hits = [];
+    pages.forEach((runs, i) => runs.forEach(t => { if (test(t.s)) hits.push({ ref, page: i + 1, box: t.box, note: 'found by matching text on the plan' }); }));
+    if (hits.length && hits.length <= max) out.push(...hits);
+  };
+  const apnD = String(P.apn || '').replace(/\D/g, '');
+  if (apnD.length >= 8) find('parcel:apn', s => s.replace(/\D/g, '').includes(apnD.slice(0, 8)), 4);
+  const owner = up(P.owner_name).replace(/[^A-Z0-9 ]/g, ' ').split(' ').filter(t => t.length >= 3 && !['THE', 'AND', 'LLC', 'TRUST', 'INC'].includes(t));
+  if (owner.length) find('parcel:owner_name', s => { const hit = owner.filter(t => s.includes(t)).length; return hit >= Math.min(2, owner.length); }, 4);
+  const addr = up(P.site_address).match(/^(\d+)\s+(?:[NSEW]\s+)?([A-Z0-9]+)/);
+  if (addr) find('parcel:site_address', s => s.includes(addr[1]) && s.includes(addr[2]), 4);
+  if (P.lot_area_sf) { const n = Math.round(P.lot_area_sf), a = n.toLocaleString('en-US'); find('parcel:lot_area_sf', s => s.includes(a) || new RegExp(`(^|\\D)${n}(\\D|$)`).test(s), 4); }
+  if (P.zoning_shown) { const z = up(P.zoning_shown); find('parcel:zoning_shown', s => new RegExp(`(^|[^A-Z0-9-])${z.replace(/[-]/g, '\\-')}([^A-Z0-9-]|$)`).test(s), 3); }
+  const pr = r.primary || {};
+  for (const k of ['front', 'rear', 'side_a', 'side_b', 'side_street', 'height', 'garage_plane']) { const rx = dimPatterns(pr[k]); if (rx) find(`primary:${k}`, s => rx.test(s), 2); }
+  (r.structures || []).forEach((x, i) => {
+    if (x.sqft) { const n = Math.round(x.sqft), a = n.toLocaleString('en-US'); find(`structure:${i}:sqft`, s => (s.includes(a) || new RegExp(`(^|\\D)${n}(\\D|$)`).test(s)) && /S\.?\s?F|SQ/.test(s) || s === a || s === String(n), 2); }
+    for (const k of ['front', 'rear', 'side', 'street', 'height']) { const rx = dimPatterns(x[k]); if (rx) find(`structure:${i}:${k}`, s => rx.test(s), 2); }
+  });
+  return { ann: out, textRuns: total };
+}
+
 // ---------- viewer ----------
 const V = { dlg: null, doc: null, page: 1, zoom: 1, items: [], sel: null, showInfo: false, fileName: '', renderTask: null };
 function ensureDialog() {
@@ -104,7 +159,7 @@ function ensureDialog() {
         <label class="rowc sub"><input type="checkbox" data-pv="info"> Show values read</label>
         <button class="btn sm ghost" data-pv="close" aria-label="Close">✕</button>
       </span></div>
-    <div class="pv-body"><div class="pv-scroll"><div class="pv-page"><canvas></canvas><div class="pv-layer"></div></div><p class="pv-msg sub"></p></div><aside class="pv-list" aria-label="Issues"></aside></div>`;
+    <div class="pv-diag sub" hidden></div><div class="pv-body"><div class="pv-scroll"><div class="pv-page"><canvas></canvas><div class="pv-layer"></div></div><p class="pv-msg sub"></p></div><aside class="pv-list" aria-label="Issues"></aside></div>`;
   document.body.appendChild(d);
   d.addEventListener('click', (e) => {
     const b = e.target.closest('[data-pv]'); const box = e.target.closest('.pv-box'); const li = e.target.closest('.pv-item');
@@ -171,19 +226,33 @@ async function select(n, fromList) {
   if (box) { box.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' }); box.classList.remove('flash'); void box.offsetWidth; box.classList.add('flash'); }
 }
 
-export async function openViewer(blob, items, fileName, startAt) {
+export async function openViewer(blob, ai, review, F, fileName) {
   const d = ensureDialog();
-  V.items = items; V.sel = null; V.page = 1; V.zoom = 1; V.fileName = fileName || '';
+  V.items = buildItems(ai, review, F); V.sel = null; V.page = 1; V.zoom = 1; V.fileName = fileName || '';
   d.querySelector('.pv-file').textContent = fileName ? ` · ${fileName}` : '';
   d.querySelector('.pv-msg').textContent = 'Loading the plan…';
+  const diag = d.querySelector('.pv-diag'); diag.hidden = true;
   list(); if (!d.open) d.showModal();
   try {
     const lib = await loadPdfjs();
     const data = new Uint8Array(await blob.arrayBuffer());
     V.doc = await lib.getDocument({ data, isEvalSupported: false, standardFontDataUrl: `${PDFJS}standard_fonts/` }).promise;
+    const r = ai.result || {};
+    const claudeAnn = (r.annotations || []).map(normAnn).filter(Boolean);
+    let extra = [], runs = 0;
+    try { const t = await textLocate(V.doc, r, new Set(claudeAnn.map(a => a.ref))); extra = t.ann; runs = t.textRuns; } catch {}
+    V.items = buildItems({ ...ai, result: { ...r, annotations: [...(r.annotations || []), ...extra] } }, review, F);
+    const old = !ai.relay || +ai.relay < 12;
+    const msgs = [];
+    if (!claudeAnn.length) msgs.push(old ? `This plan was read before the relay could return locations (relay ${ai.relay ? `v${ai.relay}` : 'v11 or older'}). Deploy the latest relay (v13) in Cloudflare and click <b>Read with Claude</b> again to get Claude's boxes.` : 'Claude did not return any locations for this plan — try <b>Read with Claude</b> again.');
+    else msgs.push(`Claude marked ${claudeAnn.length} location${claudeAnn.length === 1 ? '' : 's'}.`);
+    if (extra.length) msgs.push(`${extra.length} ${claudeAnn.length ? 'more ' : ''}value${extra.length === 1 ? '' : 's'} located by matching the plan's own text (exact positions; tick “Show values read”).`);
+    else if (!runs) msgs.push('This PDF has no selectable text (scanned or flattened), so values can only be located by Claude.');
+    diag.innerHTML = msgs.join(' '); diag.hidden = false;
+    list();
     d.querySelector('.pv-msg').textContent = '';
     await render();
-    const first = startAt || (visible().find(i => i.boxes.length) || {}).n;
+    const first = (visible().find(i => i.boxes.length) || {}).n;
     if (first) select(first, false);
   } catch (e) { d.querySelector('.pv-msg').textContent = `Couldn't open the PDF: ${e.message}`; }
 }

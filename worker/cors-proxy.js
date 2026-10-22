@@ -13,7 +13,7 @@
 //   ANTHROPIC_API_KEY = sk-ant-...  (optional; enables Plan review → "Read a site plan PDF" via POST /ai/siteplan)
 //   ANTHROPIC_MODEL   = optional Text variable to override the model (default below)
 
-const RELAY_VERSION = '12';
+const RELAY_VERSION = '13';
 // Settings. Defaults below; each can be overridden by a Cloudflare variable (Worker → Settings → Variables and
 // Secrets, Type: Text) or, for local `wrangler dev`, by worker/.dev.vars (never committed — see .dev.vars.example).
 //   ALLOWED_ORIGIN = https://randalkidd.github.io   (comma-separate to add e.g. http://localhost:8000 for local testing)
@@ -116,7 +116,7 @@ const SITE_PLAN_TOOL = {
   description: 'Record what the site plan shows and screen it against the submittal checklist.',
   input_schema: {
     type: 'object',
-    required: ['plan', 'parcel', 'primary', 'structures', 'checklist', 'uncertain', 'summary'],
+    required: ['plan', 'parcel', 'primary', 'structures', 'checklist', 'uncertain', 'annotations', 'summary'],
     properties: {
       plan: { type: 'object', properties: { title: S_, revision: S_, date: S_, preparer: S_, sheets: N, scale_stated: S_, scale_is_standard: B, scale_bar: B, north_arrow: B, vicinity_map: B, separate_from_building_plans: B, invalidating_notes: { type: 'array', items: { type: 'string' } } } },
       parcel: { type: 'object', properties: { apn: S_, owner_name: S_, site_address: S_, legal_description: S_, subdivision: S_, lot: S_, zoning_shown: S_, lot_area_sf: N, lot_area_acres: N, lot_dimensions: S_, corner_lot: B, water_source: S_, wastewater: S_, deed_reference: S_ } },
@@ -200,7 +200,7 @@ async function handleAI(req, env, origin, route, ctxW) {
       tool = (d.content || []).find(c => c.type === 'tool_use' && c.name === 'site_plan_review');
     }
     if (!tool) return json({ error: `Claude did not return a structured result (stop: ${d.stop_reason || '?'}).` }, 502, origin);
-    return json({ ok: true, result: tool.input, model: d.model || model, usage: d.usage || null, truncated: d.stop_reason === 'max_tokens' }, 200, origin);
+    return json({ ok: true, relay: RELAY_VERSION, result: tool.input, model: d.model || model, usage: d.usage || null, truncated: d.stop_reason === 'max_tokens' }, 200, origin);
   } finally {
     if (ctxW && ctxW.waitUntil) ctxW.waitUntil(cleanup()); else await cleanup();
   }

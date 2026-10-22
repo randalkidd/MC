@@ -200,3 +200,4 @@ dialog.pv::backdrop { background: rgb(0 0 0 / .6); }
 .pv-item.deficient .pv-num { background: #e03131; } .pv-item.verify .pv-num { background: #f08c00; }
 .pv-where { font-size: .75rem; color: var(--muted); margin-top: .15rem; }
 @media (max-width: 800px) { .pv-body { grid-template-columns: 1fr; grid-template-rows: 60% 40%; } .pv-list { border-left: 0; border-top: 1px solid var(--line); } }
+.pv-diag { padding: .4rem .8rem; background: var(--note-bg); border-bottom: 1px solid var(--line); color: var(--ink); }

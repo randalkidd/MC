@@ -1,13 +1,13 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=4bcf8d61';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=4bcf8d61';
-import { settings, setSharedRelay } from './net.js?v=4bcf8d61';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=4bcf8d61';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=4bcf8d61';
-import { CHECKLISTS } from './checklists.js?v=4bcf8d61';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=4bcf8d61';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=b970d2ec';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=b970d2ec';
+import { settings, setSharedRelay } from './net.js?v=b970d2ec';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=b970d2ec';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=b970d2ec';
+import { CHECKLISTS } from './checklists.js?v=b970d2ec';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=b970d2ec';
 let REF = null; // js/refdata.js (76 KB) loads the first time the Reference tab opens
-import { findPlatDoc } from './recorder.js?v=4bcf8d61';
-import { loadAllSubdivisions } from './subdivisions.js?v=4bcf8d61';
+import { findPlatDoc } from './recorder.js?v=b970d2ec';
+import { loadAllSubdivisions } from './subdivisions.js?v=b970d2ec';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -411,7 +411,7 @@ $('#rep-save').addEventListener('click', async () => {
 $('#rep-pdf').addEventListener('click', async (e) => {
   const b = e.currentTarget; if (b.disabled || !S.md) return;
   b.disabled = true; const label = b.textContent; b.textContent = 'Building PDF…';
-  try { const { reportPDF } = await import('./pdf.js?v=4bcf8d61'); await reportPDF(S.md, { apn: S.R.apn }); toast('PDF saved', 'ok'); }
+  try { const { reportPDF } = await import('./pdf.js?v=b970d2ec'); await reportPDF(S.md, { apn: S.R.apn }); toast('PDF saved', 'ok'); }
   catch (err) { toast(`PDF failed: ${err.message}`, 'error'); }
   finally { b.disabled = false; b.textContent = label; }
 });
@@ -750,7 +750,7 @@ async function renderSaved() {
 // ---------------- reference ----------------
 let refP = null;
 function renderReference() {
-  return (refP ||= import('./refdata.js?v=4bcf8d61').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
+  return (refP ||= import('./refdata.js?v=b970d2ec').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
 }
 function fillReference() {
   const { DIRECTIVES, MCSR_QUICK, REG_DOCS, REG_LOOKUP } = REF;
@@ -911,7 +911,7 @@ async function runSitePlan() {
   SP.busy = true; $('#sp-run').disabled = true;
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'Sending the PDF to Claude — reading every sheet usually takes 30–90 seconds…';
   try {
-    const sp = await import('./siteplan.js?v=4bcf8d61');
+    const sp = await import('./siteplan.js?v=b970d2ec');
     const d = await sp.readSitePlan(SP.file, S.review.type);
     const res = d.result || {};
     const planApn = normalizeApn(res.parcel && res.parcel.apn);
@@ -928,9 +928,9 @@ async function runSitePlan() {
     const deed = R ? await sp.deedNames(R.parcel.DeedNumber) : null;
     const compare = sp.compareToRecords(res, R, deed);
     sp.applyToReview(S.review, res, compare);
-    S.review.ai = { file: SP.file.name, at: new Date().toISOString(), model: d.model, usage: d.usage, truncated: !!d.truncated, result: res, compare, deedNames: deed, apn: R ? R.apn : null, lookupError };
+    S.review.ai = { file: SP.file.name, at: new Date().toISOString(), relay: d.relay || null, model: d.model, usage: d.usage, truncated: !!d.truncated, result: res, compare, deedNames: deed, apn: R ? R.apn : null, lookupError };
     saveDraft(S.review); renderReview();
-    import('./planviewer.js?v=4bcf8d61').then(m => m.savePdf(SP.file)).catch(() => {});
+    import('./planviewer.js?v=b970d2ec').then(m => m.savePdf(SP.file)).catch(() => {});
     const bad = compare.filter(c => c[3] === 'deficient').length;
     st.className = `status ${bad ? 'warn' : 'ok'}`; st.textContent = `Done — the form is filled in from the plan.${bad ? ` ${bad} record mismatch${bad > 1 ? 'es' : ''} found (see below).` : ''} Verify every value before issuing comments.`;
   } catch (e) { st.className = 'status err'; st.textContent = e.message; }
@@ -938,10 +938,10 @@ async function runSitePlan() {
 }
 async function openPlanViewer() {
   const a = S.review.ai; if (!a || !a.result) return;
-  const pv = await import('./planviewer.js?v=4bcf8d61');
+  const pv = await import('./planviewer.js?v=b970d2ec');
   const blob = SP.file && SP.file.name === a.file ? SP.file : await pv.loadPdf(a.file);
   if (!blob) { toast(`Choose ${a.file} again above (it isn't stored in this browser), then open the viewer.`, 'error'); return; }
-  pv.openViewer(blob, pv.buildItems(a, S.review, computeFindings(S.review).F), a.file);
+  pv.openViewer(blob, a, S.review, computeFindings(S.review).F, a.file);
 }
 $('#sp-out').addEventListener('click', (e) => { if (e.target.closest('#sp-view')) openPlanViewer(); });
 $('#sp-file').addEventListener('change', (e) => spPick(e.target.files[0]));

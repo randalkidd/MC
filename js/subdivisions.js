@@ -1,8 +1,8 @@
 // Every recorded subdivision in Maricopa County (Parcel MapServer layer 0 "Subdivision", ~32,000 records),
 // read from the monthly snapshot (data/all-subdivisions.json) or, on demand, fetched live in pages of 2,000
 // and cached in IndexedDB for a day.
-import { arcgis } from './net.js?v=4bcf8d61';
-import { EP } from './lookup.js?v=4bcf8d61';
+import { arcgis } from './net.js?v=b970d2ec';
+import { EP } from './lookup.js?v=b970d2ec';
 
 const PAGE = 2000, CACHE_KEY = 'all-subdivisions-v1', TTL = 24 * 3600 * 1000;
 
