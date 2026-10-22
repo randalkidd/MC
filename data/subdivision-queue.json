@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated": "2026-10-22T21:30:06.390Z",
+  "updated": "2026-10-22T21:39:05.647Z",
   "items": [
     {
       "name": "ARROYO NORTE UNITS 8 9 & 10",
@@ -212,6 +212,22 @@
       "controllingCases": "CPA2000007 (12:00:00 AM, Approved); CPA1989003 (12:00:00 AM, Remove); CPA2023014 (9/13/2023, Approved); CPA2004003 (6/24/2004, Remove); Z00-93 (8/11/2000, APPROVED)",
       "apns": [
         "502-27-181"
+      ],
+      "firstSeen": "2026-10-22",
+      "lastSeen": "2026-10-22",
+      "status": "pending"
+    },
+    {
+      "name": "SUN CITY WEST UNIT 52",
+      "displayName": "Sun City West Unit 52",
+      "mcr": "365-12",
+      "rec": "",
+      "recorded": "",
+      "totalLots": 633,
+      "baseZoning": "R1-7, R1-6",
+      "controllingCases": "CPA2023014 (9/13/2023, Approved); CPA1991002 (12:00:00 AM, Remove); CPA2004003 (6/24/2004, Remove); DMP1993002 (1/29/1992, ?); DMP1977003 (12:00:00 AM, Approved); DMP1994001 (7/7/1994, ?); DMP1992001 (1/29/1992, ?); Z93-9 (3/12/1993, APPROVED); Z87-132 (9/16/1987, APPROVED)",
+      "apns": [
+        "232-25-040"
       ],
       "firstSeen": "2026-10-22",
       "lastSeen": "2026-10-22",
