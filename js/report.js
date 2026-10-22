@@ -1,6 +1,6 @@
 // Renders a lookup result in the project's parcel-report-template structure (HTML + Markdown).
-import { LINKS } from './lookup.js?v=3abc8df7';
-import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=3abc8df7';
+import { LINKS } from './lookup.js?v=9f1efb51';
+import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=9f1efb51';
 
 // Only allow http(s) URLs into href attributes; everything else becomes "#".
 const safeUrl = (u) => { try { const x = new URL(String(u), location.href); return /^https?:$/.test(x.protocol) ? x.href : '#'; } catch { return '#'; } };
@@ -215,7 +215,7 @@ export function renderReportHTML(R, db) {
       ? `<div class="warn">⚠ ${nc.list.length} DMP / rezoning / CPA / overlay case(s) dated on or after the plat (${nc.y}): ${nc.list.map(c => esc(`${c.permit} (${c.date}, ${c.status || 'status ?'})`)).join(', ')}. Verify whether an approved newer case changes the standards.</div>`
       : (nc.y === '?' ? '<p class="sub">Plat recording date not entered — the newer-case check runs once it is.</p>' : `<p class="ok">No DMP / rezoning / CPA case postdates the ${nc.y} plat in GIS.</p>`));
   } else {
-    out.push(`<div class="note">Platted (<b>${esc(p.SubdivisionName)}</b>, MCR ${esc(dash(p.MCRNumber))}) but not yet in the subdivision database. Open the plat via the ${p.MCRNumber ? a('Recorder book/page search', LINKS.recBook(...p.MCRNumber.split('-'))) : 'Recorder'} (row coded PLAT MAP), then <button class="link" data-act="add-sub">add it to the database</button>.</div>`);
+    out.push(`<div class="note">Platted (<b>${esc(p.SubdivisionName)}</b>, MCR ${esc(dash(p.MCRNumber))}) but not yet in the subdivision database. It has been added to the <b>review list</b> in SubdivisionDB — use <b>Process with Claude</b> there to read the plat and fill it in, or open the plat via the ${p.MCRNumber ? a('Recorder book/page search', LINKS.recBook(...p.MCRNumber.split('-'))) : 'Recorder'} (row coded PLAT MAP) and <button class="link" data-act="add-sub">add it by hand</button>.</div>`);
   }
 
   h('Overlay Districts');

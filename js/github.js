@@ -30,7 +30,7 @@ export const gh = {
   get canWrite() { return !!(this.owner && this.repo && (this.token || this.viaRelay)); },
 };
 
-import { settings } from './net.js?v=3abc8df7';
+import { settings } from './net.js?v=9f1efb51';
 const relayUrl = () => settings.proxy;
 
 async function relay(route, init = {}) {

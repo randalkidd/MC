@@ -1,12 +1,12 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=3abc8df7';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=3abc8df7';
-import { settings, setSharedRelay } from './net.js?v=3abc8df7';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=3abc8df7';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=3abc8df7';
-import { CHECKLISTS } from './checklists.js?v=3abc8df7';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=3abc8df7';
-import { DIRECTIVES, MCSR_QUICK } from './refdata.js?v=3abc8df7';
-import { findPlatDoc, platPdfLink, fetchPlatPdf, ocrPlat } from './platocr.js?v=3abc8df7';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=9f1efb51';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=9f1efb51';
+import { settings, setSharedRelay } from './net.js?v=9f1efb51';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=9f1efb51';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=9f1efb51';
+import { CHECKLISTS } from './checklists.js?v=9f1efb51';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=9f1efb51';
+import { DIRECTIVES, MCSR_QUICK } from './refdata.js?v=9f1efb51';
+import { findPlatDoc } from './recorder.js?v=9f1efb51';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -93,11 +93,12 @@ function renderDB() {
     <td>${s.rec ? `<a href="${esc(s.platUrl)}" target="_blank" rel="noopener noreferrer">${esc(s.docType)} #${esc(s.rec)}</a><div class="sub">${esc(s.recorded)}</div>` : `<a href="${esc(s.platUrl || '#')}" target="_blank" rel="noopener noreferrer">Find plat (MCR ${esc(s.mcr || '?')})</a> ${warnIco('Recording number not recorded yet — open the plat (the PLAT MAP row), then Edit this subdivision and enter its recording number and date.')}`}</td>
     <td>${s.totalLots ?? `— ${warnIco('Lot count not taken yet — open Edit and use "Count lots from Assessor".')}`}</td><td>${setbackCell(s)}</td><td>${coverageCell(s)}</td><td>${esc(s.lastUpdated)}</td>
     <td><button class="btn sm" data-edit="${esc(s.name)}">Edit</button></td></tr>`).join('') || '<tr><td colspan="8">No matches.</td></tr>';
+  renderQueue();
 }
 $('#db-q').addEventListener('input', renderDB);
 $('#db-body').addEventListener('click', (e) => { const n = e.target.dataset.edit; if (n) openEditor(S.db.subdivisions.find(s => s.name === n)); });
 $('#db-new').addEventListener('click', () => openEditor(null));
-$('#db-reload').addEventListener('click', () => loadDB().then(() => toast('Reloaded')));
+$('#db-reload').addEventListener('click', () => loadDB().then(loadQueue).then(() => toast('Reloaded')));
 $('#db-export').addEventListener('click', () => download('subdivision-plats.json', JSON.stringify(S.db, null, 2)));
 
 const STBL = [['lots', 'Lots'], ['district', 'District'], ['front', 'Front ft'], ['rear', 'Rear ft'], ['side', 'Side ft'], ['street', 'Street-side ft'], ['height', 'Height'], ['coverage', 'Coverage (plat)'], ['coverageNow', 'Coverage now'], ['coverageBy', 'Changed by (case)'], ['width', 'Min width ft'], ['other', 'Other']];
@@ -164,85 +165,79 @@ $('#db-save').addEventListener('click', async () => {
 });
 
 // ---------------- lookup ----------------
-// New subdivision found in a lookup → find its plat at the Recorder, open the plat PDF, add it to the database
-// (no prompt), then OCR the scanned plat in the background and store the setbacks if they can be read.
+// Subdivisions a lookup finds that aren't in SubdivisionDB go on a review list (data/subdivision-queue.json).
+// Nothing opens automatically; "Process with Claude" in SubdivisionDB hands the list to Claude, which reads each
+// plat, adds it to SubdivisionDB and removes it from the list.
 const titleCase = (t) => String(t || '').toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase()).replace(/\b(Mcr|Ii|Iii|Iv)\b/g, (m) => m.toUpperCase());
 const sameName = (a, b) => String(a || '').toUpperCase() === String(b || '').toUpperCase();
-// Merge one record onto the latest published database (so another browser's edits aren't lost) and commit it.
-async function saveSubdivision(rec, message) {
-  const f = await readFile('data/subdivision-plats.json'); const latest = f.text ? JSON.parse(f.text) : null;
-  const base = latest && Array.isArray(latest.subdivisions) ? latest : S.db;
-  const i = base.subdivisions.findIndex(x => sameName(x.name, rec.name));
-  if (i >= 0) base.subdivisions[i] = { ...base.subdivisions[i], ...rec }; else base.subdivisions.push(rec);
-  base.updated = new Date().toISOString();
-  await writeFile('data/subdivision-plats.json', JSON.stringify(base, null, 2) + '\n', message);
-  S.db = base; S.dbStamp = base.updated; S.dbDirty = false; renderDB();
+const inDB = (name) => (S.db?.subdivisions || []).some(x => sameName(x.name, name));
+const QUEUE = 'data/subdivision-queue.json';
+const parseQueue = (f) => { let q = null; try { q = f && f.text ? JSON.parse(f.text) : null; } catch {} return q && Array.isArray(q.items) ? q : { schema: 1, items: [] }; };
+async function loadQueue() {
+  S.queue = parseQueue(await readFile(QUEUE).catch(() => null));
+  S.queueGone = new Set();
+  renderQueue();
 }
-function ocrStatus(msg, kind = '') {
-  let el = $('#ocr-status');
-  if (!el) { el = document.createElement('p'); el.id = 'ocr-status'; el.className = 'status'; $('#report').before(el); }
-  el.hidden = !msg; el.className = `status ${kind}`; el.textContent = msg || '';
+// Read the latest published list, apply fn, drop anything already in SubdivisionDB or removed here, commit.
+async function saveQueue(fn, message) {
+  const q = parseQueue(await readFile(QUEUE).catch(() => null));
+  // keep items added in this browser that the published copy doesn't show yet (Pages lags ~1 min)
+  for (const it of S.queue?.items || []) if (!q.items.some(x => sameName(x.name, it.name))) q.items.push(it);
+  fn(q);
+  q.items = q.items.filter(x => !inDB(x.name) && !S.queueGone.has(x.name.toUpperCase()));
+  q.updated = new Date().toISOString();
+  S.queue = q; renderQueue();
+  if (gh.canWrite) await writeFile(QUEUE, JSON.stringify(q, null, 2) + '\n', message);
+  else toast('Review list updated in this browser only — connect GitHub to save it', 'info');
 }
-async function autoAddSubdivision(R) {
-  const p = R.parcel; const [book, page] = String(p.MCRNumber || '').split('-');
-  const searchUrl = book && page ? LINKS.recBook(book, page) : 'https://recorder.maricopa.gov/recording/document-search.html#tab-map-search';
-  // open the tab now (while the click still counts as a user action); it is pointed at the plat once found
-  let tab = null; try { tab = window.open('', '_blank'); if (tab) { tab.opener = null; tab.document.title = 'Opening plat…'; tab.document.body.textContent = 'Finding the recorded plat at the County Recorder…'; } } catch {}
-  const [doc, lots] = await Promise.all([findPlatDoc(p.SubdivisionName, book, page).catch(() => null), countSubdivisionLots(p.SubdivisionName).catch(() => null)]);
-  if (tab) {
-    if (doc) platPdfLink(doc.rec).then(u => { tab.location.href = u; }).catch(() => { tab.location.href = LINKS.recDoc(doc.rec); });
-    else tab.location.href = searchUrl;
-  }
+async function queueSubdivision(R) {
+  const p = R.parcel; const name = p.SubdivisionName;
+  if (!name || inDB(name)) return;
+  if (!S.queue) await loadQueue();
   const today = new Date().toISOString().slice(0, 10);
-  const rec = {
-    name: titleCase(p.SubdivisionName), mcr: p.MCRNumber || '', docType: 'PLAT MAP', rec: doc ? doc.rec : '', recorded: doc ? doc.recorded : '', totalLots: lots,
+  const have = S.queue.items.find(x => sameName(x.name, name));
+  if (have) { if (!have.apns.includes(R.apn)) { have.apns.push(R.apn); have.lastSeen = today; renderQueue(); } return; } // no commit for a repeat
+  const [book, page] = String(p.MCRNumber || '').split('-');
+  const [doc, lots] = await Promise.all([findPlatDoc(name, book, page).catch(() => null), countSubdivisionLots(name).catch(() => null)]);
+  const item = {
+    name, displayName: titleCase(name), mcr: p.MCRNumber || '', rec: doc ? doc.rec : '', recorded: doc ? doc.recorded : '', totalLots: lots,
     baseZoning: R.zoning.map(z => z.zone).join(', '),
     controllingCases: [...R.currentCases, ...R.historicCases].filter(c => /Rezoning|Zoning Case|Development Master|Comprehensive|Overlay/.test(c.type)).map(c => `${c.permit} (${c.date || '?'}, ${c.status || '?'})`).join('; '),
-    setbacks: 'Not yet reviewed', height: 'Not yet reviewed', easements: '', platControls: false, setbackTable: [],
-    notes: `⚠ Plat not yet reviewed — added automatically from a lookup of ${R.apn} on ${today}. Open the plat and record its ${doc ? '' : 'recording number, '}setbacks, height and easements.`,
-    parcelsChecked: [R.apn], platUrl: doc ? LINKS.recDoc(doc.rec) : searchUrl, autoAdded: true, lastUpdated: today,
+    apns: [R.apn], firstSeen: today, lastSeen: today, status: 'pending',
   };
-  S.db = S.db || { schema: 1, subdivisions: [] };
-  if (S.db.subdivisions.some(x => sameName(x.name, rec.name))) return;
-  S.db.subdivisions.push(rec); renderDB();
-  let saved = false;
-  if (gh.canWrite) {
-    try { await saveSubdivision(rec, `Add subdivision ${rec.name} (auto, from ${R.apn})`); saved = true; }
-    catch (e) { S.dbDirty = true; renderDB(); toast(`Added ${rec.name} locally, but saving failed: ${e.message}`, 'error'); }
-  } else { S.dbDirty = true; renderDB(); }
-  toast(`New subdivision "${rec.name}" added${saved ? ' and saved' : ' (not saved — connect GitHub)'}${doc ? ` · plat #${doc.rec}` : ' · plat not found by name'}${tab ? '' : ' · popup blocked — use the plat link in the report'}.`, saved ? 'ok' : 'info');
-  if (doc) readPlat(rec.name, doc.rec); // background — the report renders now
+  S.queueGone.delete(name.toUpperCase());
+  try { await saveQueue(q => { if (!q.items.some(x => sameName(x.name, name))) q.items.push(item); }, `Review list: add ${item.displayName} (from ${R.apn})`); toast(`"${item.displayName}" isn't in SubdivisionDB — added to its review list`, 'info'); }
+  catch (e) { toast(`Couldn't save the review list: ${e.message}`, 'error'); }
 }
-// OCR the plat; if setbacks are found, store them (flagged for verification) and save to GitHub.
-const ocrRunning = new Set();
-async function readPlat(name, recNo) {
-  if (ocrRunning.has(name)) return; ocrRunning.add(name);
-  const say = (m) => ocrStatus(`Reading the ${name} plat (OCR): ${m}…`);
-  try {
-    say('downloading the plat from the Recorder');
-    const bytes = await fetchPlatPdf(recNo);
-    const res = await ocrPlat(bytes, { onStep: say });
-    const P = res.parsed; const r = S.db.subdivisions.find(x => sameName(x.name, name));
-    if (!r) return ocrStatus('');
-    if (!P.rows.length) { ocrStatus(`OCR could not find a setback table on sheet${res.pagesRead > 1 ? `s 1–${res.pagesRead}` : ' 1'} of the ${name} plat — read it manually and update the database.`, 'warn'); return; }
-    const today = new Date().toISOString().slice(0, 10);
-    const rows = P.rows.map(x => ({ lots: x.lots, district: x.district || '', front: x.front ?? '', rear: x.rear ?? '', side: x.side ?? '', street: x.street ?? '', height: P.height || '', coverage: P.coverage || '', coverageNow: '', coverageBy: '', width: '', other: 'Read by OCR — verify' }));
-    const upd = {
-      setbackTable: rows,
-      setbacks: rows.map(x => `${rows.length > 1 ? `Lots ${x.lots}${x.district ? ` (${x.district})` : ''}: ` : ''}${x.front || '?'} ft / ${x.rear || '?'} ft / ${x.side || '?'} ft / ${x.street || '?'} ft`).join('. ') + (rows.length === 1 ? ' (Front / Rear / Side / Street-side)' : ''),
-      height: P.height || r.height, easements: r.easements || P.easements.join('; '),
-      notes: `⚠ Setbacks read automatically by OCR from sheet${res.pagesRead > 1 ? `s 1–${res.pagesRead}` : ' 1'} of the plat on ${today} — verify against the plat, then save the record from the editor to clear this flag. OCR text: "${P.excerpt.trim().slice(0, 240)}"`,
-      platOcr: { date: today, rec: recNo, pagesRead: res.pagesRead, pageCount: res.pageCount }, lastUpdated: today,
-    };
-    Object.assign(r, upd); renderDB();
-    if (gh.canWrite) {
-      await saveSubdivision({ ...r }, `Plat OCR: setbacks for ${r.name} (verify)`);
-      ocrStatus(`Setbacks read from the ${name} plat and saved to the database — flagged "verify" until you check them against the plat.`, 'ok');
-    } else { S.dbDirty = true; renderDB(); ocrStatus(`Setbacks read from the ${name} plat (not saved — connect GitHub, then Save in the SubdivisionDB tab). Verify against the plat.`, 'ok'); }
-    if (S.R && sameName(S.R.parcel.SubdivisionName, name)) { $('#report').innerHTML = renderReportHTML(S.R, S.db); S.md = renderReportMD(S.R, S.db, S.extras); }
-  } catch (e) { ocrStatus(`Couldn't read the ${name} plat automatically: ${e.message}. Open it from the report and update the database manually.`, 'warn'); }
-  finally { ocrRunning.delete(name); }
+function claudeRequest() {
+  const items = (S.queue?.items || []).filter(x => !inDB(x.name));
+  return `Process my SubdivisionDB review list (${items.length} subdivision${items.length === 1 ? '' : 's'}: ${items.map(x => x.displayName || x.name).join('; ')}).\n\nFollow the routine in https://github.com/randalkidd/MC/blob/main/tools/process-subdivision-queue.md (repo randalkidd/MC; files data/subdivision-queue.json and data/subdivision-plats.json). Read each plat in the built-in browser on my computer, add the subdivision to SubdivisionDB, remove it from the review list when it's done, then commit and push to main.`;
 }
+function renderQueue() {
+  const box = $('#queue'); if (!box) return;
+  const items = (S.queue?.items || []).filter(x => !inDB(x.name)).sort((a, b) => (a.firstSeen < b.firstSeen ? -1 : 1));
+  $('#queue-count').textContent = items.length;
+  $('#queue-run').disabled = $('#queue-copy').disabled = !items.length;
+  $('#queue-body').innerHTML = items.map(x => `<tr>
+    <td><b>${esc(x.displayName || x.name)}</b>${x.status === 'needs-manual' ? ' ' + warnIco(x.note || 'Claude could not read this plat — review it manually') : ''}<div class="sub">${zoningCell(x.baseZoning)}</div></td>
+    <td>${esc(x.mcr)}</td>
+    <td>${x.rec ? `<a href="${esc(LINKS.recDoc(x.rec))}" target="_blank" rel="noopener noreferrer">#${esc(x.rec)}</a><div class="sub">${esc(x.recorded)}</div>` : (String(x.mcr).includes('-') ? `<a href="${esc(LINKS.recBook(...x.mcr.split('-')))}" target="_blank" rel="noopener noreferrer">Find</a>` : '—')}</td>
+    <td>${x.totalLots ?? '—'}</td><td class="sub">${esc((x.apns || []).join(', '))}</td><td>${esc(x.firstSeen)}</td>
+    <td><button class="btn sm ghost" data-qdel="${esc(x.name)}" title="Remove from the review list">✕</button></td></tr>`).join('') || '<tr><td colspan="7" class="sub">Nothing waiting — every subdivision found by a lookup is in SubdivisionDB.</td></tr>';
+}
+$('#queue-body').addEventListener('click', async (e) => {
+  const n = e.target.dataset.qdel; if (!n) return;
+  S.queueGone.add(n.toUpperCase());
+  try { await saveQueue(q => { q.items = q.items.filter(x => x.name !== n); }, `Review list: remove ${titleCase(n)}`); toast('Removed from the review list'); }
+  catch (err) { toast(err.message, 'error'); }
+});
+$('#queue-copy').addEventListener('click', () => copy(claudeRequest()));
+$('#queue-run').addEventListener('click', () => {
+  const text = claudeRequest();
+  navigator.clipboard?.writeText(text).catch(() => {});
+  const w = window.open(`https://claude.ai/new?q=${encodeURIComponent(text)}`, '_blank'); if (w) w.opener = null;
+  toast('Opening Claude with the request (also copied — paste it if the box is empty). Keep the Claude desktop app open so Claude can read the plats in its browser.', 'ok');
+});
 const lookupCache = new Map(); // APN → { R, t } — avoids re-querying county GIS for 15 min
 async function runLookup(apn, { force = false } = {}) {
   const out = $('#report'); const st = $('#lookup-status');
@@ -254,7 +249,7 @@ async function runLookup(apn, { force = false } = {}) {
     if (!force && hit && Date.now() - hit.t < 15 * 60000) S.R = hit.R;
     else { S.R = await lookupParcel(apn, { onStep: (m) => (st.textContent = `Querying: ${m}…`) }); lookupCache.set(S.R.apn, { R: S.R, t: Date.now() }); }
     st.hidden = true;
-    if (S.R.parcel.SubdivisionName && !findPlat(S.R, S.db) && !S.R.outsideCounty) await autoAddSubdivision(S.R);
+    if (S.R.parcel.SubdivisionName && !findPlat(S.R, S.db) && !S.R.outsideCounty) queueSubdivision(S.R); // background
     out.innerHTML = renderReportHTML(S.R, S.db);
     const age = Math.round((Date.now() - lookupCache.get(S.R.apn).t) / 60000);
     if (age >= 1) out.insertAdjacentHTML('afterbegin', `<p class="meta">Cached result from ${age} min ago · <button class="link" data-act="refresh">refresh from county GIS</button></p>`);
@@ -615,7 +610,7 @@ async function shareRelayIfNeeded() {
 }
 
 bindReview(); renderReview(); renderReference(); renderSettings(); classify(); loadSharedConfig();
-loadDB().catch(e => { $('#db-source').textContent = `Could not load database: ${e.message}`; });
+loadDB().catch(e => { $('#db-source').textContent = `Could not load database: ${e.message}`; }).finally(() => loadQueue());
 const qApn = new URLSearchParams(location.search).get('apn');
 const hashTab = location.hash ? `p-${location.hash.slice(1)}` : null;
 let start = 'p-lookup'; try { start = localStorage.getItem('mc.tab') || start; } catch {}
