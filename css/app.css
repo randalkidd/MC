@@ -2,10 +2,10 @@
    Monsoon Grey #D8DFE1, Sunshine Yellow #FAA21B, Sky Blue #0070B9, Night Black #131D28. Dark by default; light via [data-theme="light"]. */
 :root {
   color-scheme: dark;
-  --bg: #0e1527; --surface: #132048; --ink: #eef2f5; --muted: #a8b4c6; --line: #263a72; --soft: #182a5c;
+  --bg: #000000; --surface: #132048; --ink: #eef2f5; --muted: #a8b4c6; --line: #263a72; --soft: #182a5c;
   --accent: #F26724; --accent-strong: #ff8a52; --accent-ink: #131D28;
   --ok: #2fbfad; --bad: #ff6b6b; --yellow: #FAA21B; --warn-bg: #2e2412; --warn-line: #7a5f24; --note-bg: #162a5e; --note-line: #0070B9;
-  --radius: 10px; --mono: 'IBM Plex Mono', ui-monospace, monospace; --sans: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --radius: 10px; --mono: 'Roboto Mono', ui-monospace, monospace; --sans: 'Roboto', system-ui, -apple-system, sans-serif; --display: 'Poppins', 'Roboto', system-ui, sans-serif;
 }
 :root[data-theme="light"] {
   color-scheme: light;
@@ -129,3 +129,8 @@ th button.link[data-sort] { color: inherit; text-decoration: none; font: inherit
 button.wl-pill { font: inherit; font-size: .72rem; background: transparent; color: inherit; cursor: pointer; }
 button.wl-pill .wl-off { display: none; } button.wl-pill:hover, button.wl-pill:focus-visible { color: var(--bad); border-color: currentColor; }
 button.wl-pill:hover .wl-on, button.wl-pill:focus-visible .wl-on { display: none; } button.wl-pill:hover .wl-off, button.wl-pill:focus-visible .wl-off { display: inline; }
+/* Brand typefaces (maricopa.gov/6808): Poppins for headlines, Roboto for subheads, body and links */
+h1, h2, .brand b, .landing h2 { font-family: var(--display); font-weight: 700; letter-spacing: -.01em; }
+h3, .tab, th { font-family: var(--sans); font-weight: 700; }
+.tab { font-weight: 500; } .tab[aria-selected="true"] { font-weight: 700; }
+a { font-weight: 500; }
