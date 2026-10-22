@@ -75,7 +75,7 @@ The relay only forwards to an allow-list of `*.maricopa.gov` hosts. If county GI
 
 ## Sources and limits
 - MCZO: Dec 10, 2025 edition (effective 1/9/2026). Use DD-3014-01 to decide which edition governs an application.
-- MCSR: the built-in references use the **2016** text. The **10/23/2024** amendment supersedes parts of it, so verify MCSR citations before issuing comments.
+- MCSR: the **January 9, 2026** revision (10/23/2024 amendment plus updated MCZO references). The 2016 text and its Administrative Guidelines are retired; current submittal details live in the county application packets.
 - GIS layer IDs follow the county's current PlanNet service. If the county republishes it and results look wrong, re-check the layer IDs in `js/lookup.js`.
 - This is a review aid. Verify findings against the adopted ordinance, recorded documents and case files.
 

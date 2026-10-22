@@ -6,18 +6,18 @@
 <meta name="theme-color" content="#0d1418">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://gis.maricopa.gov https://server.arcgisonline.com https://*.arcgisonline.com https://cdnjs.cloudflare.com; connect-src 'self' https://gis.maricopa.gov https://publicapi.recorder.maricopa.gov https://edms.maricopa.gov https://recorder.maricopa.gov https://api.github.com https://*.workers.dev; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<script src="js/theme.js?v=10a77c47"></script>
+<script src="js/theme.js?v=4fa77ad6"></script>
 <title>Unofficial Maricopa County Zoning Review</title>
 <meta name="description" content="Maricopa County parcel lookup, MCZO/MCSR standards, subdivision plat database and plan-review deficiency builder.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%232ec4d0'/><path d='M7 24V9l9 7 9-7v15' fill='none' stroke='%2304161a' stroke-width='3' stroke-linejoin='round'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=10a77c47">
-<link rel="modulepreload" href="js/app.js?v=10a77c47"><link rel="modulepreload" href="js/lookup.js?v=10a77c47"><link rel="modulepreload" href="js/report.js?v=10a77c47"><link rel="modulepreload" href="js/net.js?v=10a77c47"><link rel="modulepreload" href="js/github.js?v=10a77c47"><link rel="modulepreload" href="js/standards.js?v=10a77c47"><link rel="modulepreload" href="js/checklists.js?v=10a77c47"><link rel="modulepreload" href="js/review.js?v=10a77c47"><link rel="modulepreload" href="js/refdata.js?v=10a77c47">
+<link rel="stylesheet" href="css/app.css?v=4fa77ad6">
+<link rel="modulepreload" href="js/app.js?v=4fa77ad6"><link rel="modulepreload" href="js/lookup.js?v=4fa77ad6"><link rel="modulepreload" href="js/report.js?v=4fa77ad6"><link rel="modulepreload" href="js/net.js?v=4fa77ad6"><link rel="modulepreload" href="js/github.js?v=4fa77ad6"><link rel="modulepreload" href="js/standards.js?v=4fa77ad6"><link rel="modulepreload" href="js/checklists.js?v=4fa77ad6"><link rel="modulepreload" href="js/review.js?v=4fa77ad6"><link rel="modulepreload" href="js/refdata.js?v=4fa77ad6">
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="mark">MC</span><div><b>Unofficial Maricopa County Zoning Review</b><small>Created by Randal Kidd - <a href="https://www.maricopa.gov/DocumentCenter/View/4785/P-18---Zoning-Ordinance-PDF?bidId=" target="_blank" rel="noopener" title="Maricopa County Zoning Ordinance (PDF)">MCZO</a> · <a href="https://www.maricopa.gov/DocumentCenter/View/8104/Subdivision-Regulations-PDF" target="_blank" rel="noopener" title="Subdivision Regulations (PDF, June 2016 edition — amended 10/23/2024)">MCSR</a> · <a href="#ref" data-jump="ref-dirs-card" title="All 88 Planning &amp; Development directives">Directives</a></small></div></div>
+  <div class="brand"><span class="mark">MC</span><div><b>Unofficial Maricopa County Zoning Review</b><small>Created by Randal Kidd - <a href="https://www.maricopa.gov/DocumentCenter/View/4785/P-18---Zoning-Ordinance-PDF?bidId=" target="_blank" rel="noopener" title="Maricopa County Zoning Ordinance (PDF)">MCZO</a> · <a href="https://www.maricopa.gov/Archive.aspx?ADID=6308" target="_blank" rel="noopener" title="Subdivision Regulations (PDF, June 2016 edition — amended 10/23/2024)">MCSR</a> · <a href="#ref" data-jump="ref-dirs-card" title="All 88 Planning &amp; Development directives">Directives</a></small></div></div>
   <div class="top-right"><button id="gh-badge" class="badge" type="button" title="GitHub saving settings"></button><button id="theme-btn" class="theme-btn" type="button" aria-label="Switch light/dark theme" title="Switch light/dark theme">☀</button></div>
 </header>
 <nav class="tabs" role="tablist">
@@ -136,7 +136,7 @@
     </form>
     <div id="ld-out"></div>
   </div>
-  <p class="sub">Built from the 2016 MCSR definitions (§105.24, §105.38, §204) and DD-2013-10. The 10/23/2024 MCSR amendment may change the procedure (e.g. administrative plat approval).</p>
+  <p class="sub">Built from the MCSR (Jan 9, 2026 revision) definitions and procedures (§105.24, §105.37, §202–207) and DD-2013-10.</p>
 </section>
 
 <!-- SUBDIVISIONS DB -->
@@ -171,7 +171,7 @@
     <h3>Accessory structures</h3><ul id="ref-acc"></ul>
     <h3>Septic minimum setbacks (sample residential site plan; ESD controls)</h3><table class="dense"><tbody id="ref-septic"></tbody></table>
   </div>
-  <div class="card"><h2>Subdivision Regulations — quick reference <small>(2016 text; verify against the 10/23/2024 amendment)</small></h2>
+  <div class="card"><h2>Subdivision Regulations — quick reference <small>(Jan 9, 2026 revision)</small></h2>
     <div class="tw"><table class="dense"><thead><tr><th>Topic</th><th>Standard</th><th>Cite</th></tr></thead><tbody id="ref-mcsr"></tbody></table></div></div>
   <div class="card" id="ref-dirs-card"><h2>Department directives</h2><ul id="ref-dirs" class="cols"></ul></div>
   <div class="card"><h2>County tools</h2><ul class="cols">
@@ -217,9 +217,9 @@
   </div>
 </section>
 </main>
-<footer class="foot">All information in this system is public and accessible to anyone; items saved here are stored in a public GitHub repository. Reference tool — verify findings against the adopted ordinance, recorded documents and case files before relying on them. MCSR on file: 2016 edition, superseded in part by the 10/23/2024 amendment.
-<div class="build">Version <span id="build">10.22.26.002</span></div></footer>
+<footer class="foot">All information in this system is public and accessible to anyone; items saved here are stored in a public GitHub repository. Reference tool — verify findings against the adopted ordinance, recorded documents and case files before relying on them. MCSR: January 9, 2026 revision.
+<div class="build">Version <span id="build">10.22.26.003</span></div></footer>
 <div id="toasts" aria-live="polite"></div>
-<script type="module" src="js/app.js?v=10a77c47"></script>
+<script type="module" src="js/app.js?v=4fa77ad6"></script>
 </body>
 </html>

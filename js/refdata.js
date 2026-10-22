@@ -444,216 +444,216 @@ export const MCSR_QUICK=[
 {
 "topic": "Corner radius at street intersections",
 "std": "Property-line arc, 12 ft min tangent",
-"cite": "\u00a7303.1.e"
+"cite": "§302.1.e"
 },
 {
 "topic": "Sight triangle",
 "std": "25 ft legs at street intersections; 10 ft legs at alleys and at driveways for MF/commercial/industrial",
-"cite": "\u00a7303.1.e (\u2192 MCZO Art. 811.4)"
+"cite": "§302.1.e → MCZO Art. 811.4"
 },
 {
 "topic": "Corner lots",
-"std": "Wider than the district minimum (Plate 11: 10\u201320% wider than interior lots)",
-"cite": "\u00a7303.1.d"
+"std": "Wider than the district minimum lot width",
+"cite": "§302.1.d"
 },
 {
-"topic": "Side lot lines",
-"std": "Substantially right-angle or radial to streets, straight",
-"cite": "\u00a7303.1.f"
+"topic": "Corner lot next to a key lot",
+"std": "Plat a ≥ 5 ft landscape/other tract so there's no true corner lot, or include a 10 ft sight triangle in the key lot",
+"cite": "§302.1.i"
 },
 {
-"topic": "Lot depth:width (usable area)",
-"std": "\u2264 3:1 residential; \u2264 4:1 commercial/industrial (guideline)",
-"cite": "Guidelines 4.3.e"
+"topic": "Through lots",
+"std": "Plat a ≥ 5 ft tract, or a vehicular non-access easement (especially on a perimeter, collector or arterial street)",
+"cite": "§302.1.j"
 },
 {
-"topic": "Grade difference between lots",
-"std": "Avoid > ~2 ft",
-"cite": "Guidelines 4.3.h"
+"topic": "Flag / panhandle / double-frontage lots",
+"std": "Allowed where zoning allows them and no lot is adversely affected",
+"cite": "§302.1.c"
 },
 {
-"topic": "Residential street paving",
-"std": "28 ft min with thickened edge where lots \u2265 18,000 sf",
-"cite": "\u00a7303.2.e"
+"topic": "Side / rear lot lines",
+"std": "Side lines right-angle or radial to streets and straight; rear lines avoid acute angles",
+"cite": "§302.1.f–g"
+},
+{
+"topic": "Hillside lots",
+"std": "Discouraged unless significantly larger than the district minimum area and width",
+"cite": "§302.1.k (→ MCZO §901)"
+},
+{
+"topic": "Cul-de-sac (dead-end street)",
+"std": "≤ 1,000 ft (intersecting centerline to bulb center); ≤ 15 lots unless a secondary emergency access is provided",
+"cite": "§302.1.l"
+},
+{
+"topic": "Street design",
+"std": "MCDOT Roadway Design Manuals (latest edition)",
+"cite": "§302.2.a, §303.1.b"
 },
 {
 "topic": "Sidewalks",
-"std": "Required where lots < 18,000 sf and along any curbed public street; 5 ft behind curb where speed \u2265 45 mph",
-"cite": "\u00a7303.2.e"
+"std": "Required where lots ≤ 18,000 sf and along any curbed public street; location per the MCDOT RDM",
+"cite": "§302.2.b–c"
 },
 {
-"topic": "Arterial median",
-"std": "14 ft face-to-face",
-"cite": "\u00a7303.2.h"
+"topic": "Points of access",
+"std": "Minimum 2, regardless of the number of lots; a public subdivision needs public access",
+"cite": "§302.2.d.5, §303.1.a"
 },
 {
-"topic": "Streets > **1,500 ft** long",
-"std": "Must be identified; MCDOT variance recommendation",
-"cite": "\u00a7303.2.k"
+"topic": "Private streets",
+"std": "In tracts satisfactory to the County Engineer; built to MCDOT public pavement standards or assured; maintenance provision; \"private, not maintained by the County\" plat note",
+"cite": "§302.2.d"
 },
 {
 "topic": "Alleys",
-"std": "Discouraged; dead-end prohibited. Residential 16 ft, commercial/industrial 20 ft wide; 25\u00d725 ft triangle at alley intersections; AC 2\" over 6\" ABC (res) / 9\" ABC (C/I)",
-"cite": "\u00a7303.2.l"
+"std": "Discouraged; never primary access; dead-end prohibited. Residential 16 ft, commercial/industrial 20 ft; 25×25 ft triangle at alley intersections; 2½\" AC over 6\" ABC (res) / 9\" ABC (C/I)",
+"cite": "§302.2.e"
 },
 {
 "topic": "Rear-lot utility easement",
-"std": "16 ft normal (residential); straight and long",
-"cite": "\u00a7303.2.m"
+"std": "16 ft normally (residential); straight and long",
+"cite": "§302.2.f"
 },
 {
-"topic": "Non-access easement (arterial side of double-frontage lots)",
+"topic": "Drainage easement width",
+"std": "Per the County Drainage Regulations (MCZO §905)",
+"cite": "§302.2.f"
+},
+{
+"topic": "Vehicular non-access easement (arterial side of double-frontage lots)",
 "std": "Required, 1 ft min",
-"cite": "\u00a7303.2.n"
-},
-{
-"topic": "Curvilinear easements/alleys",
-"std": "Deflection points \u2265 120 ft apart; curve radius \u2265 135 ft",
-"cite": "\u00a7303.2.o"
+"cite": "§302.2.g"
 },
 {
 "topic": "Hillside streets",
-"std": "Grade \u2264 15%; segments > 12% \u2264 600 ft long; T/Y turnarounds allowed",
-"cite": "\u00a7303.2.p"
+"std": "Grade ≤ 15%; segments > 12% ≤ 600 ft long; T/V turnarounds allowed for private streets",
+"cite": "§302.2.h"
 },
 {
-"topic": "Hillside lot",
-"std": "Natural slope \u2265 15%",
-"cite": "\u00a7105.23"
+"topic": "Floodplain",
+"std": "Design per the Floodplain Regulations for Maricopa County",
+"cite": "§302.3.a"
 },
 {
-"topic": "Finished floor",
-"std": "Above the Regulatory Flood Elevation; no fill in the floodway",
-"cite": "\u00a7303.3.a\u2013c"
+"topic": "On-lot septic",
+"std": "Not allowed for lots under 1 net acre (43,560 sf); another wastewater method must be shown",
+"cite": "§302.4.b; DD-3018-01"
 },
 {
-"topic": "Perc tests / boring logs",
-"std": "Before preliminary approval, unless sewered",
-"cite": "\u00a7303.4.a"
-},
-{
-"topic": "On-lot septic, subdivision lots < **43,560 sf**",
-"std": "Not permitted (waiver possible with ESD Certificate of Geological Report)",
-"cite": "DD-3018-01 (cites new \u00a7302.4.b)"
-},
-{
-"topic": "Fire hydrants",
-"std": "Required for lots \u2264 190,000 sf",
-"cite": "\u00a7304.2.b"
-},
-{
-"topic": "100-yr Assured Water Supply",
-"std": "Plat statement required where applicable (all lots inside an AMA)",
-"cite": "\u00a7203.2.i.2.A, \u00a7304.2.f"
+"topic": "Drainage / stormwater retention",
+"std": "MCZO §905",
+"cite": "§302.5.a, §303.4.a"
 },
 {
 "topic": "Perimeter streets",
-"std": "Improve the near half",
-"cite": "\u00a7304.1.c"
-},
-{
-"topic": "Street-improvement warranty",
-"std": "10% of cost, 1 yr",
-"cite": "\u00a7304.1.f"
+"std": "Improve all perimeter streets per MCDOT",
+"cite": "§303.1.c"
 },
 {
 "topic": "Improvement plan approval",
 "std": "Valid 1 yr",
-"cite": "\u00a7304.1.e"
+"cite": "§303.1.d"
 },
 {
-"topic": "Drainage easement where a wash traverses/abuts",
-"std": "Carry the 100-yr storm, unobstructed",
-"cite": "\u00a7304.4.b"
+"topic": "Fire hydrants",
+"std": "Required for lots ≤ 190,000 sf",
+"cite": "§303.2.b"
+},
+{
+"topic": "Water supply",
+"std": "Certificated water company or municipality; 100-yr Assured Water Supply for all lots inside an AMA",
+"cite": "§303.2.c, §203.2.i.2.A"
 },
 {
 "topic": "Lot corners",
-"std": "Iron pipe or \u00bd\"\u00d718\" steel pin at all corners/angle points/PCs",
-"cite": "\u00a7304.5.c"
+"std": "Iron pipe (or ½\"×18\" steel pin) at all corners, angle points and PCs before each lot's building permit; the permit application needs a surveyor's certification",
+"cite": "§303.5.c"
+},
+{
+"topic": "Monuments",
+"std": "As-built monument locations go with the infrastructure as-built submittal",
+"cite": "§303.5.b"
+},
+{
+"topic": "Street name signs",
+"std": "At every intersection within and along the perimeter; extra signs where streets are > 60 ft wide",
+"cite": "§303.6"
 },
 {
 "topic": "Utilities",
-"std": "Underground",
-"cite": "\u00a7304.7"
+"std": "Underground, except electric lines ≥ 69 kV",
+"cite": "§303.7"
 },
 {
-"topic": "Lakes / golf / common area > **10 ac**",
-"std": "100% renewable water",
-"cite": "\u00a7309"
+"topic": "Landscaping",
+"std": "ADWR drought-tolerant plants in common tracts, at entrances and along arterials/collectors; 1 tree (5–15 gal) in the front yard of every R1-10, R1-8, R1-7, R1-6 lot (incl. RUPD), unless the Director grants an exception",
+"cite": "§303.8"
+},
+{
+"topic": "Maintenance plan",
+"std": "Required for non-dedicated improvements; schedule on the recorded plat",
+"cite": "§305"
 },
 {
 "topic": "Lake definition",
 "std": "> 12,320 sf surface",
-"cite": "\u00a7105.20"
+"cite": "§105.20"
+},
+{
+"topic": "Hillside lot definition",
+"std": "Natural slope ≥ 15%",
+"cite": "§105.23"
 },
 {
 "topic": "Preliminary plat validity",
-"std": "24 months; admin extension 12 months",
-"cite": "\u00a7202.4.d.2, \u00a7202.5"
+"std": "24 months; phased plats 24 months from the last conforming final plat recording, plus a 12-month admin extension",
+"cite": "§202.4.d.2–3"
 },
 {
-"topic": "Final plat submittal lead time",
-"std": "75 working days before the BOS meeting",
-"cite": "\u00a7203.1"
+"topic": "Preliminary plat extension",
+"std": "Up to 12 months on written request, with evidence of progress",
+"cite": "§202.5.a"
 },
 {
-"topic": "City within **3 miles**",
-"std": "Copy of the plat to the city 30 working days before the BOS hearing (A.R.S. 9-474)",
-"cite": "Guidelines 3.3.g"
+"topic": "Appeal of a plat denial",
+"std": "To the P&Z Commission → Board, requested within 30 calendar days",
+"cite": "§202.4.c, §203.3.d"
 },
 {
-"topic": "Utility pre-submittal",
-"std": "Plat to utilities 15 working days before the final-plat submittal",
-"cite": "Guidelines 3.3.f"
+"topic": "Final plat signer",
+"std": "Arizona-registered land surveyor only (A.R.S. 32-101)",
+"cite": "§203.1"
 },
 {
-"topic": "School/fire reservation",
-"std": "District request within 30 days of receiving the preliminary plat; acquisition window 1 yr after final plat recording",
-"cite": "\u00a7308"
+"topic": "Final plat approval prerequisites",
+"std": "Infrastructure permit \"ready to issue\"; assurances and dedications processed; certifications executed; fees and fines current",
+"cite": "§203.4"
 },
 {
-"topic": "Plat format",
-"std": "\u2264 24\"\u00d736\" sheets; engineering scale \u2264 1\"=200'; north up or left",
-"cite": "Guidelines 2.2, 3.3"
+"topic": "Recorded plat copies to P&D",
+"std": "2 paper + 1 digital",
+"cite": "§203.5"
 },
 {
-"topic": "Contours",
-"std": "2 ft interval (grades < 5%), 5 ft (\u2265 5%); extend 25 ft beyond the boundary",
-"cite": "Guidelines 2.3.a.13"
+"topic": "Final plat mylars",
+"std": "≥ 2",
+"cite": "§203.3.b"
 },
 {
-"topic": "Cul-de-sac",
-"std": "\u2264 1,000 ft or 15 lots; bulb ~45 ft R (Plate 10)",
-"cite": "Plate 10"
+"topic": "Lighting statement",
+"std": "Final plat states adherence to MCZO §812",
+"cite": "§203.2.k"
 },
 {
-"topic": "Intersection angle",
-"std": "Within 15\u00b0 of 90\u00b0; arterial/collector intersections at 90\u00b0; 150 ft tangent at the arterial",
-"cite": "Plates 5\u20136"
+"topic": "Fees",
+"std": "Preliminary/replat $100/lot ($1,000–$30,000); final $40/lot ($1,000–$10,000); waiver $500/standard ($500–$5,000); extension $500; stipulation modification $250 each ($500–$1,500); pre-application meeting $350",
+"cite": "§404"
 },
 {
-"topic": "Centerline curves",
-"std": "Min radius 500 ft collector / 200 ft residential; 150 ft tangent between reverse curves",
-"cite": "Plate 7"
-},
-{
-"topic": "Street jogs",
-"std": "\u2265 200 ft offset",
-"cite": "Plate 8"
-},
-{
-"topic": "Arterial openings",
-"std": "\u00bc-mile spacing preferred; T-type if more frequent",
-"cite": "Plate 4"
-},
-{
-"topic": "Lots backing onto an arterial",
-"std": "110 ft min depth; screen wall + NAE",
-"cite": "Plates 3A/3B"
-},
-{
-"topic": "Fees (2016)",
-"std": "Prelim/replat $100/lot ($1,000\u2013$30,000); final $40/lot ($1,000\u2013$10,000); waiver $500/standard ($500\u2013$5,000); extension $500; stipulation modification $250 each ($500\u2013$1,500); pre-app $100",
-"cite": "\u00a7404 \u2014 verify against the current fee schedule"
+"topic": "Penalty",
+"std": "Recording a plat without County approval = Class 2 misdemeanor",
+"cite": "§502"
 }
 ];

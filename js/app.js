@@ -1,12 +1,12 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=10a77c47';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=10a77c47';
-import { settings, setSharedRelay } from './net.js?v=10a77c47';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=10a77c47';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=10a77c47';
-import { CHECKLISTS } from './checklists.js?v=10a77c47';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=10a77c47';
-import { DIRECTIVES, MCSR_QUICK } from './refdata.js?v=10a77c47';
-import { findPlatDoc } from './recorder.js?v=10a77c47';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=4fa77ad6';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=4fa77ad6';
+import { settings, setSharedRelay } from './net.js?v=4fa77ad6';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=4fa77ad6';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=4fa77ad6';
+import { CHECKLISTS } from './checklists.js?v=4fa77ad6';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=4fa77ad6';
+import { DIRECTIVES, MCSR_QUICK } from './refdata.js?v=4fa77ad6';
+import { findPlatDoc } from './recorder.js?v=4fa77ad6';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -440,16 +440,16 @@ function classify() {
   const out = [];
   const R = (cls, proc, cites, warn = []) => out.push({ cls, proc, cites, warn });
   if (!lots) { $('#ld-out').innerHTML = '<p class="sub">Enter the number of resulting lots.</p>'; return; }
-  if (minAc != null && minAc >= 36 && !condo) R('Not a subdivision or minor land division', "Every resulting parcel is ≥ 36 ac (to the centerline of contiguous roads/easements), so it is outside both definitions. Deeds plus MCZO compliance.", 'MCSR §105.24, §105.38; A.R.S. 32-2101');
+  if (minAc != null && minAc >= 36 && !condo) R('Not a subdivision or minor land division', "Every resulting parcel is ≥ 36 ac (to the centerline of contiguous roads/easements), so it is outside both definitions. Deeds plus MCZO compliance.", 'MCSR §105.24, §105.37; A.R.S. 32-2101');
   else if (ag) R('Excluded (agricultural lease/sale under A.R.S. 11-830)', 'Not regulated as a land division; confirm the A.R.S. 11-830 conditions.', 'MCSR §105.24');
   else if (inSub) {
     if (lots >= 6 || tract || street || aband) {
       const pre = street || aband || lots > 6;
       R('Replat (amended final plat)', `${pre ? 'Preliminary plat (MCSR §202) + final plat (§203); the Director may waive the preliminary stage' : 'Process as a final plat (MCSR §203)'}.`, 'MCSR §204.1–3; DD-2013-10 ¶3',
-        [aband && 'Abandoning a street, alley or easement needs MCDOT/utility review.', tract && 'Altering a tract designated for a specific use is a replat.'].filter(Boolean));
+        [aband && 'Abandoning a street, alley or easement needs MCDOT/utility review; patent easements and open MCDOT rights-of-way are abandoned through MCDOT/MCRED instead (§204.3).', tract && 'Altering a tract designated for a specific use is a replat.', lots >= 4 && lots < 6 && 'MCSR §105.31 defines a replat as 4+ lots, but §204.1 uses 6+ — confirm with the Department.'].filter(Boolean));
     } else R('Minor land division within a recorded subdivision', '5 or fewer adjoining lots. Done by deed; each lot must meet MCZO area, width and access; existing structures must meet setbacks to the new lines.', 'DD-2013-10 ¶3; MCSR §105.24');
-  } else if (lots >= 6 || condo) R('Subdivision', 'Pre-application → preliminary plat (P&Z, valid 24 mo) → final plat (BOS / administrative under the 2024 amendment) → record. Assurances, assured water (AMA), improvements per MCSR Ch. 3.', 'MCSR §103, §105.38, §202–203; A.R.S. 11-806.01',
-    [condo && 'Residential condominiums count as a subdivision.', septicSmall && 'Lots < 1 net acre may not use individual on-lot septic (DD-3018-01) — sewer, larger lots, or a waiver with an ESD Certificate of Geological Report.'].filter(Boolean));
+  } else if (lots >= 6 || condo) R('Subdivision', 'Pre-application ($350) → preliminary plat (approved administratively by the Department; valid 24 mo; denial appealable to P&Z → Board within 30 days) → final plat (Department review; infrastructure permit ready to issue; BOS chairman signs, no hearing) → record. Assurances, 100-yr assured water (AMA), at least 2 points of access, improvements per MCSR Ch. 3.', 'MCSR §103, §105.37, §202–203, §302.2.d.5; A.R.S. 11-806.01',
+    [condo && 'Residential condominiums count as a subdivision.', septicSmall && 'Lots < 1 net acre may not use individual on-lot septic (MCSR §302.4.b; DD-3018-01) — sewer, larger lots, or a waiver with an ESD Certificate of Geological Report.'].filter(Boolean));
   else R('Minor land division (lot split)', 'Up to 5 lots, all < 36 ac. Done by recorded deeds; the MCSR does not apply, but each lot must meet MCZO lot area, width and legal access, and A.R.S. 11-831. Staff check Assessor history for serial splits at site-plan review.', 'MCSR §105.24; DD-2013-10 ¶2, ¶4; A.R.S. 11-831',
     ['Count prior splits of the same parent / common promotional plan — 6+ in total makes it a subdivision.']);
   $('#ld-out').innerHTML = out.map(o => `<div class="card result"><h3>${esc(o.cls)}</h3><p>${esc(o.proc)}</p><p class="sub">Basis: ${esc(o.cites)}</p>${o.warn.map(w => `<p class="warn">${esc(w)}</p>`).join('')}</div>`).join('');
@@ -479,7 +479,7 @@ async function checkSplit(apnIn) {
     let verdict, cls; const noSplit = n <= 1 && !/[A-Z]$/.test(R.apn);
     if (n <= 1 && !/[A-Z]$/.test(R.apn)) { verdict = 'No split detected'; cls = 'ok'; findings.push(['ok', `No other parcels share ${S2.base}; the Assessor record shows no split of this parcel.`]); }
     else if (all36) { verdict = 'Exempt — all parcels are 36 acres or more'; cls = 'ok'; findings.push(['ok', `All ${n} parcels from ${S2.base} are ≥ 36 ac, so this is neither a subdivision nor a minor land division (MCSR §105.24/.38).`]); }
-    else if (n >= 6) { verdict = 'Possible illegal subdivision — refer for review'; cls = 'bad'; findings.push(['bad', `${n} parcels have been created from parent ${S2.base} and not all are ≥ 36 ac. Six or more lots requires a recorded subdivision plat (MCSR §103, §105.38; A.R.S. 32-2101).${platted ? ' Inside a recorded subdivision, 6+ adjoining lots requires a replat (MCSR §204).' : ''} Per DD-2013-10, no zoning approval unless ADRE confirms in writing that the split is lawful.`]); }
+    else if (n >= 6) { verdict = 'Possible illegal subdivision — refer for review'; cls = 'bad'; findings.push(['bad', `${n} parcels have been created from parent ${S2.base} and not all are ≥ 36 ac. Six or more lots requires a recorded subdivision plat (MCSR §103, §105.37; A.R.S. 32-2101).${platted ? ' Inside a recorded subdivision, 6+ adjoining lots requires a replat (MCSR §204).' : ''} Per DD-2013-10, no zoning approval unless ADRE confirms in writing that the split is lawful.`]); }
     else { verdict = small.length ? 'Split count OK — but lot size problem' : 'Appears consistent with a lawful minor land division'; cls = small.length ? 'warn' : 'ok'; findings.push(['ok', `${n} parcel${n > 1 ? 's' : ''} from parent ${S2.base} — within the 5-lot minor land division limit (MCSR §105.24; DD-2013-10).`]); }
     if (d) {
       if (small.length) findings.push(['bad', `${small.length} parcel${small.length > 1 ? 's are' : ' is'} below the ${dk} minimum of ${d.area.toLocaleString()} sq ft: ${small.map(p => `${p.apn} (${p.sqft.toLocaleString()} sf)`).join(', ')}. A lot created below the minimum after zoning applied is not a lawful lot; one created earlier may be legal nonconforming — check the deed date.`]);
@@ -497,7 +497,7 @@ async function checkSplit(apnIn) {
     out.innerHTML = `<div class="card result ${cls}"><h3>${esc(verdict)}</h3><p class="sub">${esc(R.apn)} · ${esc(zone || 'zoning ?')} · ${subj.sqft?.toLocaleString?.() || '—'} sf (${subj.acres} ac)${platted ? ` · ${esc(R.parcel.SubdivisionName)}${R.parcel.Lot ? ` lot ${esc(R.parcel.Lot)}` : ''}` : ''}</p>
       <ul class="findings">${findings.map(([k, t]) => `<li class="${k === 'bad' ? 'deficient' : k}">${icon[k]} ${esc(t)}</li>`).join('')}</ul></div>
       <div class="tw"><table><thead><tr><th>Parcel</th><th>Area</th><th>Owner</th><th>Deed date</th><th>Address</th></tr></thead><tbody>${ps.map(p => `<tr${p.apn === R.apn ? ' class="me"' : ''}><td><a href="?apn=${p.apn}#lookup">${esc(p.apn)}</a></td><td>${p.sqft.toLocaleString()} sf · ${p.acres} ac${d && p.sqft < d.area ? ' <b class="bad">below min</b>' : ''}</td><td>${esc(p.owner || '—')}</td><td>${esc(p.deedDate || '—')}</td><td>${esc(p.addr || '—')}</td></tr>`).join('')}</tbody></table></div>
-      <p class="sub">Screening based on Assessor records, not a legal determination. Basis: MCSR §103, §105.10, §105.21, §105.24, §105.38, §204; <a href="https://www.maricopa.gov/6416/Subdivisions---Replats-and-Lot-Splits-20" target="_blank" rel="noopener">DD-2013-10</a>; A.R.S. 11-831, 32-2101.</p>`;
+      <p class="sub">Screening based on Assessor records, not a legal determination. Basis: MCSR §103, §105.10, §105.21, §105.24, §105.37, §204; <a href="https://www.maricopa.gov/6416/Subdivisions---Replats-and-Lot-Splits-20" target="_blank" rel="noopener">DD-2013-10</a>; A.R.S. 11-831, 32-2101.</p>`;
   } catch (e) { st.className = 'status err'; st.textContent = e.message; }
 }
 $('#ls-form').addEventListener('submit', (e) => { e.preventDefault(); checkSplit($('#ls-apn').value); });
