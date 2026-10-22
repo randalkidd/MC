@@ -6,7 +6,7 @@
 // Then set ALLOWED_ORIGIN below to your Pages origin (e.g. https://yourname.github.io) and paste the
 // worker URL into the site's Settings → Relay URL.
 
-const ALLOWED_ORIGIN = '*'; // ← change to 'https://<you>.github.io' after deploying
+const ALLOWED_ORIGIN = 'https://randalkidd.github.io'; // only your site may use this relay
 const ALLOWED_HOSTS = new Set([
   'gis.maricopa.gov',
   'edms.maricopa.gov',
