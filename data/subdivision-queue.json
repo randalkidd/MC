@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated": "2026-10-22T20:58:51.388Z",
+  "updated": "2026-10-22T21:30:06.390Z",
   "items": [
     {
       "name": "ARROYO NORTE UNITS 8 9 & 10",
@@ -200,6 +200,22 @@
       "lastSeen": "2026-10-22",
       "status": "pending",
       "note": "Added from All Subdivisions (no parcel lookup yet)"
+    },
+    {
+      "name": "RUSSELL RANCH PHASE 1",
+      "displayName": "Russell Ranch Phase 1",
+      "mcr": "570-02",
+      "rec": "",
+      "recorded": "",
+      "totalLots": 115,
+      "baseZoning": "R1-18",
+      "controllingCases": "CPA2000007 (12:00:00 AM, Approved); CPA1989003 (12:00:00 AM, Remove); CPA2023014 (9/13/2023, Approved); CPA2004003 (6/24/2004, Remove); Z00-93 (8/11/2000, APPROVED)",
+      "apns": [
+        "502-27-181"
+      ],
+      "firstSeen": "2026-10-22",
+      "lastSeen": "2026-10-22",
+      "status": "pending"
     }
   ]
 }
