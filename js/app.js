@@ -1,13 +1,13 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=b96a82ef';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=b96a82ef';
-import { settings, setSharedRelay } from './net.js?v=b96a82ef';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=b96a82ef';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=b96a82ef';
-import { CHECKLISTS } from './checklists.js?v=b96a82ef';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=b96a82ef';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=621df8f4';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=621df8f4';
+import { settings, setSharedRelay } from './net.js?v=621df8f4';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=621df8f4';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=621df8f4';
+import { CHECKLISTS } from './checklists.js?v=621df8f4';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=621df8f4';
 let REF = null; // js/refdata.js (76 KB) loads the first time the Reference tab opens
-import { findPlatDoc } from './recorder.js?v=b96a82ef';
-import { loadAllSubdivisions } from './subdivisions.js?v=b96a82ef';
+import { findPlatDoc } from './recorder.js?v=621df8f4';
+import { loadAllSubdivisions } from './subdivisions.js?v=621df8f4';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -479,7 +479,7 @@ function renderAllSubs() {
     const rec = st === 'db' ? S.db.subdivisions.find(x => sameName(x.name, r.name))?.rec : '';
     const plat = rec ? LINKS.recDoc(rec) : r.link ? safeUrl(r.link) : (book && page ? LINKS.recBook(book, page) : '');
     return `<tr><td><b>${esc(titleCase(r.name))}</b>${r.n > 1 ? ` <span class="sub">(${r.n} areas)</span>` : ''}</td><td>${esc(r.mcr || '—')}</td>
-      <td>${plat ? `<a href="${esc(plat)}" target="_blank" rel="noopener noreferrer">${rec ? `Plat #${esc(rec)}` : r.link ? 'Plat' : 'Find plat'}</a>` : '—'}</td>
+      <td>${plat ? `<a href="${esc(plat)}" target="_blank" rel="noopener noreferrer">${rec ? `Plat #${esc(rec)}` : 'Find plat'}</a>` : '—'}</td>
       <td>${st === 'db' ? '<span class="pill ok-pill">✓ SubdivisionDB</span>' : st === 'queue' ? '<span class="pill">⏳ Review list</span>' : '<span class="sub">—</span>'}</td>
       <td>${st === 'db' ? `<button class="btn sm ghost" type="button" data-as-edit="${esc(r.name)}">Open</button>` : st === 'none' ? `<button class="btn sm ghost" type="button" data-as-queue="${esc(r.name)}" data-mcr="${esc(r.mcr)}">Add to review list</button>` : ''}</td></tr>`;
   }).join('') || '<tr><td colspan="5" class="sub">No matches.</td></tr>';
@@ -667,7 +667,7 @@ async function renderSaved() {
 // ---------------- reference ----------------
 let refP = null;
 function renderReference() {
-  return (refP ||= import('./refdata.js?v=b96a82ef').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
+  return (refP ||= import('./refdata.js?v=621df8f4').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
 }
 function fillReference() {
   const { DIRECTIVES, MCSR_QUICK, REG_DOCS, REG_LOOKUP } = REF;

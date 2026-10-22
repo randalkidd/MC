@@ -36,6 +36,13 @@ for a in feats:
         seen[k][3] += 1
         if not seen[k][2] and a.get('MCRWebLink'): seen[k][2] = a['MCRWebLink']
     else: seen[k] = [name, mcr, a.get('MCRWebLink') or '', 1]
+# The county's MCRWebLink is normally the Recorder book/page search, which the site rebuilds from the MCR number;
+# keep a link only when it differs (keeps the snapshot ~70% smaller).
+def std(mcr):
+    b, _, pg = mcr.partition('-')
+    return f'https://recorder.maricopa.gov/recording/document-search-results.html?mode=book&docketBook={b}&pageMap={pg}'
+for r in seen.values():
+    if r[2] == std(r[1]): r[2] = ''
 rows = sorted(seen.values(), key=lambda r: (r[0].upper(), r[1]))
 new = {'source': URL.rsplit('/query', 1)[0], 'records': count, 'rows': rows}
 old = json.loads(OUT.read_text()) if OUT.exists() else {}
