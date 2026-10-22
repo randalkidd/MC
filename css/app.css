@@ -1,16 +1,17 @@
-/* Default theme: dark with red accents. Light variant via [data-theme="light"]. */
+/* Maricopa County brand palette (maricopa.gov/6808): Summer Night Blue #132048, Sunrise Orange #F26724, Desert Turquoise #1E988A,
+   Monsoon Grey #D8DFE1, Sunshine Yellow #FAA21B, Sky Blue #0070B9, Night Black #131D28. Dark by default; light via [data-theme="light"]. */
 :root {
   color-scheme: dark;
-  --bg: #121113; --surface: #1a1819; --ink: #eeeaea; --muted: #a59b9d; --line: #312b2d; --soft: #231f21;
-  --accent: #f05252; --accent-strong: #ff7a7a; --accent-ink: #1a0606;
-  --ok: #4fd18b; --bad: #ff7b72; --yellow: #e3b341; --warn-bg: #2e2412; --warn-line: #7a5f24; --note-bg: #261719; --note-line: #5e2c31;
+  --bg: #0e1527; --surface: #132048; --ink: #eef2f5; --muted: #a8b4c6; --line: #263a72; --soft: #182a5c;
+  --accent: #F26724; --accent-strong: #ff8a52; --accent-ink: #131D28;
+  --ok: #2fbfad; --bad: #ff6b6b; --yellow: #FAA21B; --warn-bg: #2e2412; --warn-line: #7a5f24; --note-bg: #162a5e; --note-line: #0070B9;
   --radius: 10px; --mono: 'IBM Plex Mono', ui-monospace, monospace; --sans: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
 }
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #f7f5f5; --surface: #ffffff; --ink: #1f1718; --muted: #6b5f61; --line: #e6dbdc; --soft: #f2eaeb;
-  --accent: #c81e1e; --accent-strong: #a31616; --accent-ink: #ffffff;
-  --ok: #1f7a4a; --bad: #b42318; --yellow: #9a6700; --warn-bg: #fff4e0; --warn-line: #f0c27a; --note-bg: #fcefef; --note-line: #efb7b7;
+  --bg: #f3f6f7; --surface: #ffffff; --ink: #131D28; --muted: #4f5d6b; --line: #D8DFE1; --soft: #e9eef0;
+  --accent: #c4500f; --accent-strong: #a8430b; --accent-ink: #ffffff;
+  --ok: #167a6f; --bad: #b42318; --yellow: #9a6100; --warn-bg: #fff4e0; --warn-line: #f0c27a; --note-bg: #e8f1f9; --note-line: #0070B9;
 }
 
 * { box-sizing: border-box; }
