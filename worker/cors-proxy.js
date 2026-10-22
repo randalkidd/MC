@@ -11,6 +11,7 @@
 //   GITHUB_TOKEN = github_pat_...   (fine-grained, repo randalkidd/MC, Contents: Read and write)
 //   SITE_KEY     = a passphrase you choose (what you'll type in each browser)
 
+const RELAY_VERSION = '3';
 const ALLOWED_ORIGIN = 'https://randalkidd.github.io'; // only your site may use this relay
 const REPO = 'randalkidd/MC';
 const BRANCH = 'main';
@@ -24,10 +25,12 @@ const ALLOWED_HOSTS = new Set([
 ]);
 
 const cors = (origin) => ({
+  'X-Relay-Version': RELAY_VERSION,
   'Access-Control-Allow-Origin': ALLOWED_ORIGIN === '*' ? '*' : (origin === ALLOWED_ORIGIN ? origin : ALLOWED_ORIGIN),
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, X-MC-Key',
   'Access-Control-Max-Age': '86400',
+  'Access-Control-Expose-Headers': 'X-Relay-Block, X-Relay-Upstream-Status, X-Relay-Version',
   Vary: 'Origin',
 });
 const json = (obj, status, origin) => new Response(JSON.stringify(obj), { status, headers: { ...cors(origin), 'Content-Type': 'application/json' } });
@@ -81,9 +84,15 @@ export default {
     const target = u0.searchParams.get('url');
     if (!target) return new Response('Missing ?url=', { status: 400, headers: cors(origin) });
     let u; try { u = new URL(target); } catch { return new Response('Bad url', { status: 400, headers: cors(origin) }); }
-    if (u.protocol !== 'https:' || !ALLOWED_HOSTS.has(u.hostname)) return new Response('Host not allowed', { status: 403, headers: cors(origin) });
+    if (u.protocol !== 'https:' || !ALLOWED_HOSTS.has(u.hostname)) return new Response(`Host not allowed by relay: ${u.hostname}`, { status: 403, headers: { ...cors(origin), 'X-Relay-Block': '1' } });
 
     const headers = { 'User-Agent': 'Mozilla/5.0 (MC Zoning Review relay)', Accept: req.headers.get('Accept') || '*/*' };
+    // The Recorder's public API expects requests that look like its own website's.
+    if (u.hostname.endsWith('recorder.maricopa.gov')) Object.assign(headers, {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+      Accept: 'application/json, text/plain, */*', 'Accept-Language': 'en-US,en;q=0.9',
+      Origin: 'https://recorder.maricopa.gov', Referer: 'https://recorder.maricopa.gov/',
+    });
     const ct = req.headers.get('Content-Type'); if (ct) headers['Content-Type'] = ct;
 
     // EDMS (Laserfiche PublicAccess) wants a session cookie from its landing page before API calls.
@@ -99,7 +108,7 @@ export default {
       body: req.method === 'POST' ? await req.arrayBuffer() : undefined,
       redirect: 'follow',
     });
-    const out = new Headers(cors(origin));
+    const out = new Headers(cors(origin)); out.set('X-Relay-Upstream-Status', String(upstream.status));
     for (const h of ['Content-Type', 'Content-Disposition', 'Content-Length']) { const v = upstream.headers.get(h); if (v) out.set(h, v); }
     return new Response(upstream.body, { status: upstream.status, headers: out });
   },

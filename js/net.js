@@ -42,7 +42,12 @@ export async function request(url, { method = 'GET', form, json, timeout = 30000
     const t = setTimeout(() => ctl.abort(), timeout);
     try {
       const r = await fetch(target, { ...init, signal: ctl.signal });
-      if (!r.ok) throw new NetError(`HTTP ${r.status} from ${host}`);
+      if (!r.ok) {
+        const viaRelay = target !== url;
+        if (viaRelay && r.headers.get('X-Relay-Block')) throw new NetError(`Your relay is running old code that doesn't allow ${host}. In Cloudflare: mc-relay → Edit code → paste the latest worker/cors-proxy.js → Deploy.`);
+        if (viaRelay && !r.headers.get('X-Relay-Version')) throw new NetError(`HTTP ${r.status} from ${host} via the relay — the relay looks out of date; paste the latest worker/cors-proxy.js into Cloudflare and Deploy.`);
+        throw new NetError(`HTTP ${r.status} from ${host}${viaRelay ? ' (via relay — the county server refused it)' : ''}`);
+      }
       const ct = r.headers.get('content-type') || '';
       return ct.includes('json') ? r.json() : r.text().then(t => { try { return JSON.parse(t); } catch { return t; } });
     } finally { clearTimeout(t); }
