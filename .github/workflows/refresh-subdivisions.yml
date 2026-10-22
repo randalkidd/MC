@@ -1,0 +1,28 @@
+# Monthly snapshot of every recorded subdivision from Maricopa County GIS → data/all-subdivisions.json
+# (used by the All Subdivisions tab). Runs on the 1st of each month; "Run workflow" on the Actions tab runs it now.
+name: Refresh All Subdivisions
+on:
+  schedule:
+    - cron: '17 9 1 * *'   # 1st of the month, 09:17 UTC (2:17 a.m. Arizona)
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: refresh-subdivisions
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Fetch subdivisions from county GIS
+        run: python3 tools/refresh_subdivisions.py
+      - name: Commit snapshot if it changed
+        run: |
+          if git diff --quiet -- data/all-subdivisions.json && git ls-files --error-unmatch data/all-subdivisions.json >/dev/null 2>&1; then echo "No change"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/all-subdivisions.json
+          git commit -m "All Subdivisions: monthly refresh from county GIS ($(date -u +%Y-%m-%d))"
+          git push

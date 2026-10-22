@@ -1,13 +1,13 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=4cc821ae';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=4cc821ae';
-import { settings, setSharedRelay } from './net.js?v=4cc821ae';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=4cc821ae';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=4cc821ae';
-import { CHECKLISTS } from './checklists.js?v=4cc821ae';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=4cc821ae';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=b96a82ef';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=b96a82ef';
+import { settings, setSharedRelay } from './net.js?v=b96a82ef';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=b96a82ef';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=b96a82ef';
+import { CHECKLISTS } from './checklists.js?v=b96a82ef';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=b96a82ef';
 let REF = null; // js/refdata.js (76 KB) loads the first time the Reference tab opens
-import { findPlatDoc } from './recorder.js?v=4cc821ae';
-import { loadAllSubdivisions } from './subdivisions.js?v=4cc821ae';
+import { findPlatDoc } from './recorder.js?v=b96a82ef';
+import { loadAllSubdivisions } from './subdivisions.js?v=b96a82ef';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -454,7 +454,7 @@ async function openAllSubs(force = false) {
   if (AS.rows && !force) return renderAllSubs();
   $('#as-meta').textContent = 'Loading every recorded subdivision from county GIS…';
   AS.loading = loadAllSubdivisions({ force, onProgress: (d, n) => ($('#as-meta').textContent = `Loading from county GIS… page ${d} of ${n}`) })
-    .then(({ rows, t, cached }) => { AS.rows = rows.map(r => ({ ...r, key: `${r.name} ${r.mcr}`.toLowerCase() })); AS.t = t; AS.cached = cached; renderAllSubs(); })
+    .then(({ rows, t, source }) => { AS.rows = rows.map(r => ({ ...r, key: `${r.name} ${r.mcr}`.toLowerCase() })); AS.t = t; AS.source = source; renderAllSubs(); })
     .catch((e) => { $('#as-meta').textContent = `Couldn't load subdivisions: ${e.message}`; })
     .finally(() => { AS.loading = null; });
   return AS.loading;
@@ -472,7 +472,8 @@ function renderAllSubs() {
   const rows = asFiltered(); const pages = Math.max(1, Math.ceil(rows.length / AS.per));
   AS.page = Math.min(AS.page, pages - 1); const start = AS.page * AS.per; const view = rows.slice(start, start + AS.per);
   const inDb = AS.rows.filter(r => asStatus(r) === 'db').length;
-  $('#as-meta').textContent = `${AS.rows.length.toLocaleString()} subdivisions · ${inDb} in SubdivisionDB · ${AS.cached ? 'cached' : 'loaded'} ${new Date(AS.t).toLocaleString()}`;
+  const when = AS.source === 'snapshot' ? `monthly snapshot of ${new Date(AS.t).toLocaleDateString()} (refreshes the 1st of each month)` : `live from county GIS ${new Date(AS.t).toLocaleString()}`;
+  $('#as-meta').textContent = `${AS.rows.length.toLocaleString()} subdivisions · ${inDb} in SubdivisionDB · ${when}`;
   $('#as-body').innerHTML = view.map(r => {
     const st = asStatus(r); const [book, page] = r.mcr.split('-');
     const rec = st === 'db' ? S.db.subdivisions.find(x => sameName(x.name, r.name))?.rec : '';
@@ -666,7 +667,7 @@ async function renderSaved() {
 // ---------------- reference ----------------
 let refP = null;
 function renderReference() {
-  return (refP ||= import('./refdata.js?v=4cc821ae').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
+  return (refP ||= import('./refdata.js?v=b96a82ef').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
 }
 function fillReference() {
   const { DIRECTIVES, MCSR_QUICK, REG_DOCS, REG_LOOKUP } = REF;
