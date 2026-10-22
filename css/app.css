@@ -103,3 +103,5 @@ tr.me td { background: color-mix(in srgb, var(--accent) 12%, transparent); }
   padding: .5rem .65rem; font-size: .8rem; line-height: 1.45; box-shadow: 0 8px 24px rgb(0 0 0 / .35); pointer-events: none; }
 .addl-btn { text-decoration: none !important; font-weight: 500; } .addl-toggle td { padding-top: .5rem; padding-bottom: .5rem; } tr.addl td { background: color-mix(in srgb, var(--accent) 5%, transparent); }
 @media print { tr.addl[hidden] { display: table-row !important; } .addl-toggle { display: none; } }
+.multi-btn { text-decoration: none !important; font-weight: 500; } tr.multi-row td { background: color-mix(in srgb, var(--accent) 5%, transparent); } tr.grp-head td { font-weight: 600; color: var(--ink) !important; background: var(--soft); font-size: .8rem; }
+@media print { tr.multi-row[hidden] { display: table-row !important; } }

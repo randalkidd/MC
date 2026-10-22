@@ -58,6 +58,26 @@ export function easementList(R, plat) {
   return list;
 }
 
+// District layers grouped for the report (ZIP code layer 55 intentionally omitted).
+const DISTRICT_GROUPS = [
+  { key: 'sup', label: 'Supervisor district', ids: [41] },
+  { key: 'school', label: 'School districts', ids: [42, 43, 44, 45], collapse: true },
+  { key: 'aoi', label: 'Area of interest', ids: [46], collapse: true },
+  { key: 'water', label: 'Irrigation & ADWR', ids: [47, 49, 48, 50], collapse: true },
+  { key: 'fire', label: 'Fire district', ids: [52] },
+  { key: 'pm10', label: 'PM10 non-attainment', ids: [54] },
+];
+const shortLayer = (n) => String(n || '').replace(/^District\s*[→>-]\s*/i, '').replace(/ School District$/i, '').replace(/^ADWR /, 'ADWR ');
+export function groupDistricts(list) {
+  return DISTRICT_GROUPS.map(g => {
+    const items = (list || []).filter(x => g.ids.includes(x.layerId))
+      .sort((a, b) => g.ids.indexOf(a.layerId) - g.ids.indexOf(b.layerId))
+      .map(x => ({ layer: shortLayer(x.layer), value: String(x.value ?? '').trim() || '—' }))
+      .filter((x, i, arr) => arr.findIndex(y => y.layer === x.layer && y.value === x.value) === i);
+    return { ...g, items };
+  }).filter(g => g.items.length);
+}
+
 export function findPlat(R, db) {
   const n = (R.parcel.SubdivisionName || '').trim().toUpperCase();
   if (!n || !db) return null;
@@ -92,7 +112,7 @@ export function renderReportHTML(R, db) {
   const p = R.parcel; const out = [];
   const plat = findPlat(R, db);
   let secN = 0; const h = (t) => out.push(`<h3>${++secN}. ${t}</h3>`);
-  const table = (rows, head = ['Field', 'Value']) => out.push(`<div class="tw"><table><thead><tr>${head.map(x => `<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`);
+  const table = (rows, head = ['Field', 'Value']) => out.push(`<div class="tw"><table><thead><tr>${head.map(x => `<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.map(r => r.raw ? r.raw : `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`);
   const a = (t, u) => `<a href="${u}" target="_blank" rel="noopener">${esc(t)}</a>`;
 
   if (R.errors.length) out.push(`<div class="warn"><b>Some sources didn't respond:</b><ul>${R.errors.map(e => `<li>${esc(e)}</li>`).join('')}</ul>Those sections show "—"; retry, or enable the relay in Settings.</div>`);
@@ -209,7 +229,17 @@ export function renderReportHTML(R, db) {
     rows.push(['Floodplain', `<b class="bad">Hit</b>${R.flood.floodway ? ' — <b>FLOODWAY</b>' : ''}: ${esc(z.join('; ') || '—')}${R.flood.certs.length ? `; elevation certificate(s): ${esc(R.flood.certs.map(c => c.ElevCertNumber).join(', '))}` : ''} · ${a('Floodplain Viewer', LINKS.flood)}`]);
   }
   const dl = (list) => esc(list.map(x => `${x.layer}: ${x.value}`).join(' · ') || '—');
-  rows.push(['Planning layers', dl(R.planning)], ['Development layers', dl(R.development)], ['Districts', dl(R.district)], ['Natural resource', dl(R.natural)], ['Military', dl(R.military)]);
+  rows.push(['Planning layers', dl(R.planning)], ['Development layers', dl(R.development)]);
+  const dRows = [];
+  for (const g of groupDistricts(R.district)) {
+    const one = g.items.length === 1;
+    const label = g.ids.length > 1 ? (it) => `${esc(it.layer)}: ${esc(it.value)}` : (it) => esc(it.value);
+    if (one || !g.collapse) dRows.push(`<tr><td>${g.label}</td><td>${g.items.map(label).join('<br>')}</td></tr>`);
+    else dRows.push(`<tr><td>${g.label}</td><td><button type="button" class="link multi-btn" data-act="multi" data-grp="${g.key}" aria-expanded="false">▸ MULTIPLE (${g.items.length})</button></td></tr>`
+      + g.items.map(it => `<tr class="multi-row" data-grp="${g.key}" hidden><td class="sub">↳ ${esc(it.layer)}</td><td>${esc(it.value)}</td></tr>`).join(''));
+  }
+  rows.push({ raw: dRows.length ? `<tr class="grp-head"><td colspan="2">Districts</td></tr>${dRows.join('')}` : '<tr><td>Districts</td><td>—</td></tr>' });
+  rows.push(['Natural resource', dl(R.natural)], ['Military', dl(R.military)]);
   rows.push(['Septic', `<span id="septic-cell">Not yet checked — <button class="link" data-act="septic">check EDMS</button> (needs relay) · ${a('Septic Search', LINKS.septic)} · ${a('Permit Center (6/15/2024+)', LINKS.permitCenter)}</span>`]);
   rows.push(['Roads (RIT)', `<span id="roads-cell"><button class="link" data-act="roads">Look up frontage roads</button></span>`]);
   rows.push(['TSP2040 corridor projects', `<span id="tsp-cell"><button class="link" data-act="tsp">Check</button></span>`]);
@@ -275,7 +305,7 @@ export function renderReportMD(R, db, extras = {}) {
   add.push(['Septic', extras.septic || `Not checked — ${mdLink('Septic Search', LINKS.septic)}`]);
   if (extras.roads) add.push(['Roads (RIT)', extras.roads]);
   if (extras.tsp) add.push(['TSP2040', extras.tsp]);
-  add.push(['Districts', R.district.map(x => `${x.layer}: ${x.value}`).join('; ') || '—']);
+  for (const g of groupDistricts(R.district)) add.push([g.label, g.items.map(it => (g.ids.length > 1 ? `${it.layer}: ${it.value}` : it.value)).join('; ')]);
   t(add);
   L.push('---', '', '## Compliance-ready summary', '');
   L.push(`- Base district: ${zones.join(', ') || '—'}`, `- Plat setback (if platted): ${ps.match ? `F ${ps.match.front} / R ${ps.match.rear} / S ${ps.match.side} / SS ${ps.match.street} ft (lots ${ps.match.lots})` : plat ? plat.setbacks : (p.SubdivisionName ? 'not checked' : 'N/A')}`,
