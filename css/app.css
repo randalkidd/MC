@@ -94,3 +94,4 @@ details.miss { margin: .4rem 0 .2rem; font-size: .85rem; } details.miss summary 
 tr.me td { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .card.result, .findings li { color: var(--ink); }
 .result.bad h3 { color: var(--bad); } .result.ok h3 { color: var(--ok); } .result.warn h3 { color: #e0a85f; }
+.sb-lines div + div { margin-top: .25rem; padding-top: .25rem; border-top: 1px dashed var(--line); }

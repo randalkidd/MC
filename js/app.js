@@ -42,6 +42,14 @@ async function loadDB() {
   renderDB();
 }
 
+// One line per lot range / standard (structured table first, else split the text at "Lots …").
+function setbackCell(s) {
+  const t = Array.isArray(s.setbackTable) ? s.setbackTable.filter(r => ['front', 'rear', 'side', 'street'].some(k => r[k] !== '' && r[k] != null)) : [];
+  const lines = t.length
+    ? t.map(r => `${t.length > 1 || (r.lots && !/^all$/i.test(r.lots)) ? `<b>Lots ${esc(r.lots)}${r.district ? ` (${esc(r.district)})` : ''}:</b> ` : ''}${[r.front, r.rear, r.side, r.street].map(v => (v === '' || v == null ? '—' : v)).join(' / ')} ft`)
+    : String(s.setbacks || '—').split(/\.\s+(?=Lots)/).map(x => esc(x.replace(/\.$/, '')));
+  return `<div class="sb-lines">${lines.map(l => `<div>${l}</div>`).join('')}</div>${t.length ? '<div class="sub">Front / Rear / Side / Street-side</div>' : ''}`;
+}
 function renderDB() {
   const q = ($('#db-q').value || '').toLowerCase();
   const rows = (S.db?.subdivisions || []).filter(s => !q || JSON.stringify(s).toLowerCase().includes(q)).sort((a, b) => a.name.localeCompare(b.name));
@@ -51,7 +59,7 @@ function renderDB() {
     <td><b>${esc(s.name)}</b><div class="sub">${esc(s.baseZoning || '')}</div></td>
     <td>${esc(s.mcr)}</td>
     <td><a href="${esc(s.platUrl)}" target="_blank" rel="noopener">${esc(s.docType)} #${esc(s.rec)}</a><div class="sub">${esc(s.recorded)}</div></td>
-    <td>${s.totalLots ?? '—'}</td><td>${esc(s.setbacks)}</td><td>${esc(s.lastUpdated)}</td>
+    <td>${s.totalLots ?? '—'}</td><td>${setbackCell(s)}</td><td>${esc(s.lastUpdated)}</td>
     <td><button class="btn sm" data-edit="${esc(s.name)}">Edit</button></td></tr>`).join('') || '<tr><td colspan="7">No matches.</td></tr>';
 }
 $('#db-q').addEventListener('input', renderDB);
