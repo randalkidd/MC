@@ -1,6 +1,6 @@
 // Renders a lookup result in the project's parcel-report-template structure (HTML + Markdown).
-import { LINKS } from './lookup.js?v=5df61b90';
-import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=5df61b90';
+import { LINKS } from './lookup.js?v=222cfb60';
+import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=222cfb60';
 
 // Only allow http(s) URLs into href attributes; everything else becomes "#".
 const safeUrl = (u) => { try { const x = new URL(String(u), location.href); return /^https?:$/.test(x.protocol) ? x.href : '#'; } catch { return '#'; } };
@@ -204,10 +204,11 @@ export function renderReportHTML(R, db) {
   if (p.SubdivisionName) h('Subdivision Plat (MCR)');
   if (!p.SubdivisionName) { /* not platted — section hidden */ }
   else if (plat) {
+    const editBtn = ` <button type="button" class="btn sm" data-act="edit-plat" data-name="${esc(plat.name)}">✎ Edit in Subdivisions DB</button>`;
     table([
       ['Subdivision', esc(plat.name)], ['MCR', esc(plat.mcr)],
       ['Plat', plat.rec ? a(`${plat.docType} #${plat.rec}, recorded ${plat.recorded}`, plat.platUrl) : `${a(`Find plat at the Recorder (MCR ${plat.mcr || '?'})`, plat.platUrl)} — recording number not entered yet`],
-      ['Recorded setbacks', ps.rows.length ? (plat.platOcr ? '<b class="chg">⚠ Read automatically (OCR) from the plat — verify</b> before relying on them; shown as the controlling table in the Setbacks section' : 'Yes — shown as the controlling table in the Setbacks section') : (/not yet reviewed/i.test(plat.setbacks || '') ? '<b class="chg">⚠ Plat not yet reviewed</b> — MCZO standards shown; check the plat for a building setback line and update the database' : 'None on plat — MCZO standards govern')],
+      ['Recorded setbacks', ps.rows.length ? (plat.platOcr ? '<b class="chg">⚠ Read automatically (OCR) from the plat — verify</b> before relying on them; shown as the controlling table in the Setbacks section' + editBtn : 'Yes — shown as the controlling table in the Setbacks section') : (/not yet reviewed/i.test(plat.setbacks || '') ? '<b class="chg">⚠ Plat not yet reviewed</b> — MCZO standards shown; check the plat for a building setback line and update the database' + editBtn : 'None on plat — MCZO standards govern')],
       ['Controlling cases', esc(dash(plat.controllingCases))], ['Notes', esc(plat.notes)], ['Last updated', esc(plat.lastUpdated)],
     ]);
     if (!ps.rows.length) out.push(nc.list.length

@@ -1,12 +1,12 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, normalizeApn, lookupSplit } from './lookup.js?v=5df61b90';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=5df61b90';
-import { settings, setSharedRelay } from './net.js?v=5df61b90';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=5df61b90';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=5df61b90';
-import { CHECKLISTS } from './checklists.js?v=5df61b90';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=5df61b90';
-import { DIRECTIVES, MCSR_QUICK } from './refdata.js?v=5df61b90';
-import { findPlatDoc, platPdfLink, fetchPlatPdf, ocrPlat } from './platocr.js?v=5df61b90';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, normalizeApn, lookupSplit } from './lookup.js?v=222cfb60';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=222cfb60';
+import { settings, setSharedRelay } from './net.js?v=222cfb60';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=222cfb60';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=222cfb60';
+import { CHECKLISTS } from './checklists.js?v=222cfb60';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=222cfb60';
+import { DIRECTIVES, MCSR_QUICK } from './refdata.js?v=222cfb60';
+import { findPlatDoc, platPdfLink, fetchPlatPdf, ocrPlat } from './platocr.js?v=222cfb60';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -277,6 +277,7 @@ $('#lookup-form').addEventListener('submit', (e) => { e.preventDefault(); runLoo
 $('#report').addEventListener('click', async (e) => {
   const act = e.target.dataset.act; if (!act || !S.R) return;
   if (act === 'refresh') { runLookup(S.R.apn, { force: true }); return; }
+  if (act === 'edit-plat') { const rec = (S.db?.subdivisions || []).find(x => x.name === e.target.dataset.name); if (rec) { showTab('p-subs'); renderDB(); openEditor(rec); } else toast('That subdivision is no longer in the database', 'error'); return; }
   if (act === 'multi') { const open = e.target.getAttribute('aria-expanded') !== 'true'; e.target.setAttribute('aria-expanded', open); e.target.textContent = e.target.textContent.replace(/^[▸▾]/, open ? '▾' : '▸'); $$(`#report tr.multi-row[data-grp="${e.target.dataset.grp}"]`).forEach(tr => (tr.hidden = !open)); return; }
   if (act === 'addl') { const open = e.target.getAttribute('aria-expanded') !== 'true'; e.target.setAttribute('aria-expanded', open); e.target.textContent = `${open ? '▾' : '▸'} Additional Info`; $$('#report tr.addl').forEach(tr => (tr.hidden = !open)); return; }
   const cell = (id, html) => { const c = $(id); if (c) c.innerHTML = html; };
