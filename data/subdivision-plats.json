@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "source": "Migrated from project doc reference/subdivision-plats.md on 2026-10-22",
-  "updated": "2026-10-22T17:27:57.553Z",
+  "updated": "2026-10-22T17:51:24Z",
   "subdivisions": [
     {
       "name": "Rancho Cabrillo Parcel D",
@@ -190,28 +190,6 @@
       ],
       "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=19300021276&suffix=",
       "easements": "Dedication reserves easements over, under and along all roads for ditches, pipelines, conduits, water and other utilities."
-    },
-    {
-      "name": "Stonebridge Manor Parcel 1",
-      "mcr": "1749-45",
-      "docType": "PLAT MAP",
-      "rec": "",
-      "recorded": "",
-      "totalLots": 232,
-      "baseZoning": "R1-6",
-      "controllingCases": "CPA1989003 (12:00:00 AM, Remove); CPA2020005 (12/24/2020, Approved); CPA2023014 (9/13/2023, Approved); CPA2004003 (6/24/2004, Remove); Z01-45 (4/23/2001, DROPPED); Z2020102 (12/28/2020, APPROVED); Z04-125 (4/11/2006, APPROVED)",
-      "setbacks": "Not yet reviewed",
-      "height": "Not yet reviewed",
-      "easements": "",
-      "platControls": false,
-      "setbackTable": [],
-      "notes": "⚠ Plat not yet reviewed — added automatically from a lookup of 501-41-217 on 2026-10-22. Open the plat and record its recording number, setbacks, height and easements.",
-      "parcelsChecked": [
-        "501-41-217"
-      ],
-      "platUrl": "https://recorder.maricopa.gov/recording/document-search-results.html?mode=book&docketBook=1749&pageMap=45",
-      "autoAdded": true,
-      "lastUpdated": "2026-10-22"
     }
   ]
 }
