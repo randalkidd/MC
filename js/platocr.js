@@ -1,8 +1,8 @@
 // Recorded-plat reader: find the plat at the County Recorder, fetch its scanned PDF through the relay,
 // OCR the first sheets in the browser (pdf.js + tesseract.js, loaded on demand) and pull the setback notes.
 // Plats are image-only scans (no text layer), so OCR is the only way to read them automatically.
-import { request, requestBytes } from './net.js?v=cf0bac48';
-import { EP } from './lookup.js?v=cf0bac48';
+import { request, requestBytes } from './net.js?v=3abc8df7';
+import { EP } from './lookup.js?v=3abc8df7';
 
 const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
 const PDFJS_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';

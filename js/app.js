@@ -1,12 +1,12 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, normalizeApn, lookupSplit } from './lookup.js?v=cf0bac48';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=cf0bac48';
-import { settings, setSharedRelay } from './net.js?v=cf0bac48';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=cf0bac48';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=cf0bac48';
-import { CHECKLISTS } from './checklists.js?v=cf0bac48';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=cf0bac48';
-import { DIRECTIVES, MCSR_QUICK } from './refdata.js?v=cf0bac48';
-import { findPlatDoc, platPdfLink, fetchPlatPdf, ocrPlat } from './platocr.js?v=cf0bac48';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=3abc8df7';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=3abc8df7';
+import { settings, setSharedRelay } from './net.js?v=3abc8df7';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=3abc8df7';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=3abc8df7';
+import { CHECKLISTS } from './checklists.js?v=3abc8df7';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=3abc8df7';
+import { DIRECTIVES, MCSR_QUICK } from './refdata.js?v=3abc8df7';
+import { findPlatDoc, platPdfLink, fetchPlatPdf, ocrPlat } from './platocr.js?v=3abc8df7';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -28,7 +28,7 @@ function showTab(id) {
   $$('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === id));
   $$('.panel').forEach(p => (p.hidden = p.id !== id));
   try { localStorage.setItem('mc.tab', id); } catch {}
-  if (id === 'p-lookup' && S.map) setTimeout(() => S.map.invalidateSize(), 50);
+  if (id === 'p-lookup' && S.map) setTimeout(() => { S.map.invalidateSize(); S.map2?.invalidateSize(); }, 50);
   if (id === 'p-saved') renderSaved();
   history.replaceState(null, '', `#${id.slice(2)}`);
 }
@@ -326,20 +326,56 @@ function loadLeaflet() {
   });
   return leafletP;
 }
+// County parcel lines as a dynamic image (ArcGIS export) redrawn for the current view.
+function parcelLines(map) {
+  let ov = null, timer = null;
+  const base = EP.parcel.replace(/\/\d+$/, '');
+  const refresh = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      const b = map.getBounds(), sz = map.getSize(); if (!sz.x || !sz.y) return;
+      const url = `${base}/export?${new URLSearchParams({ bbox: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].join(','), bboxSR: '4326', imageSR: '3857', size: `${sz.x},${sz.y}`, format: 'png32', transparent: 'true', layers: 'show:1', dpi: '96', f: 'image' })}`;
+      const next = L.imageOverlay(url, b, { interactive: false, className: 'parcel-lines' }).addTo(map);
+      next.once('load', () => { if (ov && ov !== next) ov.remove(); ov = next; });
+      next.once('error', () => next.remove());
+    }, 200);
+  };
+  map.on('moveend', refresh);
+  return refresh;
+}
+// Keep the two maps on the same view.
+function syncMaps(a, b) {
+  let busy = false;
+  const follow = (src, dst) => src.on('move', () => { if (busy) return; busy = true; dst.setView(src.getCenter(), src.getZoom(), { animate: false }); busy = false; });
+  follow(a, b); follow(b, a);
+}
 async function drawMap(R) {
-  if (!R.wgsRings) { $('#map').hidden = true; return; }
-  try { await loadLeaflet(); } catch { $('#map').hidden = true; return; }
-  $('#map').hidden = false;
-  if (!S.map) {
-    S.map = L.map('map', { zoomControl: true, attributionControl: true });
-    const img = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 20, maxNativeZoom: 19, attribution: 'Imagery © Esri, Maxar, Earthstar Geographics' });
-    const st = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 20, maxNativeZoom: 19, attribution: '© Esri' });
-    img.addTo(S.map); L.control.layers({ Aerial: img, Streets: st }).addTo(S.map);
-  }
-  if (S.layer) S.layer.remove();
-  S.layer = L.polygon(R.wgsRings.map(r => r.map(([x, y]) => [y, x])), { color: '#2ec4d0', weight: 3, fillOpacity: 0.12 }).addTo(S.map);
-  S.map.fitBounds(S.layer.getBounds(), { padding: [30, 30], maxZoom: 19 });
-  setTimeout(() => S.map.invalidateSize(), 50);
+  if (!R.wgsRings) { $('#maps').hidden = true; return; }
+  try { await loadLeaflet(); if (!window.L || !L.map) throw new Error('Leaflet missing'); } catch { $('#maps').hidden = true; return; }
+  $('#maps').hidden = false;
+  try {
+    if (!S.map) {
+      S.map = L.map('map', { zoomControl: true, attributionControl: true });
+      const img = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 21, maxNativeZoom: 19, attribution: 'Imagery © Esri, Maxar, Earthstar Geographics' });
+      const st = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 21, maxNativeZoom: 19, attribution: '© Esri' });
+      img.addTo(S.map); L.control.layers({ Aerial: img, Streets: st }).addTo(S.map);
+      S.map2 = L.map('map2', { zoomControl: true, attributionControl: true });
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 21, maxNativeZoom: 16, attribution: 'Parcels © Maricopa County · Basemap © Esri' }).addTo(S.map2);
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', { maxZoom: 21, maxNativeZoom: 16 }).addTo(S.map2);
+      S.refreshLines = parcelLines(S.map2);
+      syncMaps(S.map, S.map2);
+    }
+    const ll = R.wgsRings.map(r => r.map(([x, y]) => [y, x]));
+    if (S.layer) S.layer.remove(); if (S.layer2) S.layer2.remove();
+    S.layer = L.polygon(ll, { color: '#2ec4d0', weight: 3, fillOpacity: 0.12 }).addTo(S.map);
+    S.layer2 = L.polygon(ll, { color: '#d9480f', weight: 3, fillColor: '#ffd8a8', fillOpacity: 0.35 }).addTo(S.map2);
+    S.layer2.bindTooltip(`APN ${R.apn}${R.parcel.Lot ? ` · Lot ${R.parcel.Lot}` : ''}`, { permanent: true, direction: 'center', className: 'apn-label' });
+    setTimeout(() => {
+      S.map.invalidateSize(); S.map2.invalidateSize();
+      S.map.fitBounds(S.layer.getBounds(), { padding: [30, 30], maxZoom: 19 });
+      S.refreshLines();
+    }, 50);
+  } catch (e) { console.warn('map', e); }
 }
 
 // ---------------- plan review ----------------

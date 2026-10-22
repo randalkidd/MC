@@ -56,7 +56,8 @@ button.link { background: none; border: 0; padding: 0; font: inherit; color: var
 .searchbar { display: flex; gap: .5rem; } .searchbar input { font-size: 1.05rem; padding: .65rem .8rem; font-family: var(--mono); }
 .hint, .sub, .meta { color: var(--muted); font-size: .82rem; margin: .25rem 0; }
 .status { font-size: .9rem; padding: .6rem .8rem; border-radius: 8px; background: var(--soft); } .status:empty { display: none; } .status.err { background: var(--warn-bg); color: var(--bad); } .status.warn { background: var(--warn-bg); } .status.ok { border-left: 3px solid var(--accent); } #ocr-status { margin: .5rem 0; }
-.map { height: 340px; border-radius: var(--radius); border: 1px solid var(--line); z-index: 0; }
+.maps { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; margin: .5rem 0; } .maps figure { margin: 0; min-width: 0; } .maps figcaption { font-size: .85rem; font-weight: 600; color: var(--muted); margin: 0 0 .3rem; } .maps figcaption .sub { font-weight: 400; } @media (max-width: 760px) { .maps { grid-template-columns: 1fr; } }
+.map { height: 360px; border-radius: var(--radius); border: 1px solid var(--line); z-index: 0; }
 
 .report { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: .5rem 1.1rem 1.1rem; } .report:empty { display: none; }
 .tw { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -81,7 +82,7 @@ dialog::backdrop { background: rgb(0 0 0 / .4); }
 #toasts { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); display: grid; gap: .5rem; z-index: 2000; width: min(520px, calc(100vw - 32px)); }
 .toast { background: var(--ink); color: var(--bg); padding: .6rem .9rem; border-radius: 8px; font-size: .88rem; box-shadow: 0 6px 20px rgb(0 0 0 / .2); } .toast.error { background: var(--bad); color: #fff; } .toast.ok { background: var(--ok); color: #fff; }
 .foot { max-width: 1180px; margin: 0 auto; padding: 0 16px 2rem; color: var(--muted); font-size: .75rem; }
-@media print { .top, .tabs, .searchbar, .actions, .hint, .foot, #toasts, .map { display: none !important; } .report { border: 0; } body { background: #fff; } }
+@media print { .top, .tabs, .searchbar, .actions, .hint, .foot, #toasts, .maps, .map { display: none !important; } .report { border: 0; } body { background: #fff; } }
 
 .theme-btn { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 999px; width: 30px; height: 30px; cursor: pointer; font-size: .9rem; line-height: 1; }
 .theme-btn:hover { color: var(--accent); border-color: var(--accent); }
@@ -105,3 +106,5 @@ tr.me td { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 @media print { tr.addl[hidden] { display: table-row !important; } .addl-toggle { display: none; } }
 .multi-btn { text-decoration: none !important; font-weight: 500; } tr.multi-row td { background: color-mix(in srgb, var(--accent) 5%, transparent); } tr.grp-head td { font-weight: 600; color: var(--ink) !important; background: var(--soft); font-size: .8rem; }
 @media print { tr.multi-row[hidden] { display: table-row !important; } }
+.leaflet-tooltip.apn-label { background: rgba(255,255,255,.85); border: 1px solid #d9480f; color: #222; font-weight: 600; font-size: .75rem; box-shadow: none; padding: 1px 5px; }
+.leaflet-tooltip.apn-label::before { display: none; }
