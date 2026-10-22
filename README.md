@@ -32,7 +32,7 @@ Questions, corrections or suggestions? Email the designer, Randal Kidd, at [rand
 
 ## Access
 
-Anyone can use **Parcel lookup**, **Reference** and **⚙ Settings**. **Plan review, Land division, SubdivisionDB and Saved** appear only in a browser that has the relay URL and passphrase saved **and** has passed **Test GitHub** (write access through the relay). Each later visit opens at once from that saved record. The site then re-checks quietly in the background and locks the tools again if the passphrase is rejected or changed in Cloudflare. **Forget on this browser** locks them too.
+Anyone can use **Parcel lookup**, **Reference** and **⚙ Settings**. **Plan review, Land division, SubdivisionDB and Saved Parcels** appear only in a browser that has the relay URL and passphrase saved **and** has passed **Test GitHub** (write access through the relay). Each later visit opens at once from that saved record. The site then re-checks quietly in the background and locks the tools again if the passphrase is rejected or changed in Cloudflare. **Forget on this browser** locks them too.
 
 This only hides the staff tools from casual visitors. The repo, its code and its `data/` files stay public. What's actually protected is **saving**, because the relay only commits with the correct passphrase. While locked, parcel lookups don't add anything to the subdivision review list.
 

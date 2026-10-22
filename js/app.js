@@ -1,12 +1,12 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=94090eac';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=94090eac';
-import { settings, setSharedRelay } from './net.js?v=94090eac';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=94090eac';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=94090eac';
-import { CHECKLISTS } from './checklists.js?v=94090eac';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=94090eac';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=5185b531';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=5185b531';
+import { settings, setSharedRelay } from './net.js?v=5185b531';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=5185b531';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=5185b531';
+import { CHECKLISTS } from './checklists.js?v=5185b531';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=5185b531';
 let REF = null; // js/refdata.js (76 KB) loads the first time the Reference tab opens
-import { findPlatDoc } from './recorder.js?v=94090eac';
+import { findPlatDoc } from './recorder.js?v=5185b531';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -25,7 +25,7 @@ const S = { R: null, md: '', extras: {}, db: null, dbSha: null, dbDirty: false, 
 
 // ---------------- tabs ----------------
 // ---------------- access gate ----------------
-// Plan review, Land division, SubdivisionDB and Saved appear only after this browser has a passphrase and a relay that
+// Plan review, Land division, SubdivisionDB and Saved Parcels appear only after this browser has a passphrase and a relay that
 // passed "Test GitHub" (write access through the relay). Client-side only: it hides the tools, it does not secure
 // public data — saving is what the relay's passphrase actually protects.
 const GATED = ['p-review', 'p-division', 'p-subs', 'p-saved'];
@@ -581,7 +581,7 @@ async function renderSaved() {
 // ---------------- reference ----------------
 let refP = null;
 function renderReference() {
-  return (refP ||= import('./refdata.js?v=94090eac').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
+  return (refP ||= import('./refdata.js?v=5185b531').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
 }
 function fillReference() {
   const { DIRECTIVES, MCSR_QUICK, REG_DOCS, REG_LOOKUP } = REF;
@@ -629,7 +629,7 @@ $('#st-copy-relay').addEventListener('click', async () => {
   catch (e) { toast('Copy blocked by the browser — use "View relay code", then select all and copy', 'error'); }
 });
 $('#st-test-gis').addEventListener('click', async () => { const o = $('#st-test-out'); o.textContent = 'Testing county GIS…'; try { o.textContent = `County GIS reachable (${await ping()} ms).`; } catch (e) { o.textContent = e.message; } });
-$('#st-test-gh').addEventListener('click', async () => { const o = $('#st-test-out'); o.textContent = 'Testing GitHub…'; try { const r = await testAccess(); o.textContent = `${r.name}: ${r.canPush ? 'write access OK' : 'READ-ONLY — on GitHub, edit the token: Repository access must include randalkidd/MC and Contents must be Read and write'}${r.private ? ' (private repo — Pages needs a paid plan)' : ''}`; if (r.canPush && gh.viaRelay) { await grantAccess(); toast('Connected — Plan review, Land division, SubdivisionDB and Saved are unlocked', 'ok'); } else revokeAccess(); if (r.canPush && gh.viaRelay) { try { if (await shareRelayIfNeeded()) { o.textContent += ' · Relay address shared — other browsers now need only the passphrase.'; renderSettings(); } } catch (e) { o.textContent += ` · Couldn't share relay address: ${e.message}`; } } } catch (e) { o.textContent = e.message; revokeAccess(); } });
+$('#st-test-gh').addEventListener('click', async () => { const o = $('#st-test-out'); o.textContent = 'Testing GitHub…'; try { const r = await testAccess(); o.textContent = `${r.name}: ${r.canPush ? 'write access OK' : 'READ-ONLY — on GitHub, edit the token: Repository access must include randalkidd/MC and Contents must be Read and write'}${r.private ? ' (private repo — Pages needs a paid plan)' : ''}`; if (r.canPush && gh.viaRelay) { await grantAccess(); toast('Connected — Plan review, Land division, SubdivisionDB and Saved Parcels are unlocked', 'ok'); } else revokeAccess(); if (r.canPush && gh.viaRelay) { try { if (await shareRelayIfNeeded()) { o.textContent += ' · Relay address shared — other browsers now need only the passphrase.'; renderSettings(); } } catch (e) { o.textContent += ` · Couldn't share relay address: ${e.message}`; } } } catch (e) { o.textContent = e.message; revokeAccess(); } });
 
 $('#gh-badge').addEventListener('click', () => { showTab('p-settings'); setTimeout(() => $('#st-pass').focus(), 50); });
 
