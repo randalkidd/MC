@@ -1,12 +1,12 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=4b898e43';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=4b898e43';
-import { settings, setSharedRelay } from './net.js?v=4b898e43';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=4b898e43';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=4b898e43';
-import { CHECKLISTS } from './checklists.js?v=4b898e43';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=4b898e43';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=04165a9f';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=04165a9f';
+import { settings, setSharedRelay } from './net.js?v=04165a9f';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=04165a9f';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=04165a9f';
+import { CHECKLISTS } from './checklists.js?v=04165a9f';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=04165a9f';
 let REF = null; // js/refdata.js (76 KB) loads the first time the Reference tab opens
-import { findPlatDoc } from './recorder.js?v=4b898e43';
+import { findPlatDoc } from './recorder.js?v=04165a9f';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -416,7 +416,7 @@ async function drawMap(R) {
     }
     const ll = R.wgsRings.map(r => r.map(([x, y]) => [y, x]));
     if (S.layer) S.layer.remove(); if (S.layer2) S.layer2.remove();
-    S.layer = L.polygon(ll, { color: '#2ec4d0', weight: 3, fillOpacity: 0.12 }).addTo(S.map);
+    S.layer = L.polygon(ll, { color: '#ff4d4d', weight: 3, fillOpacity: 0.12 }).addTo(S.map);
     S.layer2 = L.polygon(ll, { color: '#d9480f', weight: 3, fillColor: '#ffd8a8', fillOpacity: 0.35 }).addTo(S.map2);
     S.layer2.bindTooltip(`APN ${R.apn}${R.parcel.Lot ? ` · Lot ${R.parcel.Lot}` : ''}`, { permanent: true, direction: 'center', className: 'apn-label' });
     setTimeout(() => {
@@ -588,7 +588,7 @@ async function renderSaved() {
 // ---------------- reference ----------------
 let refP = null;
 function renderReference() {
-  return (refP ||= import('./refdata.js?v=4b898e43').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
+  return (refP ||= import('./refdata.js?v=04165a9f').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
 }
 function fillReference() {
   const { DIRECTIVES, MCSR_QUICK, REG_DOCS, REG_LOOKUP } = REF;
@@ -639,7 +639,7 @@ $('#st-test-gh').addEventListener('click', async () => { const o = $('#st-test-o
 
 $('#gh-badge').addEventListener('click', () => { showTab('p-settings'); setTimeout(() => $('#st-pass').focus(), 50); });
 
-function syncThemeBtn() { const light = document.documentElement.dataset.theme === 'light'; $('#theme-btn').textContent = light ? '☾' : '☀'; document.querySelector('meta[name=theme-color]').content = light ? '#f2f6f7' : '#0d1418'; }
+function syncThemeBtn() { const light = document.documentElement.dataset.theme === 'light'; $('#theme-btn').textContent = light ? '☾' : '☀'; document.querySelector('meta[name=theme-color]').content = light ? '#f7f5f5' : '#121113'; }
 $('#theme-btn').addEventListener('click', () => {
   const light = document.documentElement.dataset.theme !== 'light';
   if (light) document.documentElement.dataset.theme = 'light'; else delete document.documentElement.dataset.theme;

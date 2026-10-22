@@ -1,16 +1,16 @@
-/* Default theme: dark with teal-blue accents. Light variant via [data-theme="light"]. */
+/* Default theme: dark with red accents. Light variant via [data-theme="light"]. */
 :root {
   color-scheme: dark;
-  --bg: #0d1418; --surface: #131d23; --ink: #e3edf0; --muted: #8fa3ab; --line: #24343c; --soft: #1a2830;
-  --accent: #2ec4d0; --accent-strong: #5fdbe4; --accent-ink: #04161a;
-  --ok: #4fd18b; --bad: #ff7b72; --yellow: #e3b341; --warn-bg: #2e2412; --warn-line: #7a5f24; --note-bg: #10262d; --note-line: #1f5560;
+  --bg: #121113; --surface: #1a1819; --ink: #eeeaea; --muted: #a59b9d; --line: #312b2d; --soft: #231f21;
+  --accent: #f05252; --accent-strong: #ff7a7a; --accent-ink: #1a0606;
+  --ok: #4fd18b; --bad: #ff7b72; --yellow: #e3b341; --warn-bg: #2e2412; --warn-line: #7a5f24; --note-bg: #261719; --note-line: #5e2c31;
   --radius: 10px; --mono: 'IBM Plex Mono', ui-monospace, monospace; --sans: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
 }
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #f2f6f7; --surface: #ffffff; --ink: #142026; --muted: #5a6d74; --line: #d6e1e4; --soft: #e8f0f2;
-  --accent: #0b7f8c; --accent-strong: #096b76; --accent-ink: #ffffff;
-  --ok: #1f7a4a; --bad: #b42318; --yellow: #9a6700; --warn-bg: #fff4e0; --warn-line: #f0c27a; --note-bg: #e6f4f6; --note-line: #9fd0d6;
+  --bg: #f7f5f5; --surface: #ffffff; --ink: #1f1718; --muted: #6b5f61; --line: #e6dbdc; --soft: #f2eaeb;
+  --accent: #c81e1e; --accent-strong: #a31616; --accent-ink: #ffffff;
+  --ok: #1f7a4a; --bad: #b42318; --yellow: #9a6700; --warn-bg: #fff4e0; --warn-line: #f0c27a; --note-bg: #fcefef; --note-line: #efb7b7;
 }
 
 * { box-sizing: border-box; }
