@@ -55,7 +55,7 @@ button.link { background: none; border: 0; padding: 0; font: inherit; color: var
 
 .searchbar { display: flex; gap: .5rem; } .searchbar input { font-size: 1.05rem; padding: .65rem .8rem; font-family: var(--mono); }
 .hint, .sub, .meta { color: var(--muted); font-size: .82rem; margin: .25rem 0; }
-.status { font-size: .9rem; padding: .6rem .8rem; border-radius: 8px; background: var(--soft); } .status:empty { display: none; } .status.err { background: var(--warn-bg); color: var(--bad); }
+.status { font-size: .9rem; padding: .6rem .8rem; border-radius: 8px; background: var(--soft); } .status:empty { display: none; } .status.err { background: var(--warn-bg); color: var(--bad); } .status.warn { background: var(--warn-bg); } .status.ok { border-left: 3px solid var(--accent); } #ocr-status { margin: .5rem 0; }
 .map { height: 340px; border-radius: var(--radius); border: 1px solid var(--line); z-index: 0; }
 
 .report { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: .5rem 1.1rem 1.1rem; } .report:empty { display: none; }

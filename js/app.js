@@ -1,11 +1,12 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, normalizeApn, lookupSplit } from './lookup.js?v=ebe0ecf7';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=ebe0ecf7';
-import { settings, setSharedRelay } from './net.js?v=ebe0ecf7';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=ebe0ecf7';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=ebe0ecf7';
-import { CHECKLISTS } from './checklists.js?v=ebe0ecf7';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=ebe0ecf7';
-import { DIRECTIVES, MCSR_QUICK } from './refdata.js?v=ebe0ecf7';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, normalizeApn, lookupSplit } from './lookup.js?v=5df61b90';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=5df61b90';
+import { settings, setSharedRelay } from './net.js?v=5df61b90';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=5df61b90';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=5df61b90';
+import { CHECKLISTS } from './checklists.js?v=5df61b90';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=5df61b90';
+import { DIRECTIVES, MCSR_QUICK } from './refdata.js?v=5df61b90';
+import { findPlatDoc, platPdfLink, fetchPlatPdf, ocrPlat } from './platocr.js?v=5df61b90';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -144,6 +145,7 @@ $('#ed-save').addEventListener('click', (e) => {
   if (r.setbackTable.length) { const m = r.setbackTable; r.setbacks = m.map(x => `${m.length > 1 ? `Lots ${x.lots}${x.district ? ` (${x.district})` : ''}: ` : ''}${x.front} ft / ${x.rear} ft / ${x.side} ft / ${x.street} ft`).join('. ') + (m.length === 1 ? ' (Front / Rear / Side / Street-side)' : ''); }
   r.platUrl = r.rec ? LINKS.recDoc(r.rec) : (r.mcr && r.mcr.includes('-') ? LINKS.recBook(...r.mcr.split('-')) : '');
   if (r.rec) r.autoAdded = false;
+  r.platOcr = null;
   r.lastUpdated = new Date().toISOString().slice(0, 10);
   const orig = $('#db-editor').dataset.orig;
   const i = S.db.subdivisions.findIndex(s => s.name === (orig || r.name));
@@ -162,39 +164,84 @@ $('#db-save').addEventListener('click', async () => {
 });
 
 // ---------------- lookup ----------------
-// New subdivision found in a lookup → open its plat at the Recorder and add it to the database (no prompt).
+// New subdivision found in a lookup → find its plat at the Recorder, open the plat PDF, add it to the database
+// (no prompt), then OCR the scanned plat in the background and store the setbacks if they can be read.
 const titleCase = (t) => String(t || '').toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase()).replace(/\b(Mcr|Ii|Iii|Iv)\b/g, (m) => m.toUpperCase());
+const sameName = (a, b) => String(a || '').toUpperCase() === String(b || '').toUpperCase();
+// Merge one record onto the latest published database (so another browser's edits aren't lost) and commit it.
+async function saveSubdivision(rec, message) {
+  const f = await readFile('data/subdivision-plats.json'); const latest = f.text ? JSON.parse(f.text) : null;
+  const base = latest && Array.isArray(latest.subdivisions) ? latest : S.db;
+  const i = base.subdivisions.findIndex(x => sameName(x.name, rec.name));
+  if (i >= 0) base.subdivisions[i] = { ...base.subdivisions[i], ...rec }; else base.subdivisions.push(rec);
+  base.updated = new Date().toISOString();
+  await writeFile('data/subdivision-plats.json', JSON.stringify(base, null, 2) + '\n', message);
+  S.db = base; S.dbStamp = base.updated; S.dbDirty = false; renderDB();
+}
+function ocrStatus(msg, kind = '') {
+  let el = $('#ocr-status');
+  if (!el) { el = document.createElement('p'); el.id = 'ocr-status'; el.className = 'status'; $('#report').before(el); }
+  el.hidden = !msg; el.className = `status ${kind}`; el.textContent = msg || '';
+}
 async function autoAddSubdivision(R) {
   const p = R.parcel; const [book, page] = String(p.MCRNumber || '').split('-');
-  const platUrl = book && page ? LINKS.recBook(book, page) : 'https://recorder.maricopa.gov/recording/document-search.html#tab-map-search';
-  // open the plat (Recorder book/page result — the PLAT MAP row is the plat); popup blockers may stop this
-  let opened = null; try { opened = window.open(platUrl, '_blank'); if (opened) opened.opener = null; } catch {}
-  let lots = null; try { lots = await countSubdivisionLots(p.SubdivisionName); } catch {}
+  const searchUrl = book && page ? LINKS.recBook(book, page) : 'https://recorder.maricopa.gov/recording/document-search.html#tab-map-search';
+  // open the tab now (while the click still counts as a user action); it is pointed at the plat once found
+  let tab = null; try { tab = window.open('', '_blank'); if (tab) { tab.opener = null; tab.document.title = 'Opening plat…'; tab.document.body.textContent = 'Finding the recorded plat at the County Recorder…'; } } catch {}
+  const [doc, lots] = await Promise.all([findPlatDoc(p.SubdivisionName, book, page).catch(() => null), countSubdivisionLots(p.SubdivisionName).catch(() => null)]);
+  if (tab) {
+    if (doc) platPdfLink(doc.rec).then(u => { tab.location.href = u; }).catch(() => { tab.location.href = LINKS.recDoc(doc.rec); });
+    else tab.location.href = searchUrl;
+  }
   const today = new Date().toISOString().slice(0, 10);
   const rec = {
-    name: titleCase(p.SubdivisionName), mcr: p.MCRNumber || '', docType: 'PLAT MAP', rec: '', recorded: '', totalLots: lots,
+    name: titleCase(p.SubdivisionName), mcr: p.MCRNumber || '', docType: 'PLAT MAP', rec: doc ? doc.rec : '', recorded: doc ? doc.recorded : '', totalLots: lots,
     baseZoning: R.zoning.map(z => z.zone).join(', '),
     controllingCases: [...R.currentCases, ...R.historicCases].filter(c => /Rezoning|Zoning Case|Development Master|Comprehensive|Overlay/.test(c.type)).map(c => `${c.permit} (${c.date || '?'}, ${c.status || '?'})`).join('; '),
     setbacks: 'Not yet reviewed', height: 'Not yet reviewed', easements: '', platControls: false, setbackTable: [],
-    notes: `⚠ Plat not yet reviewed — added automatically from a lookup of ${R.apn} on ${today}. Open the plat and record its recording number, setbacks, height and easements.`,
-    parcelsChecked: [R.apn], platUrl, autoAdded: true, lastUpdated: today,
+    notes: `⚠ Plat not yet reviewed — added automatically from a lookup of ${R.apn} on ${today}. Open the plat and record its ${doc ? '' : 'recording number, '}setbacks, height and easements.`,
+    parcelsChecked: [R.apn], platUrl: doc ? LINKS.recDoc(doc.rec) : searchUrl, autoAdded: true, lastUpdated: today,
   };
   S.db = S.db || { schema: 1, subdivisions: [] };
-  if (S.db.subdivisions.some(x => x.name.toUpperCase() === rec.name.toUpperCase())) return;
+  if (S.db.subdivisions.some(x => sameName(x.name, rec.name))) return;
   S.db.subdivisions.push(rec); renderDB();
   let saved = false;
   if (gh.canWrite) {
-    try {
-      // merge onto the latest published copy so another browser's additions aren't lost
-      const f = await readFile('data/subdivision-plats.json'); const latest = f.text ? JSON.parse(f.text) : null;
-      const base = latest && Array.isArray(latest.subdivisions) ? latest : S.db;
-      if (!base.subdivisions.some(x => x.name.toUpperCase() === rec.name.toUpperCase())) base.subdivisions.push(rec);
-      base.updated = new Date().toISOString();
-      await writeFile('data/subdivision-plats.json', JSON.stringify(base, null, 2) + '\n', `Add subdivision ${rec.name} (auto, from ${R.apn})`);
-      S.db = base; S.dbStamp = base.updated; S.dbDirty = false; saved = true; renderDB();
-    } catch (e) { S.dbDirty = true; renderDB(); toast(`Added ${rec.name} locally, but saving failed: ${e.message}`, 'error'); }
+    try { await saveSubdivision(rec, `Add subdivision ${rec.name} (auto, from ${R.apn})`); saved = true; }
+    catch (e) { S.dbDirty = true; renderDB(); toast(`Added ${rec.name} locally, but saving failed: ${e.message}`, 'error'); }
   } else { S.dbDirty = true; renderDB(); }
-  toast(`New subdivision "${rec.name}" added to the database${saved ? ' and saved' : ' (not saved — connect GitHub)'}${opened ? '; plat opened at the Recorder' : '; popup blocked — use the plat link in the report'}.`, saved ? 'ok' : 'info');
+  toast(`New subdivision "${rec.name}" added${saved ? ' and saved' : ' (not saved — connect GitHub)'}${doc ? ` · plat #${doc.rec}` : ' · plat not found by name'}${tab ? '' : ' · popup blocked — use the plat link in the report'}.`, saved ? 'ok' : 'info');
+  if (doc) readPlat(rec.name, doc.rec); // background — the report renders now
+}
+// OCR the plat; if setbacks are found, store them (flagged for verification) and save to GitHub.
+const ocrRunning = new Set();
+async function readPlat(name, recNo) {
+  if (ocrRunning.has(name)) return; ocrRunning.add(name);
+  const say = (m) => ocrStatus(`Reading the ${name} plat (OCR): ${m}…`);
+  try {
+    say('downloading the plat from the Recorder');
+    const bytes = await fetchPlatPdf(recNo);
+    const res = await ocrPlat(bytes, { onStep: say });
+    const P = res.parsed; const r = S.db.subdivisions.find(x => sameName(x.name, name));
+    if (!r) return ocrStatus('');
+    if (!P.rows.length) { ocrStatus(`OCR could not find a setback table on sheet${res.pagesRead > 1 ? `s 1–${res.pagesRead}` : ' 1'} of the ${name} plat — read it manually and update the database.`, 'warn'); return; }
+    const today = new Date().toISOString().slice(0, 10);
+    const rows = P.rows.map(x => ({ lots: x.lots, district: x.district || '', front: x.front ?? '', rear: x.rear ?? '', side: x.side ?? '', street: x.street ?? '', height: P.height || '', coverage: P.coverage || '', coverageNow: '', coverageBy: '', width: '', other: 'Read by OCR — verify' }));
+    const upd = {
+      setbackTable: rows,
+      setbacks: rows.map(x => `${rows.length > 1 ? `Lots ${x.lots}${x.district ? ` (${x.district})` : ''}: ` : ''}${x.front || '?'} ft / ${x.rear || '?'} ft / ${x.side || '?'} ft / ${x.street || '?'} ft`).join('. ') + (rows.length === 1 ? ' (Front / Rear / Side / Street-side)' : ''),
+      height: P.height || r.height, easements: r.easements || P.easements.join('; '),
+      notes: `⚠ Setbacks read automatically by OCR from sheet${res.pagesRead > 1 ? `s 1–${res.pagesRead}` : ' 1'} of the plat on ${today} — verify against the plat, then save the record from the editor to clear this flag. OCR text: "${P.excerpt.trim().slice(0, 240)}"`,
+      platOcr: { date: today, rec: recNo, pagesRead: res.pagesRead, pageCount: res.pageCount }, lastUpdated: today,
+    };
+    Object.assign(r, upd); renderDB();
+    if (gh.canWrite) {
+      await saveSubdivision({ ...r }, `Plat OCR: setbacks for ${r.name} (verify)`);
+      ocrStatus(`Setbacks read from the ${name} plat and saved to the database — flagged "verify" until you check them against the plat.`, 'ok');
+    } else { S.dbDirty = true; renderDB(); ocrStatus(`Setbacks read from the ${name} plat (not saved — connect GitHub, then Save in the Subdivisions DB tab). Verify against the plat.`, 'ok'); }
+    if (S.R && sameName(S.R.parcel.SubdivisionName, name)) { $('#report').innerHTML = renderReportHTML(S.R, S.db); S.md = renderReportMD(S.R, S.db, S.extras); }
+  } catch (e) { ocrStatus(`Couldn't read the ${name} plat automatically: ${e.message}. Open it from the report and update the database manually.`, 'warn'); }
+  finally { ocrRunning.delete(name); }
 }
 const lookupCache = new Map(); // APN → { R, t } — avoids re-querying county GIS for 15 min
 async function runLookup(apn, { force = false } = {}) {

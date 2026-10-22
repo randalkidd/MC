@@ -23,6 +23,13 @@ Questions, corrections or suggestions? Email the designer, Randal Kidd, at [rand
 - **Plan review.** Pick the submittal type (residential, commercial, lot split, preliminary plat, final plat). Enter the plan's dimensions to auto-check setbacks, height, front-garage plane, lot coverage (DD-2021-01 method) and accessory rules. Work the county intake checklist. The app outputs a markup table with a hyperlinked citation and a required correction on every row.
 - **Land division classifier.** Subdivision, minor land division, replat or exempt, per MCSR §105/§204 and DD-2013-10.
 - **Subdivision plat database.** `data/subdivision-plats.json`. Search, add and edit it, then save from the site; each save is a commit to this repo. Lookups inside a listed subdivision show its recorded setbacks and flag cases dated after the plat.
+- **New subdivisions are added automatically.** When a lookup lands in a subdivision that isn't in the database, the site:
+  1. finds the plat at the County Recorder by name and book/page, and records its recording number and date;
+  2. opens the plat PDF in a new tab;
+  3. reads the first scanned sheets in the browser with OCR (pdf.js + tesseract.js, loaded only when needed);
+  4. if a setback note or table is found, saves the setbacks, height and coverage, flagged **"Read by OCR — verify"**. If none is found, the record stays "Plat not yet reviewed".
+
+  Plats are image-only scans, so OCR can misread numbers. Check every flagged entry against the plat, then save it from the editor to clear the flag. Reading the plat needs the relay. A few older plats have no scanned file at the Recorder, and the site reports that.
 - **Reference.** MCZO §502/504/506 tables, accessory rules, the MCSR quick reference, all 88 P&D directives, and county tool links.
 
 ## Publish on GitHub Pages (about 5 minutes)

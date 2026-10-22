@@ -67,6 +67,21 @@ export async function request(url, { method = 'GET', form, json, timeout = 30000
   return attempt(p);
 }
 
+// Binary download (e.g. a recorded plat PDF) — always through the relay; the county file hosts send no CORS headers.
+export async function requestBytes(url, { timeout = 120000 } = {}) {
+  const p = viaProxy(url);
+  if (!p) throw new NetError('Reading plats needs the relay. Add a relay URL in Settings.');
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), timeout);
+  try {
+    const r = await fetch(p, { signal: ctl.signal });
+    if (r.headers.get('X-Relay-Block')) throw new NetError(`Your relay is running old code that doesn't allow ${new URL(url).hostname}. Paste the latest worker/cors-proxy.js into Cloudflare and Deploy.`);
+    if (r.status === 404) throw new NetError('The Recorder has no scanned file for this plat (its own PDF link is broken too) — review it at the Recorder');
+    if (!r.ok) throw new NetError(`HTTP ${r.status} from ${new URL(url).hostname} (via relay)`);
+    return new Uint8Array(await r.arrayBuffer());
+  } catch (e) { if (e.name === 'AbortError') throw new NetError('The plat download timed out'); throw e; }
+  finally { clearTimeout(t); }
+}
+
 // ArcGIS helper: POST form, throw on service-level error objects.
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 export async function arcgis(url, params) {
