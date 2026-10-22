@@ -1,6 +1,6 @@
 // Renders a lookup result in the project's parcel-report-template structure (HTML + Markdown).
-import { LINKS } from './lookup.js?v=4fa77ad6';
-import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=4fa77ad6';
+import { LINKS } from './lookup.js?v=71aa2276';
+import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=71aa2276';
 
 // Only allow http(s) URLs into href attributes; everything else becomes "#".
 const safeUrl = (u) => { try { const x = new URL(String(u), location.href); return /^https?:$/.test(x.protocol) ? x.href : '#'; } catch { return '#'; } };
@@ -278,7 +278,7 @@ export function renderReportMD(R, db, extras = {}) {
   const p = R.parcel; const L = [];
   const plat = findPlat(R, db);
   const t = (rows, head = ['Field', 'Value']) => { L.push(`| ${head.join(' | ')} |`, `|${head.map(() => '---').join('|')}|`); rows.forEach(r => L.push(`| ${r.map(c => String(c ?? '—').replace(/\|/g, '\\|').replace(/\n/g, ' ')).join(' | ')} |`)); L.push(''); };
-  L.push(`## Parcel ${p.APNDash}`, '', `**Lookup date:** ${R.lookupDate}`, `**Method:** Direct ArcGIS REST query against the exact parcel polygon (Assessor Parcel service + PND/PlanNet MapServer), via the MC Zoning Review site.`, '');
+  L.push(`## Parcel ${p.APNDash}`, '', `**Lookup date:** ${R.lookupDate}`, `**Method:** Direct ArcGIS REST query against the exact parcel polygon (Assessor Parcel service + PND/PlanNet MapServer), via the Unofficial Maricopa County Zoning Hub.`, '');
   let mdN = 0; const H = (title) => L.push(`### ${++mdN}. ${title}`, '');
   H('Property & Owner');
   t([
