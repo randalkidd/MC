@@ -91,14 +91,20 @@ export function standardsRows(key) {
 export function renderReportHTML(R, db) {
   const p = R.parcel; const out = [];
   const plat = findPlat(R, db);
-  const h = (t) => out.push(`<h3>${t}</h3>`);
+  let secN = 0; const h = (t) => out.push(`<h3>${++secN}. ${t}</h3>`);
   const table = (rows, head = ['Field', 'Value']) => out.push(`<div class="tw"><table><thead><tr>${head.map(x => `<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`);
   const a = (t, u) => `<a href="${u}" target="_blank" rel="noopener">${esc(t)}</a>`;
 
   if (R.errors.length) out.push(`<div class="warn"><b>Some sources didn't respond:</b><ul>${R.errors.map(e => `<li>${esc(e)}</li>`).join('')}</ul>Those sections show "—"; retry, or enable the relay in Settings.</div>`);
   out.push(`<p class="meta">Lookup ${R.lookupDate} · direct ArcGIS REST queries against the exact parcel polygon (Assessor Parcel + PND/PlanNet), per the project workflow standards.</p>`);
 
-  h('1. Property &amp; Owner');
+  const zonesAll = (R.zoning || []).map(z => z.zone);
+  const zoningRowsHTML = () => [
+    ['Base zoning district(s)', `<b>${esc(zonesAll.join(', ') || '—')}</b> · ${a("What's My Zoning?", LINKS.zoningApp)}`],
+    ['Split zoning?', zonesAll.length > 1 ? '<b class="bad">Y — Needs Verification</b> (intersect only confirms overlap; MCZO §405 50%/25 ft rule)' : 'N'],
+    ['Jurisdiction (zoning layer)', esc([...new Set((R.zoning || []).map(z => z.juris).filter(Boolean))].join(', ') || '—')],
+  ];
+  h('Property &amp; Owner');
   const owner = [p.OwnerAddressLine1, p.OwnerAddressLine2, [p.OwnerCity, p.OwnerState, p.OwnerZipCode].filter(Boolean).join(' ')].filter(Boolean).join(', ');
   const juris = R.outsideCounty ? `Incorporated — ${esc(R.city || 'city not identified')}` : 'Unincorporated Maricopa County';
   const valuation = esc(p.FullCashValue ? `FCV $${Number(p.FullCashValue).toLocaleString()} · LPV $${Number(p.LimitedPropertyValue || 0).toLocaleString()} (${p.ParcelValuationYear || ''})` : '—');
@@ -107,7 +113,7 @@ export function renderReportHTML(R, db) {
     ['APN', `${esc(p.APNDash)} · ${a('Assessor', LINKS.assessorParcel(p.APNDash))} · ${a('Parcel Viewer', LINKS.assessor)}`],
     ['Owner name', esc(dash(p.OwnerName))], ['Owner mailing address', esc(dash(owner))],
     ['Site address', esc(dash([p.PropertyFullStreetAddress, p.PropertyCity, p.PropertyZipCode].filter(Boolean).join(', ')))],
-    ...(R.outsideCounty ? [['Jurisdiction', `<b class="bad">${juris}</b>`]] : []),
+    ...(R.outsideCounty ? [['Jurisdiction', `<b class="bad">${juris}</b>`], ['Zoning', 'N/A — city zoning applies, not the MCZO']] : zoningRowsHTML()),
     ['Legal description', esc(dash(p.PropertyDescription))],
     ['Subdivision / Lot / Block / Tract', esc([p.SubdivisionName, p.Lot && `Lot ${p.Lot}`, p.Block && `Block ${p.Block}`, p.Tract && `Tract ${p.Tract}`].filter(Boolean).join(' · ') || '—')],
     ['MCR (plat book/page)', p.MCRNumber ? `${esc(p.MCRNumber)} · ${a('Recorder book/page search', LINKS.recBook(...p.MCRNumber.split('-')))}` : '—'],
@@ -131,15 +137,9 @@ export function renderReportHTML(R, db) {
     return out.join('');
   }
 
-  h('2. Zoning');
-  const zones = R.zoning.map(z => z.zone);
-  table([
-    ['Base zoning district(s)', `${esc(zones.join(', ') || '—')} · ${a("What's My Zoning?", LINKS.zoningApp)}`],
-    ['Split zoning?', zones.length > 1 ? '<b class="bad">Y — Needs Verification</b> (intersect only confirms overlap; MCZO §405 50%/25 ft rule)' : 'N'],
-    ['Jurisdiction (zoning layer)', esc([...new Set(R.zoning.map(z => z.juris).filter(Boolean))].join(', ') || '—')],
-  ]);
+  const zones = zonesAll;
 
-  h('3. Setbacks &amp; Development Standards');
+  h('Setbacks &amp; Development Standards');
   const ps = platSetbacks(plat, p.Lot);
   const nc = plat ? newerCases(R, plat) : { list: [] };
   if (ps.rows.length) {
@@ -160,8 +160,8 @@ export function renderReportHTML(R, db) {
     table(standardsRows(key), ['Standard', 'Requirement']);
   }
 
-  h('4. Subdivision Plat (MCR)');
-  if (!p.SubdivisionName) out.push('<p>Not platted (no SubdivisionName) — N/A.</p>');
+  if (p.SubdivisionName) h('Subdivision Plat (MCR)');
+  if (!p.SubdivisionName) { /* not platted — section hidden */ }
   else if (plat) {
     table([
       ['Subdivision', esc(plat.name)], ['MCR', esc(plat.mcr)],
@@ -176,13 +176,13 @@ export function renderReportHTML(R, db) {
     out.push(`<div class="note">Platted (<b>${esc(p.SubdivisionName)}</b>, MCR ${esc(dash(p.MCRNumber))}) but not yet in the subdivision database. Open the plat via the ${p.MCRNumber ? a('Recorder book/page search', LINKS.recBook(...p.MCRNumber.split('-'))) : 'Recorder'} (row coded PLAT MAP), then <button class="link" data-act="add-sub">add it to the database</button>.</div>`);
   }
 
-  h('5. Overlay Districts');
+  h('Overlay Districts');
   const ovHit = R.overlays.filter(o => o.hit), ovMiss = R.overlays.filter(o => !o.hit);
   if (ovHit.length) table(ovHit.map(o => [esc(o.name), esc(o.notes || '—')]), ['Intersecting overlay', 'Notes']);
   else out.push('<p class="ok">No overlay districts intersect this parcel.</p>');
   if (ovMiss.length) out.push(`<details class="miss"><summary>${ovMiss.length} other overlay${ovMiss.length > 1 ? 's' : ''} checked — no intersection</summary><p class="sub">${ovMiss.map(o => esc(o.name)).join(' · ')}</p></details>`);
 
-  h('6. Easements');
+  h('Easements');
   const ez = easementList(R, plat);
   if (ez.length) {
     table(ez.map(e => [`<b>${esc(e.kind)}</b>`, `${esc(e.detail)}${e.rec ? ` · ${a(`Rec. #${e.rec}`, e.url || LINKS.recDoc(e.rec))}` : ''}${e.platUrl ? ` · ${a('plat', e.platUrl)}` : ''}`, esc(e.source)]), ['Intersecting easement', 'Details', 'Source']);
@@ -197,12 +197,12 @@ export function renderReportHTML(R, db) {
   }
   out.push('<p class="sub">Also checked: patent easements, Flood Control District easements, MCDOT right-of-way, and easements recorded on plats in the subdivision database. Public utility, shared-well, ingress/egress and other private easements are not mapped — check the deed, the title report and the recorded plat.</p>');
 
-  h('7. Zoning / Planning Cases');
+  h('Zoning / Planning Cases');
   const caseTable = (list) => list.length ? table(list.map(c => [esc(c.type), esc(dash(c.permit)), esc(dash(c.name)), esc(dash(c.status)), esc(dash(c.date)), esc(dash(c.request))]), ['Type', 'Permit #', 'Name', 'Status', 'Date', 'Request']) : out.push('<p>None found.</p>');
   out.push('<h4>Current / pending</h4>'); caseTable(R.currentCases);
   out.push('<h4>Historical (before June 2024)</h4>'); caseTable(R.historicCases);
 
-  h('8. Additional Data');
+  h('Additional Data');
   const rows = [];
   if (R.flood.hit) {
     const z = [...R.flood.effective.filter(x => String(x.FloodZoneCode).toUpperCase() !== 'X').map(x => `${x.FloodZoneCode}${x.FIRMPanelNumber ? ` (FIRM ${x.FIRMPanelNumber})` : ''}`), ...R.flood.preliminary.map(x => `Preliminary: ${x.FloodZoneCode}`)];
@@ -222,12 +222,14 @@ export function renderReportMD(R, db, extras = {}) {
   const plat = findPlat(R, db);
   const t = (rows, head = ['Field', 'Value']) => { L.push(`| ${head.join(' | ')} |`, `|${head.map(() => '---').join('|')}|`); rows.forEach(r => L.push(`| ${r.map(c => String(c ?? '—').replace(/\|/g, '\\|').replace(/\n/g, ' ')).join(' | ')} |`)); L.push(''); };
   L.push(`## Parcel ${p.APNDash}`, '', `**Lookup date:** ${R.lookupDate}`, `**Method:** Direct ArcGIS REST query against the exact parcel polygon (Assessor Parcel service + PND/PlanNet MapServer), via the MC Zoning Review site.`, '');
-  L.push('### 1. Property & Owner', '');
+  let mdN = 0; const H = (title) => L.push(`### ${++mdN}. ${title}`, '');
+  H('Property & Owner');
   t([
     ['APN', p.APNDash], ['Owner name', dash(p.OwnerName)],
     ['Owner mailing address', dash([p.OwnerAddressLine1, p.OwnerAddressLine2, [p.OwnerCity, p.OwnerState, p.OwnerZipCode].filter(Boolean).join(' ')].filter(Boolean).join(', '))],
     ['Site address', dash([p.PropertyFullStreetAddress, p.PropertyCity, p.PropertyZipCode].filter(Boolean).join(', '))],
     ['Jurisdiction', R.outsideCounty ? `Incorporated — ${R.city || '?'}` : 'Unincorporated Maricopa County'],
+    ...(R.outsideCounty ? [['Zoning', 'N/A — city zoning applies']] : [['Base zoning district(s)', (R.zoning || []).map(z => z.zone).join(', ') || '—'], ['Split zoning? (Y/N)', (R.zoning || []).length > 1 ? 'Y — Needs Verification' : 'N'], ['Jurisdiction (per zoning layer)', [...new Set((R.zoning || []).map(z => z.juris).filter(Boolean))].join(', ') || '—']]),
     ['Legal description', dash(p.PropertyDescription)],
     ['Subdivision / Lot / Block / Tract', [p.SubdivisionName, p.Lot, p.Block, p.Tract].map(dash).join(' / ')],
     ['Book / Map (plat)', dash(p.MCRNumber)],
@@ -240,9 +242,8 @@ export function renderReportMD(R, db, extras = {}) {
   ]);
   if (R.outsideCounty) { L.push(`Sections 2–6: N/A — outside Maricopa County jurisdiction (${R.city || 'incorporated city'}).`, ''); return L.join('\n'); }
   const zones = R.zoning.map(z => z.zone);
-  L.push('### 2. Zoning', ''); t([['Base zoning district(s)', zones.join(', ') || '—'], ['Split zoning? (Y/N)', zones.length > 1 ? 'Y — Needs Verification' : 'N'], ['Jurisdiction (per zoning layer)', [...new Set(R.zoning.map(z => z.juris).filter(Boolean))].join(', ') || '—']]);
   const ps = platSetbacks(plat, p.Lot);
-  L.push('### 3. Setbacks & Development Standards', '');
+  H('Setbacks & Development Standards');
   if (ps.rows.length) {
     const shown = ps.match ? [ps.match] : ps.rows;
     L.push(`**${mdLink(`Recorded plat — ${plat.name} (${plat.docType} #${plat.rec}, recorded ${plat.recorded})`, plat.platUrl)}** — controlling standard${ps.match && ps.rows.length > 1 ? ` (lot ${p.Lot}: lots ${ps.match.lots})` : ''}:`, '');
@@ -255,20 +256,20 @@ export function renderReportMD(R, db, extras = {}) {
   }
   for (const z of zones) { const k = normalizeDistrict(z); if (!k) continue; L.push(`**[${k} (MCZO Ch. 5 §${DISTRICTS[k].section})](${MCZO_URL}):**`, ''); t(standardsRows(k), ['Standard', 'Requirement']); }
   L.push(`Rear/side required yard coverage maximum per [§806](${MCZO_URL}).`, '');
-  L.push('### 4. Subdivision Plat (MCR) — setback check', '');
-  if (!p.SubdivisionName) L.push('Not platted — N/A.', '');
+  if (p.SubdivisionName) H('Subdivision Plat (MCR) — setback check');
+  if (!p.SubdivisionName) { /* not platted — section omitted */ }
   else if (plat) t([['Subdivision name', plat.name], ['Book / Map', plat.mcr], ['Plat recording # / date', mdLink(`${plat.docType} #${plat.rec}, recorded ${plat.recorded}`, plat.platUrl)], ['Setback line (BSL) shown on plat? (Y/N)', ps.rows.length ? 'Y — see Section 3 (controlling table)' : 'N — MCZO governs (Section 3)'], ['Notes', plat.notes]]);
   else L.push(`${p.SubdivisionName} (MCR ${p.MCRNumber || '—'}) — not yet in the subdivision database; plat not checked.`, '');
-  L.push('### 5. Overlay Districts', '');
+  H('Overlay Districts');
   { const hit = R.overlays.filter(o => o.hit); hit.length ? t(hit.map(o => [o.name, o.notes || '—']), ['Intersecting overlay', 'Notes']) : L.push('No overlay districts intersect this parcel.', ''); L.push(`_${R.overlays.length - hit.length} other overlays checked — no intersection._`, ''); }
-  L.push('### 6. Easements', '');
+  H('Easements');
   { const ez = easementList(R, plat); ez.length ? t(ez.map(e => [e.kind, `${e.detail}${e.rec ? ` · ${mdLink(`Rec. #${e.rec}`, e.url || LINKS.recDoc(e.rec))}` : ''}`, e.source]), ['Intersecting easement', 'Details', 'Source']) : L.push('None found, verify', '');
     const d = R.recorder && R.recorder.deed; if (d) L.push(`Deed ${mdLink(`#${d.rec}`, LINKS.recDoc(d.rec))} (${d.codes.join(', ')}) checked: ${d.hasEasement ? 'recorded with an easement.' : 'no easement recorded with it;'} deed text exceptions not read automatically — review the deed.`, ''); }
-  L.push('### 7. Zoning / Planning Cases', '', '**Current / pending:**', '');
+  H('Zoning / Planning Cases'); L.push('**Current / pending:**', '');
   R.currentCases.length ? t(R.currentCases.map(c => [c.type, c.permit, c.name, c.status, c.date]), ['Case type', 'Permit #', 'Name', 'Status', 'Date']) : L.push('None found.', '');
   L.push('**Historical (before June 2024):**', '');
   R.historicCases.length ? t(R.historicCases.map(c => [c.type, c.permit, c.name, c.status, c.date]), ['Case type', 'Permit #', 'Name', 'Status', 'Date']) : L.push('None found.', '');
-  L.push('### 8. Additional Data', '');
+  H('Additional Data');
   const add = [];
   if (R.flood.hit) add.push(['Floodplain', `Hit${R.flood.floodway ? ' (FLOODWAY)' : ''}: ${R.flood.effective.map(x => x.FloodZoneCode).join(', ')} — ${mdLink('Floodplain and Elevation Certificate Viewer', LINKS.flood)}`]);
   add.push(['Septic', extras.septic || `Not checked — ${mdLink('Septic Search', LINKS.septic)}`]);
