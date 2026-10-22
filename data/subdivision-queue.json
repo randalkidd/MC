@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated": "2026-10-22T17:51:24Z",
+  "updated": "2026-10-22T20:09:56.602Z",
   "items": [
     {
       "name": "ARROYO NORTE UNITS 8 9 & 10",
@@ -45,6 +45,22 @@
       "controllingCases": "CPA1989003 (12:00:00 AM, Remove); CPA2020005 (12/24/2020, Approved); CPA2023014 (9/13/2023, Approved); CPA2004003 (6/24/2004, Remove); Z01-45 (4/23/2001, DROPPED); Z2020102 (12/28/2020, APPROVED); Z04-125 (4/11/2006, APPROVED)",
       "apns": [
         "501-41-217"
+      ],
+      "firstSeen": "2026-10-22",
+      "lastSeen": "2026-10-22",
+      "status": "pending"
+    },
+    {
+      "name": "HORSESHOE TRAILS PHASE 2",
+      "displayName": "Horseshoe Trails Phase 2",
+      "mcr": "423-02",
+      "rec": "",
+      "recorded": "",
+      "totalLots": 337,
+      "baseZoning": "RU-43",
+      "controllingCases": "",
+      "apns": [
+        "506-43-080Q"
       ],
       "firstSeen": "2026-10-22",
       "lastSeen": "2026-10-22",
