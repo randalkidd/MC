@@ -11,7 +11,7 @@
 //   GITHUB_TOKEN = github_pat_...   (fine-grained, repo randalkidd/MC, Contents: Read and write)
 //   SITE_KEY     = a passphrase you choose (what you'll type in each browser)
 
-const RELAY_VERSION = '5';
+const RELAY_VERSION = '6';
 const ALLOWED_ORIGIN = 'https://randalkidd.github.io'; // only your site may use this relay
 const REPO = 'randalkidd/MC';
 const BRANCH = 'main';
@@ -43,7 +43,7 @@ function sameKey(a, b) {
 const b64 = (str) => { const bytes = new TextEncoder().encode(str); let s = ''; for (const x of bytes) s += String.fromCharCode(x); return btoa(s); };
 
 async function gh(env, path, init = {}) {
-  return fetch(`https://api.github.com/repos/${REPO}/${path}`, {
+  return fetch(`https://api.github.com/repos/${REPO}${path ? `/${path}` : ''}`, { // no trailing slash — GitHub rejects /repos/o/r/
     ...init,
     headers: { Authorization: `Bearer ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'mc-relay', ...(init.headers || {}) },
   });
