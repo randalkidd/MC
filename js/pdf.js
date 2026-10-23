@@ -19,7 +19,8 @@ export function loadJsPDF() {
 const MAP = { '—': '-', '–': '-', '‘': "'", '’': "'", '“': '"', '”': '"', '…': '...', '•': '-', '≥': '>=', '≤': '<=', '≈': '~', '→': '->', '←': '<-', '✓': 'Y', '✔': 'Y', '✗': 'N', '✕': 'x', '⚠': '!', '★': '*', ' ': ' ', ' ': ' ' };
 export const clean = (s) => String(s).replace(/[️​-‍]/g, '').replace(/[^\x00-\xFF]/g, (c) => MAP[c] ?? '?');
 
-const C = { ink: [19, 29, 40], muted: [79, 93, 107], line: [216, 223, 225], head: [233, 238, 240], navy: [19, 32, 72], link: [0, 112, 185], accent: [242, 103, 36] };
+const C = { ink: [19, 29, 40], muted: [79, 93, 107], line: [216, 223, 225], head: [233, 238, 240], navy: [19, 32, 72], link: [0, 112, 185], accent: [242, 103, 36] }; // orange kept as the saved color
+const accentRGB = () => (document.documentElement.dataset.accent === 'orange' ? [242, 103, 36] : [18, 120, 109]);
 
 // Inline Markdown → runs of {t, b, u}
 export function runs(src) {
@@ -92,7 +93,7 @@ export async function reportPDF(md, { apn = 'parcel', title = 'Unofficial Marico
     need(before + size * 1.4 + 30); y += before;
     const lines = wrap(doc, runs(src).map((r) => ({ ...r, b: true })), W, size);
     for (const ln of lines) { draw(ln, M, y + size, size, C.navy); y += size * 1.3; }
-    if (level <= 3) { doc.setDrawColor(...(level <= 2 ? C.accent : C.line)); doc.setLineWidth(level <= 2 ? 1.5 : 0.6); doc.line(M, y + 2, M + W, y + 2); y += 6; }
+    if (level <= 3) { doc.setDrawColor(...(level <= 2 ? accentRGB() : C.line)); doc.setLineWidth(level <= 2 ? 1.5 : 0.6); doc.line(M, y + 2, M + W, y + 2); y += 6; }
     y += 4;
   };
   const table = (rows) => {
@@ -146,7 +147,7 @@ export async function reportPDF(md, { apn = 'parcel', title = 'Unofficial Marico
     doc.text(clean(title), M, 32);
     doc.setFont('helvetica', 'normal'); doc.setTextColor(...C.muted);
     doc.text(clean(`Parcel ${apn}`), PW - M, 32, { align: 'right' });
-    doc.setDrawColor(...C.accent); doc.setLineWidth(1); doc.line(M, 38, PW - M, 38);
+    doc.setDrawColor(...accentRGB()); doc.setLineWidth(1); doc.line(M, 38, PW - M, 38);
     doc.setFontSize(8); doc.text(`Generated ${stamp} - unofficial; verify with Maricopa County Planning & Development`, M, PH - 24);
     doc.text(`Page ${p} of ${pages}`, PW - M, PH - 24, { align: 'right' });
   }

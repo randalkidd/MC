@@ -3,16 +3,19 @@
 :root {
   color-scheme: dark;
   --bg: #000000; --surface: #132048; --ink: #eef2f5; --muted: #a8b4c6; --line: #263a72; --soft: #182a5c;
-  --accent: #F26724; --accent-strong: #ff8a52; --accent-ink: #131D28;
-  --ok: #2fbfad; --bad: #ff6b6b; --yellow: #FAA21B; --warn-bg: #2e2412; --warn-line: #7a5f24; --note-bg: #162a5e; --note-line: #0070B9;
+  --accent: #2ec4b6; --accent-strong: #5fd9cd; --accent-ink: #04161a;
+  --ok: #4cc38a; --bad: #ff6b6b; --yellow: #FAA21B; --warn-bg: #2e2412; --warn-line: #7a5f24; --note-bg: #162a5e; --note-line: #0070B9;
   --radius: 10px; --mono: 'Roboto Mono', ui-monospace, monospace; --sans: 'Roboto', system-ui, -apple-system, sans-serif; --display: 'Poppins', 'Roboto', system-ui, sans-serif;
 }
 :root[data-theme="light"] {
   color-scheme: light;
   --bg: #f3f6f7; --surface: #ffffff; --ink: #131D28; --muted: #4f5d6b; --line: #D8DFE1; --soft: #e9eef0;
-  --accent: #c4500f; --accent-strong: #a8430b; --accent-ink: #ffffff;
-  --ok: #167a6f; --bad: #b42318; --yellow: #9a6100; --warn-bg: #fff4e0; --warn-line: #f0c27a; --note-bg: #e8f1f9; --note-line: #0070B9;
+  --accent: #12786d; --accent-strong: #0d5e55; --accent-ink: #ffffff;
+  --ok: #1a7f47; --bad: #b42318; --yellow: #9a6100; --warn-bg: #fff4e0; --warn-line: #f0c27a; --note-bg: #e8f1f9; --note-line: #0070B9;
 }
+/* Saved color: the original Sunrise Orange accent (with turquoise OK). Teal is the default; the ● button in the header switches. */
+:root[data-accent="orange"] { --accent: #F26724; --accent-strong: #ff8a52; --accent-ink: #131D28; --ok: #2fbfad; }
+:root[data-accent="orange"][data-theme="light"] { --accent: #c4500f; --accent-strong: #a8430b; --accent-ink: #ffffff; --ok: #167a6f; }
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -100,9 +103,10 @@ html.printing .report .maps figcaption { color: #4f5d6b; }
   :root, :root[data-theme] {
     color-scheme: light;
     --bg: #ffffff; --surface: #ffffff; --ink: #131D28; --muted: #4f5d6b; --line: #D8DFE1; --soft: #e9eef0;
-    --accent: #c4500f; --accent-strong: #a8430b; --accent-ink: #ffffff;
-    --ok: #167a6f; --bad: #b42318; --yellow: #9a6100; --warn-bg: #fff4e0; --warn-line: #f0c27a; --note-bg: #e8f1f9; --note-line: #0070B9;
+    --accent: #12786d; --accent-strong: #0d5e55; --accent-ink: #ffffff;
+    --ok: #1a7f47; --bad: #b42318; --yellow: #9a6100; --warn-bg: #fff4e0; --warn-line: #f0c27a; --note-bg: #e8f1f9; --note-line: #0070B9;
   }
+  :root[data-accent="orange"] { --accent: #c4500f; --accent-strong: #a8430b; --ok: #167a6f; }
   html, body { background: #fff !important; color: #131D28 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .card, .report { box-shadow: none !important; background: #fff !important; }
   th { background: #e9eef0 !important; }
@@ -111,6 +115,7 @@ html.printing .report .maps figcaption { color: #4f5d6b; }
 
 .theme-btn { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 999px; width: 30px; height: 30px; cursor: pointer; font-size: .9rem; line-height: 1; }
 .theme-btn:hover { color: var(--accent); border-color: var(--accent); }
+.accent-btn { color: var(--accent); font-size: 1.05rem; margin-right: .35rem; }
 .top-right { display: flex; gap: .5rem; align-items: center; }
 fieldset.stbl { border: 1px solid var(--line); border-radius: 8px; margin: .5rem 0; padding: .5rem .75rem; } fieldset.stbl legend { font-size: .82rem; color: var(--ink); padding: 0 .3rem; } fieldset.stbl input { width: 5.5rem; }
 details.miss { margin: .4rem 0 .2rem; font-size: .85rem; } details.miss summary { color: var(--muted); cursor: pointer; } details.miss summary:hover { color: var(--accent); }

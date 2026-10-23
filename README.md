@@ -108,6 +108,10 @@ A tab visible to everyone. **MCTrained** (top left): 10-question multiple-choice
 
 Playing needs a key. Scores live in `games/scores.json` in the private repo; the relay (v20, `/g/board`, `/g/start`, `/g/finish`) issues a signed single-use token per round, caps a round at 10 questions, rejects reused/expired tokens and doesn't count rounds answered faster than ~2.5 s per question. (Answers are checked in the browser, so this deters casual cheating rather than preventing it.)
 
+## Accent color
+
+Teal is the default accent. The original Sunrise Orange is saved as a preset: the **●** button next to the light/dark switch (top right) toggles Teal ↔ Orange, and each browser remembers the choice. Printed/PDF reports and the parcel outline on the map follow the chosen accent.
+
 ## Sign In and Profile
 
 - **Sign In** (shown only while not connected): name, passphrase (or the access key you were given), **Save**, then **Test GitHub**. On success it says which account type you have (Super Account, Administrator, Senior Reviewer, Reviewer, Read-Only or custom) and its privileges.
