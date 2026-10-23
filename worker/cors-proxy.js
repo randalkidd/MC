@@ -13,7 +13,7 @@
 //   ANTHROPIC_API_KEY = sk-ant-...  (optional; enables Plan review → "Read a site plan PDF" via POST /ai/siteplan)
 //   ANTHROPIC_MODEL   = optional Text variable to override the model (default below)
 
-const RELAY_VERSION = '16';
+const RELAY_VERSION = '17';
 // Settings. Defaults below; each can be overridden by a Cloudflare variable (Worker → Settings → Variables and
 // Secrets, Type: Text) or, for local `wrangler dev`, by worker/.dev.vars (never committed — see .dev.vars.example).
 //   ALLOWED_ORIGIN = https://randalkidd.github.io   (comma-separate to add e.g. http://localhost:8000 for local testing)
@@ -96,10 +96,20 @@ async function loadKeys(env, fresh = false) {
   let list = []; try { list = JSON.parse(txt).keys || []; } catch {}
   keyCache = { t: Date.now(), list, sha: d.sha }; return keyCache;
 }
+// Failed-passphrase throttle: 10 misses in 10 minutes from one IP → that IP gets 429 for the rest of the window.
+const FAILS = new Map();
+const ipOf = (req) => req.headers.get('CF-Connecting-IP') || 'unknown';
+function throttled(req) { const f = FAILS.get(ipOf(req)); return !!f && Date.now() - f.t < 600000 && f.n >= 10; }
+function noteFail(req) { const ip = ipOf(req); const f = FAILS.get(ip); const now = Date.now(); if (!f || now - f.t > 600000) FAILS.set(ip, { n: 1, t: now }); else f.n++; if (FAILS.size > 5000) FAILS.clear(); }
 // → { label, perms[], super } or null
 async function authenticate(req, env) {
   const k = req.headers.get('X-MC-Key') || '';
   if (!k) return null;
+  const who = await authenticateKey(k, env);
+  if (!who) noteFail(req);
+  return who;
+}
+async function authenticateKey(k, env) {
   if (env.SITE_KEY && sameKey(k, env.SITE_KEY)) return { id: 'super', label: 'Super account', perms: PERMS.slice(), super: true };
   if (!env.GITHUB_TOKEN || k.length < 16) return null;
   let keys; try { keys = (await loadKeys(env)).list; } catch { return null; }
@@ -129,6 +139,7 @@ async function handleAdmin(req, env, origin, route, who) {
     const raw = crypto.getRandomValues(new Uint8Array(15)); const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789';
     const key = 'mc-' + [...raw].map(b => alphabet[b % alphabet.length]).join('').replace(/(.{5})(?=.)/g, '$1-');
     const { list, sha } = await loadKeys(env, true);
+    if (list.length >= 200) return json({ error: 'Too many keys — revoke unused ones first.' }, 400, origin);
     const rec = { id: `k${Date.now().toString(36)}`, label, perms, hash: await sha256hex(key), created: new Date().toISOString(), createdBy: who.label, ...(days ? { expires: new Date(Date.now() + days * 86400000).toISOString() } : {}) };
     await save([...list, rec], sha, `Access key added: ${label}`);
     return json({ ok: true, key, record: pub(rec) }, 200, origin);
@@ -297,6 +308,16 @@ async function handleQueue(req, env, origin, route, url, who) {
     const d = await r.json();
     return json({ ok: true, files: (d.tree || []).filter(t => t.type === 'blob' && QPATH.test(t.path)).map(t => ({ path: t.path, size: t.size, sha: t.sha })) }, 200, origin);
   }
+  if (route === '/q/list') {
+    // Queue metadata (queue/*.json) plus which plans and results exist — one round trip for the Plan Queue box.
+    const r = await ghq(env, 'git/trees/main?recursive=1');
+    if (r.status === 409) return json({ ok: true, items: [], files: [] }, 200, origin);
+    if (!r.ok) return noRepo(r);
+    const files = ((await r.json()).tree || []).filter(t => t.type === 'blob' && QPATH.test(t.path)).map(t => ({ path: t.path, size: t.size }));
+    const metas = files.filter(f => /^queue\/.+\.json$/.test(f.path)).slice(0, 200);
+    const items = (await Promise.all(metas.map(async f => { const x = await ghq(env, `contents/${f.path}`, { headers: { Accept: 'application/vnd.github.raw' } }); return x.ok ? x.json().catch(() => null) : null; }))).filter(Boolean);
+    return json({ ok: true, items, files }, 200, origin);
+  }
   const path = url.searchParams.get('path') || '';
   if (!QPATH.test(path) || path.includes('..')) return json({ error: 'Bad path.' }, 400, origin);
   if (route === '/q/raw' && req.method === 'GET') {
@@ -346,6 +367,7 @@ export default {
     if (origin && !allowed(origin)) return new Response('Forbidden origin', { status: 403, headers: cors(origin) });
     if (!['GET', 'POST'].includes(req.method)) return new Response('Method not allowed', { status: 405, headers: cors(origin) });
     const u0 = new URL(req.url);
+    if (/^\/(gh|q|ai|admin)\//.test(u0.pathname) && throttled(req)) return json({ error: 'Too many wrong passphrases from this network — wait 10 minutes and try again.' }, 429, origin);
     if (u0.pathname.startsWith('/gh/')) {
       if (!allowed(origin)) return json({ error: 'Saving is only allowed from the site.' }, 403, origin);
       return handleGitHub(req, env, origin, u0.pathname, await authenticate(req, env));

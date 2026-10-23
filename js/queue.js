@@ -3,8 +3,8 @@
 //   queue/<id>.pdf   the queued plan            — deleted after 14 days
 //   queue/<id>.json  { id, file, size, apn, type, reviewer, submitted, status, note?, processedAt?, db? }
 //   db/<id>.json     data read from a plan       — deleted 45 days after `inserted`
-import { gh } from './github.js?v=b0b12f7e';
-import { settings } from './net.js?v=b0b12f7e';
+import { gh } from './github.js?v=e040267b';
+import { settings } from './net.js?v=e040267b';
 
 export const PDF_DAYS = 14, DATA_DAYS = 45;
 const DAY = 86400000;
@@ -39,11 +39,16 @@ export async function queuePlan(file, { apn, type, reviewer }) {
 
 // Queue items with their status (newest first), plus which have results in the database.
 export async function listQueue() {
-  const { files } = await q('/q/tree');
-  const metas = files.filter(f => /^queue\/.+\.json$/.test(f.path));
+  // One request on relay v17+ (/q/list); older relays: the file tree, then each queue item.
+  let files, items;
+  try { ({ files, items } = await q('/q/list')); }
+  catch (e) {
+    if (!/out of date|Not found/i.test(e.message)) throw e;
+    ({ files } = await q('/q/tree'));
+    items = await Promise.all(files.filter(f => /^queue\/.+\.json$/.test(f.path)).map(async f => { try { const r = await q(`/q/raw?path=${encodeURIComponent(f.path)}`, {}, { raw: true }); return await r.json(); } catch { return null; } }));
+  }
   const pdfs = new Set(files.filter(f => f.path.endsWith('.pdf')).map(f => f.path));
   const db = new Set(files.filter(f => f.path.startsWith('db/')).map(f => f.path));
-  const items = await Promise.all(metas.map(async f => { try { const r = await q(`/q/raw?path=${encodeURIComponent(f.path)}`, {}, { raw: true }); return await r.json(); } catch { return null; } }));
   const now = Date.now();
   return items.filter(Boolean).map(m => ({ ...m, hasPdf: pdfs.has(`queue/${m.id}.pdf`) && now - Date.parse(m.submitted) < PDF_DAYS * DAY, hasResult: db.has(m.db || `db/${m.id}.json`) }))
     .sort((a, b) => (a.submitted < b.submitted ? 1 : -1));

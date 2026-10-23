@@ -1,13 +1,13 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=b0b12f7e';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=b0b12f7e';
-import { settings, setSharedRelay } from './net.js?v=b0b12f7e';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache, perms, hasPerm, relayFetch } from './github.js?v=b0b12f7e';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=b0b12f7e';
-import { CHECKLISTS } from './checklists.js?v=b0b12f7e';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown, markupRows, rememberReviewer, rememberedReviewer } from './review.js?v=b0b12f7e';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=e040267b';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=e040267b';
+import { settings, setSharedRelay } from './net.js?v=e040267b';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache, perms, hasPerm, relayFetch } from './github.js?v=e040267b';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=e040267b';
+import { CHECKLISTS } from './checklists.js?v=e040267b';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown, markupRows, rememberReviewer, rememberedReviewer } from './review.js?v=e040267b';
 let REF = null; // js/refdata.js (76 KB) loads the first time the Reference tab opens
-import { findPlatDoc } from './recorder.js?v=b0b12f7e';
-import { loadAllSubdivisions } from './subdivisions.js?v=b0b12f7e';
+import { findPlatDoc } from './recorder.js?v=e040267b';
+import { loadAllSubdivisions } from './subdivisions.js?v=e040267b';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -78,9 +78,12 @@ async function checkAccess() {
   applyAccess(true);
   verifyAccess(); // network re-check runs in the background; it can only lock, never delay the page
 }
+let verifying = null;
 function verifyAccess() {
-  testAccess().then((r) => { const okay = Array.isArray(r.perms) ? r.perms.length > 0 : r.canPush; if (!okay) return revokeAccess(); const before = JSON.stringify(perms().perms); storePerms(r); if (JSON.stringify(perms().perms) !== before) applyAccess(true); })
-    .catch((e) => { if (/passphrase|token|GitHub \d|not the relay|old code/i.test(e.message)) { revokeAccess(); toast(`Locked staff tools: ${e.message}`, 'error'); } }); // offline → keep the tested state
+  if (verifying) return verifying;
+  return (verifying = testAccess().then((r) => { const okay = Array.isArray(r.perms) ? r.perms.length > 0 : r.canPush; if (!okay) return revokeAccess(); const before = JSON.stringify(perms().perms); storePerms(r); if (JSON.stringify(perms().perms) !== before) applyAccess(true); })
+    .catch((e) => { if (/passphrase|token|GitHub \d|not the relay|old code/i.test(e.message)) { revokeAccess(); toast(`Locked staff tools: ${e.message}`, 'error'); } }) // offline → keep the tested state
+    .finally(() => { verifying = null; }));
 }
 
 function showTab(id) {
@@ -92,7 +95,7 @@ function showTab(id) {
   try { localStorage.setItem('mc.tab', id); } catch {}
   if (id === 'p-lookup' && S.map) setTimeout(() => { S.map.invalidateSize(); S.map2?.invalidateSize(); }, 50);
   if (id === 'p-saved') renderSaved();
-  if (id === 'p-review') renderQueued();
+  if (id === 'p-review') { renderQueued(); (window.requestIdleCallback || setTimeout)(() => { import('./freeread.js?v=e040267b').catch(() => {}); import('./siteplan.js?v=e040267b').catch(() => {}); }); }
   if (id === 'p-signin') renderSignin();
   if (id === 'p-ref') renderReference();
   if (id === 'p-subs') { if (!$('#allsubs').classList.contains('collapsed')) openAllSubs(); fitDbRows(); }
@@ -430,7 +433,7 @@ $('#rep-save').addEventListener('click', async () => {
 $('#rep-pdf').addEventListener('click', async (e) => {
   const b = e.currentTarget; if (b.disabled || !S.md) return;
   b.disabled = true; const label = b.textContent; b.textContent = 'Building PDF…';
-  try { const { reportPDF } = await import('./pdf.js?v=b0b12f7e'); await reportPDF(S.md, { apn: S.R.apn }); toast('PDF saved', 'ok'); }
+  try { const { reportPDF } = await import('./pdf.js?v=e040267b'); await reportPDF(S.md, { apn: S.R.apn }); toast('PDF saved', 'ok'); }
   catch (err) { toast(`PDF failed: ${err.message}`, 'error'); }
   finally { b.disabled = false; b.textContent = label; }
 });
@@ -689,7 +692,7 @@ function bindReview() {
       const info = { apn: s.apn, permit: s.permit, date: s.date, plan: s.planTitle, type: CHECKLISTS[s.type]?.label || s.type,
         address: [p.PropertyFullStreetAddress, p.PropertyCity].filter(Boolean).join(', ') || P.site_address || '', owner: p.OwnerName || P.owner_name || '',
         district: s.district, reviewer: s.reviewer || who.name, email: s.reviewerEmail || who.email };
-      const { commentLetterPDF } = await import('./commentletter.js?v=b0b12f7e');
+      const { commentLetterPDF } = await import('./commentletter.js?v=e040267b');
       const out = await commentLetterPDF({ rows: markupRows(s).rows, info });
       toast(`Comment letter saved — ${out.count} comment${out.count === 1 ? '' : 's'}`, 'ok');
     } catch (err) { toast(err.message, 'error'); }
@@ -789,7 +792,7 @@ async function renderSaved() {
 // ---------------- reference ----------------
 let refP = null;
 function renderReference() {
-  return (refP ||= import('./refdata.js?v=b0b12f7e').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
+  return (refP ||= import('./refdata.js?v=e040267b').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
 }
 function fillReference() {
   const { DIRECTIVES, MCSR_QUICK, REG_DOCS, REG_LOOKUP } = REF;
@@ -968,7 +971,7 @@ function renderSitePlan() {
 }
 // Shared by both readers: look up the parcel, check the deed, compare, fill the form.
 async function finishRead(res, meta, st, file = SP.file) {
-  const sp = await import('./siteplan.js?v=b0b12f7e');
+  const sp = await import('./siteplan.js?v=e040267b');
   const planApn = normalizeApn(res.parcel && res.parcel.apn);
   let R = S.R && S.review.apn && S.R.apn === normalizeApn(S.review.apn) ? S.R : null, lookupError = '';
   const target = normalizeApn(S.review.apn) || planApn;
@@ -985,9 +988,9 @@ async function finishRead(res, meta, st, file = SP.file) {
   sp.applyToReview(S.review, res, compare, { merge: meta.engine === 'free' });
   S.review.ai = { file: file.name, at: new Date().toISOString(), ...meta, result: res, compare, deedNames: deed, apn: R ? R.apn : null, lookupError };
   saveDraft(S.review); renderReview();
-  import('./planviewer.js?v=b0b12f7e').then(m => m.savePdf(file)).catch(() => {});
+  import('./planviewer.js?v=e040267b').then(m => m.savePdf(file)).catch(() => {});
   // Keep what was read in the private plan-review database (45 days). Queued reads are already stored by the routine.
-  if (unlocked && meta.engine !== 'queued') import('./queue.js?v=b0b12f7e').then(qm => qm.saveRecord({ source: meta.engine === 'free' ? 'superficial' : 'rapid', file: file.name, apn: (R && R.apn) || normalizeApn(res.parcel && res.parcel.apn) || '', type: S.review.type, model: meta.model, result: res, compare })).catch(e => console.warn('private db', e));
+  if (unlocked && meta.engine !== 'queued') import('./queue.js?v=e040267b').then(qm => qm.saveRecord({ source: meta.engine === 'free' ? 'superficial' : 'rapid', file: file.name, apn: (R && R.apn) || normalizeApn(res.parcel && res.parcel.apn) || '', type: S.review.type, model: meta.model, result: res, compare })).catch(e => console.warn('private db', e));
   return compare.filter(c => c[3] === 'deficient').length;
 }
 // Three ways to read a plan: Superficial (free, in this browser), Rapid (Claude API through the relay, ~1 min),
@@ -998,7 +1001,7 @@ async function runFreeRead() {
   SP.busy = true; spButtons();
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'Superficial Review: reading the PDF text in your browser…';
   try {
-    const fr = await import('./freeread.js?v=b0b12f7e');
+    const fr = await import('./freeread.js?v=e040267b');
     const out = await fr.freeReadSitePlan(SP.file, S.review.type);
     if (out.quality === 'none') { st.className = 'status warn'; st.textContent = 'Superficial Review couldn\'t read this plan: the PDF has no selectable text (a scan or flattened drawing). Use Rapid Review or Queued Review.'; return; }
     const bad = await finishRead(out.result, { engine: 'free', model: 'Superficial Review (in-browser text reader)', quality: out.quality, found: out.found, missing: out.missing }, st);
@@ -1012,7 +1015,7 @@ async function runSitePlan() {
   SP.busy = true; spButtons();
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'Rapid Review: sending the PDF to Claude — reading every sheet usually takes 30–90 seconds…';
   try {
-    const sp = await import('./siteplan.js?v=b0b12f7e');
+    const sp = await import('./siteplan.js?v=e040267b');
     const d = await sp.readSitePlan(SP.file, S.review.type);
     const bad = await finishRead(d.result || {}, { engine: 'claude', relay: d.relay || null, model: d.model, usage: d.usage, truncated: !!d.truncated }, st);
     st.className = `status ${bad ? 'warn' : 'ok'}`; st.textContent = `Rapid Review done — the form is filled in from the plan.${bad ? ` ${bad} record mismatch${bad > 1 ? 'es' : ''} found (see below).` : ''} Verify every value before issuing comments.`;
@@ -1025,22 +1028,23 @@ async function runQueued() {
   SP.busy = true; spButtons();
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'Queued Review: uploading the plan to the private queue…';
   try {
-    const qm = await import('./queue.js?v=b0b12f7e');
+    const qm = await import('./queue.js?v=e040267b');
     const m = await qm.queuePlan(SP.file, { apn: normalizeApn(S.review.apn) || '', type: S.review.type, reviewer: S.review.reviewer });
     st.className = 'status ok'; st.textContent = `Queued ${m.file}. It will be read on LONDON at 12:15 AM (Sunday–Thursday nights); the results appear under Plan Queue on the right. The plan is kept 14 days, its data 45 days.`;
-    renderQueued();
+    renderQueued(true);
   } catch (e) { st.className = 'status err'; st.textContent = `Couldn't queue the plan: ${e.message}`; }
   finally { SP.busy = false; spButtons(); }
 }
-let qBusy = false;
-async function renderQueued() {
+let qBusy = false, qLast = 0;
+async function renderQueued(force = false) {
+  if (force !== true && Date.now() - qLast < 30000 && S.qItems) return; // tab switches reuse a list loaded in the last 30 s
   const el = $('#sp-qlist'); if (!el) return;
   if (!unlocked) { el.innerHTML = '<p class="sub">Connect this browser (⚙ Settings → Test GitHub) to see queued reviews.</p>'; return; }
   if (!hasPerm('queue')) return;
   if (qBusy) return; qBusy = true;
   el.innerHTML = '<p class="sub">Loading…</p>';
   try {
-    const qm = await import('./queue.js?v=b0b12f7e');
+    const qm = await import('./queue.js?v=e040267b');
     const items = await qm.listQueue();
     const st = (m) => m.status === 'done' ? (m.hasResult ? '✅ Ready' : '✅ Done (data expired)') : m.status === 'failed' ? `⚠ ${esc(m.note || 'Could not be read')}` : m.status === 'processing' ? '⏳ Processing' : '🕛 Queued for 12:15 AM';
     el.innerHTML = items.length ? `<ul class="qfiles">${items.map(m => `<li data-id="${esc(m.id)}" class="q-${esc(m.status)}">
@@ -1049,14 +1053,14 @@ async function renderQueued() {
         <div class="sub">Queued ${esc(new Date(m.submitted).toLocaleString())}${m.processedAt ? ` · read ${esc(new Date(m.processedAt).toLocaleString())}` : ''}${m.hasPdf ? '' : ' · plan deleted (14 days)'}</div>
         <div class="qf-act">${m.hasResult ? '<button class="btn sm primary" data-qload>Load results</button>' : ''}<button class="btn sm ghost" data-qdel title="Delete the plan and its data now">✕ Delete</button></div></li>`).join('')}</ul>`
       : '<p class="sub">Nothing queued yet. Drop a plan on the left and click <b>Queued Review</b>.</p>';
-    S.qItems = items;
+    S.qItems = items; qLast = Date.now();
   } catch (e) { el.innerHTML = `<p class="bad">${esc(e.message)}</p>`; }
   finally { qBusy = false; }
 }
 async function loadQueued(m) {
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = `Loading the queued review of ${m.file}…`;
   try {
-    const qm = await import('./queue.js?v=b0b12f7e');
+    const qm = await import('./queue.js?v=e040267b');
     const rec = await qm.getRecord(m.db || `db/${m.id}.json`);
     const file = m.hasPdf ? await qm.getPdf(m.id).then(f => new File([f], m.file, { type: 'application/pdf' })) : new File([], m.file);
     if (m.hasPdf) SP.file = file;
@@ -1068,7 +1072,7 @@ async function loadQueued(m) {
 }
 async function openPlanViewer() {
   const a = S.review.ai; if (!a || !a.result) return;
-  const pv = await import('./planviewer.js?v=b0b12f7e');
+  const pv = await import('./planviewer.js?v=e040267b');
   const blob = SP.file && SP.file.name === a.file ? SP.file : await pv.loadPdf(a.file);
   if (!blob) { toast(`Choose ${a.file} again above (it isn't stored in this browser), then open the viewer.`, 'error'); return; }
   pv.openViewer(blob, a, S.review, computeFindings(S.review).F, a.file);
@@ -1078,11 +1082,11 @@ $('#sp-file').addEventListener('change', (e) => spPick(e.target.files[0]));
 $('#sp-run').addEventListener('click', runSitePlan);
 $('#sp-free').addEventListener('click', runFreeRead);
 $('#sp-queue-btn').addEventListener('click', runQueued);
-$('#sp-qrefresh').addEventListener('click', renderQueued);
+$('#sp-qrefresh').addEventListener('click', () => renderQueued(true));
 $('#sp-qlist').addEventListener('click', async (e) => {
   const tr = e.target.closest('[data-id]'); if (!tr) return; const m = (S.qItems || []).find(x => x.id === tr.dataset.id); if (!m) return;
   if (e.target.closest('[data-qload]')) loadQueued(m);
-  if (e.target.closest('[data-qdel]')) { if (!confirm(`Delete ${m.file} and its review data from the private queue now?`)) return; try { (await import('./queue.js?v=b0b12f7e')).removeQueued(m).then(renderQueued); } catch (err) { toast(err.message, 'error'); } }
+  if (e.target.closest('[data-qdel]')) { if (!confirm(`Delete ${m.file} and its review data from the private queue now?`)) return; try { (await import('./queue.js?v=e040267b')).removeQueued(m).then(renderQueued); } catch (err) { toast(err.message, 'error'); } }
 });
 { const dz = $('#sp-drop');
   ['dragenter', 'dragover'].forEach(t => dz.addEventListener(t, (e) => { e.preventDefault(); dz.classList.add('over'); }));
