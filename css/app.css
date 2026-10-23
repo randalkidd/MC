@@ -413,3 +413,4 @@ html.vf-open { overflow: hidden; }
 .rl-head { display: flex; align-items: center; justify-content: flex-start; gap: .3rem; margin: .4rem 0 .2rem; }
 .rl-head #rl-count { margin: 0; }
 .rl-results.collapsed .rl-head { margin-bottom: 0; }
+.as-scope { margin-top: .2rem; }

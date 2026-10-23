@@ -1,6 +1,6 @@
 // Renders a lookup result in the project's parcel-report-template structure (HTML + Markdown).
-import { LINKS } from './lookup.js?v=1e1a0c7b';
-import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=1e1a0c7b';
+import { LINKS } from './lookup.js?v=9544dac1';
+import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=9544dac1';
 
 // Only allow http(s) URLs into href attributes; everything else becomes "#".
 const safeUrl = (u) => { try { const x = new URL(String(u), location.href); return /^https?:$/.test(x.protocol) ? x.href : '#'; } catch { return '#'; } };
