@@ -7,14 +7,14 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https://gis.maricopa.gov https://server.arcgisonline.com https://*.arcgisonline.com https://unpkg.com; connect-src 'self' https://gis.maricopa.gov https://publicapi.recorder.maricopa.gov https://edms.maricopa.gov https://recorder.maricopa.gov https://api.github.com https://*.workers.dev; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="preconnect" href="https://gis.maricopa.gov" crossorigin>
-<script src="js/theme.js?v=a84e0097"></script>
+<script src="js/theme.js?v=05f8d57c"></script>
 <title>Unofficial Maricopa County Zoning Hub</title>
 <meta name="description" content="Maricopa County parcel lookup, MCZO/MCSR standards, subdivision plat database and plan-review deficiency builder.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%232ec4b6'/><path d='M7 24V9l9 7 9-7v15' fill='none' stroke='%2304161a' stroke-width='3' stroke-linejoin='round'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=a84e0097">
-<link rel="modulepreload" href="js/app.js?v=a84e0097"><link rel="modulepreload" href="js/lookup.js?v=a84e0097"><link rel="modulepreload" href="js/report.js?v=a84e0097"><link rel="modulepreload" href="js/net.js?v=a84e0097"><link rel="modulepreload" href="js/github.js?v=a84e0097"><link rel="modulepreload" href="js/standards.js?v=a84e0097"><link rel="modulepreload" href="js/checklists.js?v=a84e0097"><link rel="modulepreload" href="js/review.js?v=a84e0097"><link rel="modulepreload" href="js/recorder.js?v=a84e0097"><link rel="modulepreload" href="js/subdivisions.js?v=a84e0097">
+<link rel="stylesheet" href="css/app.css?v=05f8d57c">
+<link rel="modulepreload" href="js/app.js?v=05f8d57c"><link rel="modulepreload" href="js/lookup.js?v=05f8d57c"><link rel="modulepreload" href="js/report.js?v=05f8d57c"><link rel="modulepreload" href="js/net.js?v=05f8d57c"><link rel="modulepreload" href="js/github.js?v=05f8d57c"><link rel="modulepreload" href="js/standards.js?v=05f8d57c"><link rel="modulepreload" href="js/checklists.js?v=05f8d57c"><link rel="modulepreload" href="js/review.js?v=05f8d57c"><link rel="modulepreload" href="js/recorder.js?v=05f8d57c"><link rel="modulepreload" href="js/subdivisions.js?v=05f8d57c">
 </head>
 <body>
 <header class="top">
@@ -86,20 +86,22 @@
     <div id="sp-status" class="status" hidden></div>
     <div id="sp-out"></div>
   </div>
-  <div class="sp-side">
-  <div class="card sp-vcard" id="sp-verify">
-    <div class="cardhead"><h2>Review Verification <button class="collapse-btn" type="button" data-collapse="sp" aria-expanded="true" title="Collapse">▾</button></h2></div>
-    <p class="sub">Step through the checklist one item at a time in its own window — flagged items, measured setbacks, plan-vs-record mismatches and hard-to-read values — and confirm each. Results fill the Checklist and Markup Table below.</p>
-    <div class="vf-prog" id="vf-prog"><i></i></div>
-    <p class="sub" id="vf-stat"></p>
-    <div class="actions"><button class="btn primary" id="vf-start" type="button">Start Verification</button><button class="btn ghost sm" id="vf-flagged" type="button" title="Only the items that are flagged or not yet reviewed">Flagged only</button></div>
-  </div>
   <aside class="card sp-qcard" id="sp-queued" data-perm="queue">
     <div class="cardhead"><h2>Plan Queue <button class="collapse-btn" type="button" data-collapse="sp" aria-expanded="true" title="Collapse">▾</button></h2><button class="btn sm" id="sp-qrefresh" type="button">Refresh</button></div>
     <p class="sub">Plans sent with Queued Review (private repo). Read on LONDON at 12:15 AM Sun–Thu · plans kept 14 days, data 45 days.</p>
-    <div id="sp-qlist"><p class="sub">Click Refresh to load.</p></div>
+    <div id="sp-qlist" class="sp-qscroll"><p class="sub">Click Refresh to load.</p></div>
   </aside>
   </div>
+  <div class="card sp-vcard collapsible" id="sp-verify">
+    <div class="cardhead"><h2>Review Verification <button class="collapse-btn" type="button" data-collapse="sp-verify" aria-expanded="true" title="Collapse">▾</button></h2></div>
+    <div class="vf-row">
+      <p class="sub vf-what">Step through the checklist one item at a time in its own window — flagged items, measured setbacks, plan-vs-record mismatches and hard-to-read values — and confirm each. Results fill the Checklist and Markup Table below.</p>
+      <div class="vf-side">
+        <div class="vf-prog" id="vf-prog"><i></i></div>
+        <p class="sub" id="vf-stat"></p>
+        <div class="actions"><button class="btn primary" id="vf-start" type="button">Start Verification</button><button class="btn ghost sm" id="vf-flagged" type="button" title="Only the items that are flagged or not yet reviewed">Flagged only</button></div>
+      </div>
+    </div>
   </div>
   <div class="grid2">
     <div class="card">
@@ -387,8 +389,8 @@
 <dialog id="saved-view" class="saved-view"><div class="cardhead"><h2 id="sv-title"></h2><button class="btn sm ghost" id="sv-close" type="button" aria-label="Close">✕</button></div><pre id="sv-text" class="sv-text"></pre><div class="actions"><button class="btn" id="sv-dl" type="button">Download</button><button class="btn danger" id="sv-del" type="button">Delete</button></div></dialog>
 </main>
 <footer class="foot">All information in this system is public and accessible to anyone; items saved here are stored in a public GitHub repository. Reference tool — verify findings against the adopted ordinance, recorded documents and case files before relying on them.
-<div class="build">Version <span id="build">10.23.26.036</span> · <span id="relay-ver" data-latest="21" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
+<div class="build">Version <span id="build">10.23.26.037</span> · <span id="relay-ver" data-latest="21" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
 <div id="toasts" aria-live="polite"></div>
-<script type="module" src="js/app.js?v=a84e0097"></script>
+<script type="module" src="js/app.js?v=05f8d57c"></script>
 </body>
 </html>

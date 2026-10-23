@@ -240,10 +240,8 @@ table.check td { vertical-align: middle; }
 .sp-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: 1rem; align-items: stretch; margin-bottom: 1rem; }
 .sp-grid > .card { margin: 0; }
 /* Plan Queue matches the reader's height (it never makes the row taller); its list scrolls inside */
-.sp-side { display: flex; flex-direction: column; gap: 1rem; height: 0; min-height: 100%; min-width: 0; }
-.sp-side > .card { margin: 0; }
-.sp-qcard { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
-.sp-qcard #sp-qlist { flex: 1; min-height: 0; overflow: auto; }
+.sp-qcard { display: flex; flex-direction: column; height: 0; min-height: 100%; overflow: hidden; }
+.sp-qcard #sp-qlist { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: .25rem; }
 .qfiles { list-style: none; margin: .4rem 0 0; padding: 0; display: grid; gap: .5rem; }
 .qfiles li { border: 1px solid var(--line); border-radius: 8px; padding: .5rem .6rem; background: var(--surface); font-size: .85rem; }
 .qfiles li.q-done { border-left: 3px solid var(--ok); } .qfiles li.q-failed { border-left: 3px solid var(--bad); } .qfiles li.q-queued, .qfiles li.q-processing { border-left: 3px solid var(--yellow); }
@@ -251,7 +249,7 @@ table.check td { vertical-align: middle; }
 .qf-top b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .qf-st { white-space: nowrap; font-size: .8rem; }
 .qf-act { display: flex; gap: .35rem; margin-top: .35rem; }
-@media (max-width: 900px) { .sp-grid { grid-template-columns: 1fr; } .sp-side { height: auto; min-height: 0; } .sp-qcard { flex: none; max-height: 70vh; } }
+@media (max-width: 900px) { .sp-grid { grid-template-columns: 1fr; } .sp-qcard { height: auto; min-height: 0; max-height: 70vh; } }
 
 /* Access-key permissions: elements marked data-perm show only when this browser's key has that permission */
 html:not(.perm-review) [data-perm="review"], html:not(.perm-write) [data-perm="write"], html:not(.perm-queue) [data-perm="queue"],
@@ -272,10 +270,9 @@ html:not(.perm-rapid) [data-perm="rapid"], html:not(.perm-admin) [data-perm="adm
 /* Collapse arrows */
 .collapse-btn { border: 0; background: transparent; color: var(--muted); font-size: 1.14em; line-height: 1; padding: .1rem .35rem; margin-left: .25rem; cursor: pointer; border-radius: 6px; vertical-align: middle; }
 .collapse-btn:hover, .collapse-btn:focus-visible { color: var(--accent); background: var(--soft); outline: none; }
-.sp-grid.collapsed > .card > :not(.cardhead), .sp-grid.collapsed > .sp-side > .card > :not(.cardhead) { display: none !important; }
-.sp-grid.collapsed > .card .cardhead, .sp-grid.collapsed > .sp-side > .card .cardhead { margin-bottom: 0; }
-.sp-grid.collapsed > .sp-side { height: auto; min-height: 0; }
-.sp-grid.collapsed .sp-qcard { flex: none; }
+.sp-grid.collapsed > .card > :not(.cardhead) { display: none !important; }
+.sp-grid.collapsed > .card .cardhead { margin-bottom: 0; }
+.sp-grid.collapsed .sp-qcard { height: auto; min-height: 0; }
 .collapsible.collapsed > :not(.cardhead) { display: none !important; }
 .collapsible.collapsed .cardhead .actions { display: none; }
 .ld-block { display: flex; flex-direction: column; gap: 1rem; margin: 0; }
@@ -316,7 +313,12 @@ html:not(.locked) .tab[data-tab="p-signin"] { display: none !important; }
 @media (max-width: 900px) { .games-grid { grid-template-columns: 1fr; } .leaderboard { position: static; } }
 
 /* Review Verification */
-.sp-vcard { flex: none; }
+.sp-vcard { margin-bottom: 1rem; }
+.vf-row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(260px, 1fr); gap: .6rem 1.4rem; align-items: center; }
+.vf-row .vf-what { margin: 0; }
+.vf-side .vf-prog { margin-top: 0; }
+.vf-side .actions { margin-top: .3rem; }
+@media (max-width: 760px) { .vf-row { grid-template-columns: 1fr; } }
 .vf-prog, .vf-bar { height: 6px; border-radius: 99px; background: var(--soft); overflow: hidden; margin: .5rem 0 .3rem; }
 .vf-prog i, .vf-bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .25s; }
 dialog.vf { width: min(720px, 96vw); max-height: 90vh; padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--card, var(--surface)); color: inherit; display: none; flex-direction: column; }
