@@ -4,17 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#132048">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https://gis.maricopa.gov https://server.arcgisonline.com https://*.arcgisonline.com https://unpkg.com; connect-src 'self' https://gis.maricopa.gov https://publicapi.recorder.maricopa.gov https://edms.maricopa.gov https://recorder.maricopa.gov https://api.github.com https://*.workers.dev; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https://gis.maricopa.gov https://gis.mcassessor.maricopa.gov https://server.arcgisonline.com https://*.arcgisonline.com https://unpkg.com; connect-src 'self' https://gis.maricopa.gov https://gis.mcassessor.maricopa.gov https://publicapi.recorder.maricopa.gov https://edms.maricopa.gov https://recorder.maricopa.gov https://api.github.com https://*.workers.dev; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="preconnect" href="https://gis.maricopa.gov" crossorigin>
-<script src="js/theme.js?v=1ae46fc1"></script>
+<script src="js/theme.js?v=1afc8f62"></script>
 <title>Unofficial Maricopa County Zoning Hub</title>
 <meta name="description" content="Maricopa County parcel lookup, MCZO/MCSR standards, subdivision plat database and plan-review deficiency builder.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%232ec4b6'/><path d='M7 24V9l9 7 9-7v15' fill='none' stroke='%2304161a' stroke-width='3' stroke-linejoin='round'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=1ae46fc1">
-<link rel="modulepreload" href="js/app.js?v=1ae46fc1"><link rel="modulepreload" href="js/lookup.js?v=1ae46fc1"><link rel="modulepreload" href="js/report.js?v=1ae46fc1"><link rel="modulepreload" href="js/net.js?v=1ae46fc1"><link rel="modulepreload" href="js/github.js?v=1ae46fc1"><link rel="modulepreload" href="js/standards.js?v=1ae46fc1"><link rel="modulepreload" href="js/checklists.js?v=1ae46fc1"><link rel="modulepreload" href="js/review.js?v=1ae46fc1"><link rel="modulepreload" href="js/recorder.js?v=1ae46fc1"><link rel="modulepreload" href="js/subdivisions.js?v=1ae46fc1">
+<link rel="stylesheet" href="css/app.css?v=1afc8f62">
+<link rel="modulepreload" href="js/app.js?v=1afc8f62"><link rel="modulepreload" href="js/lookup.js?v=1afc8f62"><link rel="modulepreload" href="js/report.js?v=1afc8f62"><link rel="modulepreload" href="js/net.js?v=1afc8f62"><link rel="modulepreload" href="js/github.js?v=1afc8f62"><link rel="modulepreload" href="js/standards.js?v=1afc8f62"><link rel="modulepreload" href="js/checklists.js?v=1afc8f62"><link rel="modulepreload" href="js/review.js?v=1afc8f62"><link rel="modulepreload" href="js/recorder.js?v=1afc8f62"><link rel="modulepreload" href="js/subdivisions.js?v=1afc8f62">
 </head>
 <body>
 <header class="top">
@@ -51,11 +51,19 @@
   <div id="maps" class="maps" hidden data-box="lookup-maps" data-box-label="Aerial and parcel maps">
     <figure><figcaption>Aerial</figcaption><div id="map" class="map"></div></figure>
     <figure><figcaption>Parcel Boundaries <span class="sub">(County Assessor Parcels)</span></figcaption><div id="map2" class="map"></div></figure>
-    <p class="sub map-key"><span class="sec-swatch"></span> Section lines (PLSS, County GIS) — labels show the distance from the parcel to the closest line north, south, east and west. <button class="btn sm" type="button" id="sec-zoom" hidden>Zoom to section lines</button></p>
+    <div class="map-key">
+      <label class="rowc"><input type="checkbox" id="sec-show"> Show Section Lines</label>
+      <div id="sec-legend" hidden>
+        <p class="sub"><span class="sec-swatch"></span> Section lines (PLSS, County GIS) — labels give the distance from the parcel to the closest line north, south, east and west.</p>
+        <p class="sub"><span class="sec-swatch mid"></span> Midsection lines — from the County's quarter-section lines where available; otherwise <b>approximate</b>, drawn halfway between the section lines, and <b>need verification</b>.</p>
+        <button class="btn sm" type="button" id="sec-zoom" hidden>Zoom to section lines</button>
+      </div>
+    </div>
   </div>
   <div id="report-actions" class="actions" hidden data-box="lookup-report" data-box-label="Parcel report (and its buttons)">
     <button class="btn" id="rep-copy">Copy as Markdown</button>
     <button class="btn" id="rep-dl">Download .md</button>
+    <button class="btn" id="rep-hist" type="button" title="View this parcel over County historical aerial imagery (years after 1995)">Historical Aerials</button>
     <button class="btn" id="rep-save" data-perm="saved" title="Save this report to your own Saved Items (private — only you can see it)">Save to Saved Items</button>
     <button class="btn" id="rep-pdf">Save PDF</button>
     <button class="btn ghost" id="rep-print">Print</button>
@@ -282,6 +290,7 @@
     <li><a href="https://experience.arcgis.com/experience/905ef9d0a9b646739d6b4458f7eb2910/" target="_blank" rel="noopener">What's My Zoning?</a></li>
     <li><a href="https://maricopa.maps.arcgis.com/apps/webappviewer/index.html?id=f4c45e831c9d4a7ba70b0fadb3635f7b" target="_blank" rel="noopener">PlanNet zoning overlay map</a></li>
     <li><a href="https://experience.arcgis.com/experience/1481eed4077842098b1174d0c8f23c17" target="_blank" rel="noopener">Road Information Tool</a></li>
+    <li><a href="https://gis.maricopa.gov/GIO/HistoricalAerial/index.html" target="_blank" rel="noopener">Historical Aerials (County GIO)</a> — also in Parcel Lookup → Historical Aerials</li>
     <li><a href="https://www.maricopa.gov/DocumentCenter/View/111506/Patent-Easement-Abandonment-Tracking-PDF" target="_blank" rel="noopener">MCDOT Patent Easement Abandonment Tracker (PDF)</a> — checked on every parcel lookup (weekly snapshot)</li>
     <li><a href="https://maricopa.maps.arcgis.com/apps/webappviewer/index.html?id=f1fd72bdc75f4b3982e0058f1beba159" target="_blank" rel="noopener">Floodplain &amp; Elevation Certificate Viewer</a></li>
     <li><a href="https://gis.maricopa.gov/TSP2040/" target="_blank" rel="noopener">TSP2040</a></li>
@@ -435,8 +444,8 @@
 <dialog id="saved-view" class="saved-view"><div class="cardhead"><h2 id="sv-title"></h2><button class="btn sm ghost" id="sv-close" type="button" aria-label="Close">✕</button></div><pre id="sv-text" class="sv-text"></pre><div class="actions"><button class="btn" id="sv-dl" type="button">Download</button><button class="btn danger" id="sv-del" type="button">Delete</button></div></dialog>
 </main>
 <footer class="foot">All information in this system is public and accessible to anyone; items saved here are stored in a public GitHub repository. Reference tool — verify findings against the adopted ordinance, recorded documents and case files before relying on them.
-<div class="build">Version <span id="build">10.23.26.067</span> · <span id="relay-ver" data-latest="23" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
+<div class="build">Version <span id="build">10.23.26.071</span> · <span id="relay-ver" data-latest="23" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
 <div id="toasts" aria-live="polite"></div>
-<script type="module" src="js/app.js?v=1ae46fc1"></script>
+<script type="module" src="js/app.js?v=1afc8f62"></script>
 </body>
 </html>

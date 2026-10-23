@@ -445,7 +445,23 @@ html.vf-open { overflow: hidden; }
 .ro-grid > label { display: flex !important; flex-direction: row; align-items: flex-start; gap: .5rem; margin: 0; }
 .ro-grid > label > input[type=checkbox] { width: auto; flex: none; margin: .2rem 0 0; }
 .ro-grid > label > span { min-width: 0; }
-.map-key { grid-column: 1 / -1; margin: 0; display: flex; align-items: center; gap: .4rem; }
+.map-key { grid-column: 1 / -1; margin: 0; }
+.map-key p { margin: .2rem 0; }
+.map-key .sec-swatch { vertical-align: middle; margin-right: .35rem; }
+.map-key label.rowc { margin: 0; }
 .sec-swatch { display: inline-block; width: 28px; height: 0; border-top: 3px dashed #e03131; }
 .leaflet-tooltip.sec-label { background: #e03131; color: #fff; border: 0; font-weight: 600; font-size: .72rem; padding: 1px 6px; box-shadow: 0 1px 4px rgb(0 0 0 / .35); }
 .leaflet-tooltip.sec-label::before { display: none; }
+.sec-swatch.mid { border-top: 2px dashed #ff8787; }
+.leaflet-tooltip.sec-label.mid { background: #ff8787; color: #3a0a0a; }
+
+/* Historical Aerials viewer */
+dialog.hist { width: min(1100px, calc(100vw - 24px)); max-width: none; height: min(820px, calc(100vh - 24px)); max-height: none; padding: 0; display: none; flex-direction: column; overflow: hidden; }
+dialog.hist[open] { display: flex; }
+dialog.hist::backdrop { background: rgb(0 0 0 / .6); }
+.hist-head { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; padding: .6rem .9rem; border-bottom: 1px solid var(--line); }
+.hist-tools { margin-left: auto; display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+.hist-tools label.rowc { margin: 0; }
+.hist-year { width: auto; }
+.hist-map { flex: 1; min-height: 0; }
+.hist-msg { margin: 0; padding: .45rem .9rem; border-top: 1px solid var(--line); }

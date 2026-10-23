@@ -19,6 +19,7 @@ export const PERM_ORDER = ['review', 'write', 'queue', 'rapid', 'saved', 'play',
 export const CAPS = [
   ['lookup.copy', 'Parcel Lookup', 'Copy / download the report (.md)', '#rep-copy, #rep-dl'],
   ['lookup.pdf', 'Parcel Lookup', 'Save PDF / print the report', '#rep-pdf, #rep-print'],
+  ['lookup.history', 'Parcel Lookup', 'Historical Aerials viewer', '#rep-hist'],
   ['lookup.save', 'Parcel Lookup', 'Save the report to Saved Items', '#rep-save', 'saved'],
   ['lookup.clear', 'Parcel Lookup', 'Clear button (clears Plan Review Hub)', '#hub-clear', 'review'],
   ['review.superficial', 'Plan Review Hub', 'Superficial Review', '#sp-free', 'review'],

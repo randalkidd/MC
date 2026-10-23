@@ -1,5 +1,5 @@
 // Parcel lookup — ports reference/workflow-standards.md to in-browser REST calls.
-import { arcgis, request } from './net.js?v=1ae46fc1';
+import { arcgis, request } from './net.js?v=1afc8f62';
 
 const GIS = 'https://gis.maricopa.gov/arcgis/rest/services';
 export const EP = {
@@ -144,9 +144,45 @@ export function sectionByDirection(features, rings, c, wById = new Map()) {
   for (const dir of ['north', 'south', 'east', 'west']) {
     const k = best[dir]; if (!k) { out[dir] = null; continue; }
     const g = wById.get(k.f.attributes._key); const wp = g && g.paths && g.paths[k.pi];
-    out[dir] = { distance: Math.round(k.d), type: k.f.attributes.PLSSType, orient: dir === 'east' || dir === 'west' ? 'N–S' : 'E–W', path: wp || null };
+    const p0 = k.f.geometry.paths[k.pi], a = p0[k.si - 1], b = p0[k.si]; const ns = dir === 'east' || dir === 'west';
+    const at = (u, v, i, j, q) => (v[i] === u[i] ? (u[j] + v[j]) / 2 : u[j] + (v[j] - u[j]) * (q - u[i]) / (v[i] - u[i]));
+    const pos = ns ? at(a, b, 1, 0, c[1]) : at(a, b, 0, 1, c[0]); // x of a N–S line at the parcel's y, or y of an E–W line at its x
+    out[dir] = { distance: Math.round(k.d), type: k.f.attributes.PLSSType, orient: ns ? 'N–S' : 'E–W', path: wp || null, pos };
   }
   return out;
+}
+// N–S midsection (between the east and west section lines) and E–W midsection (between north and south).
+export function midsections(sd, qFeats, qFeatsW, rings, c) {
+  const bb = ringsBBox(rings); const T = 50; const out = {};
+  for (const axis of ['ns', 'ew']) {
+    const lo = axis === 'ns' ? sd && sd.west : sd && sd.south, hi = axis === 'ns' ? sd && sd.east : sd && sd.north;
+    // county quarter-section lines running the right way past the parcel, inside this section
+    let best = null;
+    qFeats.forEach((f, fi) => ((f.geometry && f.geometry.paths) || []).forEach((path, pi) => { for (let si = 1; si < path.length; si++) {
+      const a = path[si - 1], b = path[si]; const vert = Math.abs(b[0] - a[0]) < Math.abs(b[1] - a[1]); if (vert !== (axis === 'ns')) continue;
+      if (vert ? (Math.max(a[1], b[1]) < bb.ymin - T || Math.min(a[1], b[1]) > bb.ymax + T) : (Math.max(a[0], b[0]) < bb.xmin - T || Math.min(a[0], b[0]) > bb.xmax + T)) continue;
+      const m = vert ? (a[0] + b[0]) / 2 : (a[1] + b[1]) / 2;
+      if (lo && hi && (m <= Math.min(lo.pos, hi.pos) + 100 || m >= Math.max(lo.pos, hi.pos) - 100)) continue; // must sit inside the section
+      const d = polyToLineDist(rings, [[a, b]]); if (!best || d < best.d) best = { d, m, fi, pi };
+    } }));
+    let pos, src, path = null;
+    if (best) { pos = best.m; src = 'county'; const g = qFeatsW[best.fi]; path = (g && g.geometry && g.geometry.paths && g.geometry.paths[best.pi]) || null; }
+    else if (lo && hi) { pos = (lo.pos + hi.pos) / 2; src = 'approx'; }
+    else { out[axis] = null; continue; }
+    const [min, max] = axis === 'ns' ? [bb.xmin, bb.xmax] : [bb.ymin, bb.ymax];
+    const distance = best ? Math.round(best.d) : Math.round(pos > max ? pos - max : pos < min ? min - pos : 0);
+    const dir = distance === 0 ? 'through the parcel' : axis === 'ns' ? (pos > c[0] ? 'east' : 'west') : (pos > c[1] ? 'north' : 'south');
+    out[axis] = { distance, dir, src, orient: axis === 'ns' ? 'N–S' : 'E–W', path, between: lo && hi ? Math.round(Math.abs(hi.pos - lo.pos)) : null };
+  }
+  return out;
+}
+// MCZO §805.1.2 grid network: future right-of-way 65 ft each side of section lines, 40 ft each side of midsection lines
+// (unless the Transportation System Plan says otherwise); yards are then measured from that ultimate street line (§805.2).
+export function rowReservation(sd, ms) {
+  const hits = [];
+  for (const [k, x] of Object.entries(sd || {})) if (x && x.distance < 65) hits.push({ line: `${k} section line`, distance: x.distance, reserve: 65, into: 65 - x.distance });
+  for (const [k, x] of Object.entries(ms || {})) if (x && x.distance < 40) hits.push({ line: `${x.orient} midsection line${x.src === 'approx' ? ' (approximate)' : ''}`, distance: x.distance, reserve: 40, into: 40 - x.distance });
+  return hits;
 }
 function nearestLine(features, rings, c) {
   let best = null;
@@ -178,6 +214,7 @@ export async function lookupParcel(apnInput, { onStep = () => {} } = {}) {
   const insetQ = { ...polyQ, geometry: JSON.stringify({ rings: insetRings(rings), spatialReference: { wkid: 2223 } }) };
   const recP = settle(lookupRecorder({ parcel: { ...a, DeedDate: fmtDate(a.DeedDate) } }));
   const trsQ = settle(arcgis(`${EP.trs}/query`, { geometry: env(2700), geometryType: 'esriGeometryEnvelope', inSR: '2223', outSR: '2223', spatialRel: 'esriSpatialRelIntersects', where: "PLSSType = 'Quarter Section'", outFields: 'PLSSType', returnGeometry: 'true', maxAllowableOffset: '2' }));
+  const trsQW = settle(arcgis(`${EP.trs}/query`, { geometry: env(2700), geometryType: 'esriGeometryEnvelope', inSR: '2223', outSR: '4326', spatialRel: 'esriSpatialRelIntersects', where: "PLSSType = 'Quarter Section'", outFields: 'PLSSType', returnGeometry: 'true', maxAllowableOffset: '0.00001' }));
   const trsW = settle(arcgis(`${EP.trs}/query`, { geometry: env(5800), geometryType: 'esriGeometryEnvelope', inSR: '2223', outSR: '4326', spatialRel: 'esriSpatialRelIntersects', where: "PLSSType <> 'Quarter Section'", outFields: '*', returnGeometry: 'true', maxAllowableOffset: '0.00001' }));
   const [idf, trs, fe, fp, ec, wgs, fcd, row] = await Promise.all([
     settle(arcgis(`${EP.plannet}/identify`, { geometry: gjson, geometryType: 'esriGeometryPolygon', sr: '2223', layers: 'all', tolerance: '0',
@@ -221,6 +258,11 @@ export async function lookupParcel(apnInput, { onStep = () => {} } = {}) {
     const idOf = (f, i) => { const a = f.attributes || {}; const v = a.OBJECTID ?? a.OBJECTID_1 ?? a.FID ?? a.objectid; return v != null ? `id${v}` : `i${i}`; };
     const wById = new Map(wf.map((f, i) => [idOf(f, i), f.geometry])); main.forEach((f, i) => { f.attributes = { ...f.attributes, _key: idOf(f, i) }; });
     R.sectionDirs = sectionByDirection(main.filter(f => f.attributes.PLSSType !== 'Quarter Section'), rings, c, wById);
+    // Midsection lines: the county's quarter-section lines inside this section when it has them, otherwise halfway between
+    // the section lines (approximate — verify). Then the MCZO §805.1.2 future right-of-way reservation check.
+    const qw = await trsQW; const qwf = (qw.ok && qw.v.features) || []; const qf = (qs.ok && qs.v.features) || [];
+    R.midsections = midsections(R.sectionDirs, qf, qwf, rings, c);
+    R.rowReserve = rowReservation(R.sectionDirs, R.midsections);
   }
 
   // PlanNet buckets

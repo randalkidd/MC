@@ -1,6 +1,6 @@
 // Renders a lookup result in the project's parcel-report-template structure (HTML + Markdown).
-import { LINKS } from './lookup.js?v=1ae46fc1';
-import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=1ae46fc1';
+import { LINKS } from './lookup.js?v=1afc8f62';
+import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=1afc8f62';
 
 // Only allow http(s) URLs into href attributes; everything else becomes "#".
 const safeUrl = (u) => { try { const x = new URL(String(u), location.href); return /^https?:$/.test(x.protocol) ? x.href : '#'; } catch { return '#'; } };
@@ -10,6 +10,27 @@ const mdLink = (t, u) => `[${t}](${u})`;
 // "N ≈ 1,234 ft · S ≈ 4,046 ft · E … · W …" — closest section line on each side of the parcel.
 const DIR4 = [['north', 'N'], ['south', 'S'], ['east', 'E'], ['west', 'W']];
 const sectionDirsText = (sd) => sd ? DIR4.map(([k, s]) => `${s} ${sd[k] ? `≈ ${sd[k].distance.toLocaleString()} ft${sd[k].type && sd[k].type !== 'Section' ? ` (${sd[k].type} line)` : ''}` : 'none within ~1 mi'}`).join(' · ') : null;
+// Section-line rows for the "Easements & Section Lines" section.
+const msText = (x, label) => x ? `${label} ≈ ${x.distance.toLocaleString()} ft ${x.dir}${x.src === 'approx' ? ' (approximate — halfway between the section lines; verify)' : ' (County PLSS quarter-section line)'}` : `${label}: not found`;
+export function sectionRows(R) {
+  const rows = [];
+  if (R.sectionDirs) rows.push(['Section lines — north / south / east / west (distance from parcel)', sectionDirsText(R.sectionDirs)]);
+  else if (R.sectionLine) rows.push(['Nearest section line', ftDir(R.sectionLine)]);
+  if (R.midsections && (R.midsections.ns || R.midsections.ew)) rows.push(['Midsection lines', [msText(R.midsections.ns, 'N–S midsection'), msText(R.midsections.ew, 'E–W midsection')].join(' · ')]);
+  if (R.rowReserve) rows.push(['Future right-of-way (MCZO §805.1.2)', R.rowReserve.length
+    ? R.rowReserve.map(h => `Parcel is ${h.distance} ft from the ${h.line} — inside the ${h.reserve} ft reservation by about ${h.into} ft`).join('; ') + '. Yards are measured from the ultimate street line (§805.2); confirm with MCDOT / the Transportation System Plan.'
+    : 'Parcel is outside the 65 ft section-line and 40 ft midsection-line reservations (confirm against the Transportation System Plan).']);
+  return rows;
+}
+function alsoChecked(R) {
+  const p = R.pab || {}; const rc = R.recorder || {};
+  const list = ['patent easements', 'Flood Control District easements', 'MCDOT right-of-way', 'easements recorded on plats in the subdivision database'];
+  if (R.pab && !p.error && !(p.hits || []).length && !(p.related || []).length) list.push('MCDOT Patent Easement Abandonment Tracker (not listed)');
+  if (!rc.error && rc.owner && !(rc.easements || []).length) list.push("Recorder — No Add'l Easement by Owner");
+  return list;
+}
+const deedSentence = (d) => d.hasEasement ? `Deed #${d.rec} (${d.codes.join(', ') || 'type n/a'}${d.date ? `, ${d.date}` : ''}) was recorded with an easement — listed above. Also read its exceptions.`
+  : `Deed #${d.rec} seems not to have any easements listed. Check for ambiguous definition and/or exceptions written into the text.`;
 const ftDir = (l) => l ? `≈ ${l.distance.toLocaleString()} ft ${l.dir} (${l.type} line, ${l.orient})${l.fallback ? ' — no plain "Section" feature in range; nearest higher-order PLSS line (likely coincident with the section grid)' : ''}` : null;
 
 // ---------- recorded-plat setbacks ----------
@@ -74,6 +95,9 @@ const DISTRICT_GROUPS = [
   { key: 'pm10', label: 'PM10 non-attainment', ids: [54] },
 ];
 const shortLayer = (n) => String(n || '').replace(/^District\s*[→>-]\s*/i, '').replace(/ School District$/i, '').replace(/^ADWR /, 'ADWR ');
+// "Luke Air Force Base Vicinity" and "Luke AFB Vicinity" are the same name.
+const normName = (s) => String(s).toLowerCase().replace(/air force base/g, 'afb').replace(/auxiliary( field)?/g, 'aux').replace(/[^a-z0-9]/g, '');
+const sameName = (a, b) => normName(a) === normName(b);
 export function groupDistricts(list) {
   return DISTRICT_GROUPS.map(g => {
     const items = (list || []).filter(x => g.ids.includes(x.layerId))
@@ -163,9 +187,6 @@ export function renderReportHTML(R, db) {
     ['MCR (plat book/page)', p.MCRNumber ? `${esc(p.MCRNumber)} · ${a('Recorder book/page search', LINKS.recBook(...p.MCRNumber.split('-')))}` : '—'],
     ['Deed (# / date)', p.DeedNumber ? a(`#${p.DeedNumber}, recorded ${p.DeedDate || '—'}`, LINKS.recDoc(p.DeedNumber)) : '—'],
     ['Township / Range / Section / Quarter', esc([p.Township, p.Range, p.Section, p.QuarterSection].map(dash).join(' / '))],
-    [`Nearest section line${(R.sectionLines || []).length > 1 ? 's' : ''}`, (R.sectionLines && R.sectionLines.length ? R.sectionLines.map(l => esc(ftDir(l))).join('<br>') : esc(dash(ftDir(R.sectionLine))))],
-    ...(R.sectionDirs ? [['Section lines — north / south / east / west', esc(sectionDirsText(R.sectionDirs))]] : []),
-    ...(R.midsectionLine ? [['Nearest midsection line', esc(ftDir(R.midsectionLine))]] : []),
     ['Lot size (GIS polygon)', `${p.areaSqFt.toLocaleString()} sq ft (${p.areaAcres} ac)`],
     ['Property use / legal class', esc(dash([p.LandLegalClassDescription, p.ImprovementLegalClassDescription].filter(Boolean).join(' / ')))],
   ];
@@ -228,21 +249,22 @@ export function renderReportHTML(R, db) {
   else out.push('<p class="ok">No overlay districts intersect this parcel.</p>');
   if (ovMiss.length) out.push(`<details class="miss"><summary>${ovMiss.length} other overlay${ovMiss.length > 1 ? 's' : ''} checked — no intersection</summary><p class="sub">${ovMiss.map(o => esc(o.name)).join(' · ')}</p></details>`);
 
-  h('Easements');
+  h('Easements & Section Lines');
   const ez = easementList(R, plat);
   if (ez.length) {
     table(ez.map(e => [`<b>${esc(e.kind)}</b>`, `${esc(e.detail)}${e.rec ? ` · ${a(`Rec. #${e.rec}`, e.url || LINKS.recDoc(e.rec))}` : ''}${e.platUrl ? ` · ${a('plat', e.platUrl)}` : ''}`, esc(e.source)]), ['Intersecting easement', 'Details', 'Source']);
     if (ez.some(e => e.patent)) out.push(`<div class="warn">Patent easement: structures inside it can be removed without compensation, and yard setbacks are measured from the easement line, not the property line (<a href="https://www.maricopa.gov/6446/Patent-Easements-DD-2015-09" target="_blank" rel="noopener">DD-2015-09</a>).${ez.some(e => e.pab && e.abandoned && !e.related) ? ' <b>An abandonment is recorded for this parcel</b> (listed above) — open the resolution to confirm which easement strips it released before applying the setback.' : ''}</div>`);
   } else out.push('<p><b>None found, verify</b></p>');
-  out.push(pabLine(R, true));
+  if (R.pab && ((R.pab.hits || []).length || (R.pab.related || []).length || R.pab.error)) out.push(pabLine(R, true));
   const rc = R.recorder || {};
   if (rc.error) out.push(`<p class="sub">⚠ County Recorder not checked (${esc(rc.error)}).</p>`);
   else {
     const d = rc.deed;
-    if (d) out.push(`<p class="sub">Deed ${a(`#${d.rec}`, LINKS.recDoc(d.rec))} (${esc(d.codes.join(', ') || 'type n/a')}${d.date ? `, ${esc(d.date)}` : ''}${d.pages ? `, ${d.pages} pp.` : ''}) checked: ${d.hasEasement ? 'recorded with an easement — listed above.' : 'no easement recorded with it.'} Easements written into the deed's text ("subject to…", reservations) aren't read automatically — open the deed to check its exceptions.</p>`);
-    if (rc.owner) out.push(`<p class="sub">Recorder searched for easements recorded by <b>${esc(rc.owner.label)}</b> since the deed${rc.easements && rc.easements.length ? ` — ${rc.easements.length} found (listed above; name match, confirm each covers this parcel)` : ' — none found'}.</p>`);
+    if (d) out.push(`<p class="sub">${d.hasEasement ? `Deed ${a(`#${d.rec}`, LINKS.recDoc(d.rec))} (${esc(d.codes.join(', ') || 'type n/a')}${d.date ? `, ${esc(d.date)}` : ''}${d.pages ? `, ${d.pages} pp.` : ''}) was recorded with an easement — listed above. Also read its exceptions.` : `Deed ${a(`#${d.rec}`, LINKS.recDoc(d.rec))} seems not to have any easements listed. Check for ambiguous definition and/or exceptions written into the text.`}</p>`);
+    if (rc.owner && rc.easements && rc.easements.length) out.push(`<p class="sub">Recorder searched for easements recorded by <b>${esc(rc.owner.label)}</b> since the deed — ${rc.easements.length} found (listed above; name match, confirm each covers this parcel).</p>`);
   }
-  out.push('<p class="sub">Also checked: patent easements, MCDOT\'s Patent Easement Abandonment Tracker, Flood Control District easements, MCDOT right-of-way, and easements recorded on plats in the subdivision database. Public utility, shared-well, ingress/egress and other private easements are not mapped — check the deed, the title report and the recorded plat.</p>');
+  { const sr = sectionRows(R); if (sr.length) { out.push('<h4>Section Lines</h4>'); table(sr.map(([k, v]) => [esc(k), esc(v)]), ['Section line', 'Distance / note']); } }
+  out.push(`<p class="sub">Also checked: ${esc(alsoChecked(R).join('; '))}. Public utility, shared-well, ingress/egress and other private easements are not mapped — check the deed, the title report and the recorded plat.</p>`);
 
   h('Zoning / Planning Cases');
   const caseTable = (list) => list.length ? table(list.map(c => [esc(c.type), permitHTML(c.permit), esc(dash(c.name)), esc(dash(c.status)), esc(dash(c.date)), esc(dash(c.request))]), ['Type', 'Permit #', 'Name', 'Status', 'Date', 'Request']) : out.push('<p>None found.</p>');
@@ -256,7 +278,7 @@ export function renderReportHTML(R, db) {
     rows.push(['Floodplain', `<b class="bad">Hit</b>${R.flood.floodway ? ' — <b>FLOODWAY</b>' : ''}: ${esc(z.join('; ') || '—')}${R.flood.certs.length ? `; elevation certificate(s): ${esc(R.flood.certs.map(c => c.ElevCertNumber).join(', '))}` : ''} · ${a('Floodplain Viewer', LINKS.flood)}`]);
   }
   const dl = (list) => esc(list.map(x => `${x.layer}: ${x.value}`).join(' · ') || '—');
-  const lines = (list) => (list && list.length ? [...new Set(list.map(x => { const l = shortLayer(x.layer).replace(/^(Military|Planning|Development|Natural Resource)\s*[→>-]\s*/i, ''); const v = String(x.value ?? '').trim(); return !v || v.toLowerCase() === l.toLowerCase() ? l : `${l}: ${v}`; }))].map(esc).join('<br>') : '—');
+  const lines = (list) => (list && list.length ? [...new Set(list.map(x => { const l = shortLayer(x.layer).replace(/^(Military|Planning|Development|Natural Resource)\s*[→>-]\s*/i, ''); const v = String(x.value ?? '').trim(); return !v || sameName(v, l) ? l : `${l}: ${v}`; }))].map(esc).join('<br>') : '—');
   rows.push(['Planning layers', lines(R.planning)], ['Development layers', lines(R.development)]);
   const dRows = [];
   for (const g of groupDistricts(R.district)) {
@@ -297,9 +319,6 @@ export function renderReportMD(R, db, extras = {}) {
     ['Book / Map (plat)', dash(p.MCRNumber)],
     ['Deed (# / date)', p.DeedNumber ? mdLink(`#${p.DeedNumber}, recorded ${p.DeedDate}`, LINKS.recDoc(p.DeedNumber)) : '—'],
     ['Township / Range / Section / Quarter Section', [p.Township, p.Range, p.Section, p.QuarterSection].map(dash).join(' / ')],
-    ['Nearest section lines (direction & distance)', R.sectionLines && R.sectionLines.length ? R.sectionLines.map(ftDir).join('; ') : dash(ftDir(R.sectionLine))],
-    ...(R.sectionDirs ? [['Section lines — north / south / east / west (distance from parcel)', sectionDirsText(R.sectionDirs)]] : []),
-    ...(R.midsectionLine ? [['Nearest midsection line (direction & distance)', ftDir(R.midsectionLine)]] : []),
     ['Lot size (sq ft / acres)', `${p.areaSqFt.toLocaleString()} / ${p.areaAcres}`],
     ['Property use description', dash([p.LandLegalClassDescription, p.ImprovementLegalClassDescription].filter(Boolean).join(' / '))],
   ]);
@@ -325,10 +344,13 @@ export function renderReportMD(R, db, extras = {}) {
   else L.push(`${p.SubdivisionName} (MCR ${p.MCRNumber || '—'}) — not yet in the subdivision database; plat not checked.`, '');
   H('Overlay Districts');
   { const hit = R.overlays.filter(o => o.hit); hit.length ? t(hit.map(o => [o.name, o.notes || '—']), ['Intersecting overlay', 'Notes']) : L.push('No overlay districts intersect this parcel.', ''); L.push(`_${R.overlays.length - hit.length} other overlays checked — no intersection._`, ''); }
-  H('Easements');
+  H('Easements & Section Lines');
   { const ez = easementList(R, plat); ez.length ? t(ez.map(e => [e.kind, `${e.detail}${e.rec ? ` · ${mdLink(`Rec. #${e.rec}`, e.url || LINKS.recDoc(e.rec))}` : ''}`, e.source]), ['Intersecting easement', 'Details', 'Source']) : L.push('None found, verify', '');
-    const d = R.recorder && R.recorder.deed; if (d) L.push(`Deed ${mdLink(`#${d.rec}`, LINKS.recDoc(d.rec))} (${d.codes.join(', ')}) checked: ${d.hasEasement ? 'recorded with an easement.' : 'no easement recorded with it;'} deed text exceptions not read automatically — review the deed.`, ''); 
-    L.push(pabLine(R, false), ''); }
+    if (R.pab && ((R.pab.hits || []).length || (R.pab.related || []).length || R.pab.error)) L.push(pabLine(R, false), '');
+    const rc = R.recorder || {}; const d = rc.deed; if (d) L.push(deedSentence(d).replace(`Deed #${d.rec}`, `Deed ${mdLink(`#${d.rec}`, LINKS.recDoc(d.rec))}`), '');
+    if (rc.owner && rc.easements && rc.easements.length) L.push(`Recorder: ${rc.easements.length} easement(s) recorded by ${rc.owner.label} since the deed (listed above; confirm each covers this parcel).`, '');
+    const sr = sectionRows(R); if (sr.length) { L.push('**Section lines**', ''); t(sr, ['Section line', 'Distance / note']); }
+    L.push(`_Also checked: ${alsoChecked(R).join('; ')}._`, ''); }
   H('Zoning / Planning Cases'); L.push('**Current / pending:**', '');
   const pmd = (n) => { const k = permitLink(n); return k ? mdLink(n, k.url) : dash(n); };
   R.currentCases.length ? t(R.currentCases.map(c => [c.type, pmd(c.permit), c.name, c.status, c.date]), ['Case type', 'Permit #', 'Name', 'Status', 'Date']) : L.push('None found.', '');
