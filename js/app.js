@@ -1,13 +1,13 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=2fba8b25';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=2fba8b25';
-import { settings, setSharedRelay } from './net.js?v=2fba8b25';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=2fba8b25';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=2fba8b25';
-import { CHECKLISTS } from './checklists.js?v=2fba8b25';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown, markupRows, rememberReviewer, rememberedReviewer } from './review.js?v=2fba8b25';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=715d40f3';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=715d40f3';
+import { settings, setSharedRelay } from './net.js?v=715d40f3';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=715d40f3';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=715d40f3';
+import { CHECKLISTS } from './checklists.js?v=715d40f3';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown, markupRows, rememberReviewer, rememberedReviewer } from './review.js?v=715d40f3';
 let REF = null; // js/refdata.js (76 KB) loads the first time the Reference tab opens
-import { findPlatDoc } from './recorder.js?v=2fba8b25';
-import { loadAllSubdivisions } from './subdivisions.js?v=2fba8b25';
+import { findPlatDoc } from './recorder.js?v=715d40f3';
+import { loadAllSubdivisions } from './subdivisions.js?v=715d40f3';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -414,7 +414,7 @@ $('#rep-save').addEventListener('click', async () => {
 $('#rep-pdf').addEventListener('click', async (e) => {
   const b = e.currentTarget; if (b.disabled || !S.md) return;
   b.disabled = true; const label = b.textContent; b.textContent = 'Building PDF…';
-  try { const { reportPDF } = await import('./pdf.js?v=2fba8b25'); await reportPDF(S.md, { apn: S.R.apn }); toast('PDF saved', 'ok'); }
+  try { const { reportPDF } = await import('./pdf.js?v=715d40f3'); await reportPDF(S.md, { apn: S.R.apn }); toast('PDF saved', 'ok'); }
   catch (err) { toast(`PDF failed: ${err.message}`, 'error'); }
   finally { b.disabled = false; b.textContent = label; }
 });
@@ -673,7 +673,7 @@ function bindReview() {
       const info = { apn: s.apn, permit: s.permit, date: s.date, plan: s.planTitle, type: CHECKLISTS[s.type]?.label || s.type,
         address: [p.PropertyFullStreetAddress, p.PropertyCity].filter(Boolean).join(', ') || P.site_address || '', owner: p.OwnerName || P.owner_name || '',
         district: s.district, reviewer: s.reviewer || who.name, email: s.reviewerEmail || who.email };
-      const { commentLetterPDF } = await import('./commentletter.js?v=2fba8b25');
+      const { commentLetterPDF } = await import('./commentletter.js?v=715d40f3');
       const out = await commentLetterPDF({ rows: markupRows(s).rows, info });
       toast(`Comment letter saved — ${out.count} comment${out.count === 1 ? '' : 's'}`, 'ok');
     } catch (err) { toast(err.message, 'error'); }
@@ -773,7 +773,7 @@ async function renderSaved() {
 // ---------------- reference ----------------
 let refP = null;
 function renderReference() {
-  return (refP ||= import('./refdata.js?v=2fba8b25').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
+  return (refP ||= import('./refdata.js?v=715d40f3').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
 }
 function fillReference() {
   const { DIRECTIVES, MCSR_QUICK, REG_DOCS, REG_LOOKUP } = REF;
@@ -931,7 +931,7 @@ function renderSitePlan() {
 }
 // Shared by both readers: look up the parcel, check the deed, compare, fill the form.
 async function finishRead(res, meta, st, file = SP.file) {
-  const sp = await import('./siteplan.js?v=2fba8b25');
+  const sp = await import('./siteplan.js?v=715d40f3');
   const planApn = normalizeApn(res.parcel && res.parcel.apn);
   let R = S.R && S.review.apn && S.R.apn === normalizeApn(S.review.apn) ? S.R : null, lookupError = '';
   const target = normalizeApn(S.review.apn) || planApn;
@@ -948,9 +948,9 @@ async function finishRead(res, meta, st, file = SP.file) {
   sp.applyToReview(S.review, res, compare, { merge: meta.engine === 'free' });
   S.review.ai = { file: file.name, at: new Date().toISOString(), ...meta, result: res, compare, deedNames: deed, apn: R ? R.apn : null, lookupError };
   saveDraft(S.review); renderReview();
-  import('./planviewer.js?v=2fba8b25').then(m => m.savePdf(file)).catch(() => {});
+  import('./planviewer.js?v=715d40f3').then(m => m.savePdf(file)).catch(() => {});
   // Keep what was read in the private plan-review database (45 days). Queued reads are already stored by the routine.
-  if (unlocked && meta.engine !== 'queued') import('./queue.js?v=2fba8b25').then(qm => qm.saveRecord({ source: meta.engine === 'free' ? 'superficial' : 'rapid', file: file.name, apn: (R && R.apn) || normalizeApn(res.parcel && res.parcel.apn) || '', type: S.review.type, model: meta.model, result: res, compare })).catch(e => console.warn('private db', e));
+  if (unlocked && meta.engine !== 'queued') import('./queue.js?v=715d40f3').then(qm => qm.saveRecord({ source: meta.engine === 'free' ? 'superficial' : 'rapid', file: file.name, apn: (R && R.apn) || normalizeApn(res.parcel && res.parcel.apn) || '', type: S.review.type, model: meta.model, result: res, compare })).catch(e => console.warn('private db', e));
   return compare.filter(c => c[3] === 'deficient').length;
 }
 // Three ways to read a plan: Superficial (free, in this browser), Rapid (Claude API through the relay, ~1 min),
@@ -961,7 +961,7 @@ async function runFreeRead() {
   SP.busy = true; spButtons();
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'Superficial Review: reading the PDF text in your browser…';
   try {
-    const fr = await import('./freeread.js?v=2fba8b25');
+    const fr = await import('./freeread.js?v=715d40f3');
     const out = await fr.freeReadSitePlan(SP.file, S.review.type);
     if (out.quality === 'none') { st.className = 'status warn'; st.textContent = 'Superficial Review couldn\'t read this plan: the PDF has no selectable text (a scan or flattened drawing). Use Rapid Review or Queued Review.'; return; }
     const bad = await finishRead(out.result, { engine: 'free', model: 'Superficial Review (in-browser text reader)', quality: out.quality, found: out.found, missing: out.missing }, st);
@@ -975,7 +975,7 @@ async function runSitePlan() {
   SP.busy = true; spButtons();
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'Rapid Review: sending the PDF to Claude — reading every sheet usually takes 30–90 seconds…';
   try {
-    const sp = await import('./siteplan.js?v=2fba8b25');
+    const sp = await import('./siteplan.js?v=715d40f3');
     const d = await sp.readSitePlan(SP.file, S.review.type);
     const bad = await finishRead(d.result || {}, { engine: 'claude', relay: d.relay || null, model: d.model, usage: d.usage, truncated: !!d.truncated }, st);
     st.className = `status ${bad ? 'warn' : 'ok'}`; st.textContent = `Rapid Review done — the form is filled in from the plan.${bad ? ` ${bad} record mismatch${bad > 1 ? 'es' : ''} found (see below).` : ''} Verify every value before issuing comments.`;
@@ -988,7 +988,7 @@ async function runQueued() {
   SP.busy = true; spButtons();
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'Queued Review: uploading the plan to the private queue…';
   try {
-    const qm = await import('./queue.js?v=2fba8b25');
+    const qm = await import('./queue.js?v=715d40f3');
     const m = await qm.queuePlan(SP.file, { apn: normalizeApn(S.review.apn) || '', type: S.review.type, reviewer: S.review.reviewer });
     st.className = 'status ok'; st.textContent = `Queued ${m.file}. It will be read on LONDON at 12:15 AM (Sunday–Thursday nights); the results appear in Queued reviews below. The plan is kept 14 days, its data 45 days.`;
     renderQueued();
@@ -1002,7 +1002,7 @@ async function renderQueued() {
   if (qBusy) return; qBusy = true;
   el.innerHTML = '<p class="sub">Loading…</p>';
   try {
-    const qm = await import('./queue.js?v=2fba8b25');
+    const qm = await import('./queue.js?v=715d40f3');
     const items = await qm.listQueue();
     const st = (m) => m.status === 'done' ? (m.hasResult ? '✅ Ready' : '✅ Done (data expired)') : m.status === 'failed' ? `⚠ ${esc(m.note || 'Could not be read')}` : m.status === 'processing' ? '⏳ Processing' : '🕛 Queued for 12:15 AM';
     el.innerHTML = items.length ? `<div class="tw"><table><thead><tr><th>Plan</th><th>APN</th><th>Submittal</th><th>Queued</th><th>Status</th><th></th></tr></thead><tbody>${items.map(m => `<tr data-id="${esc(m.id)}">
@@ -1017,7 +1017,7 @@ async function renderQueued() {
 async function loadQueued(m) {
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = `Loading the queued review of ${m.file}…`;
   try {
-    const qm = await import('./queue.js?v=2fba8b25');
+    const qm = await import('./queue.js?v=715d40f3');
     const rec = await qm.getRecord(m.db || `db/${m.id}.json`);
     const file = m.hasPdf ? await qm.getPdf(m.id).then(f => new File([f], m.file, { type: 'application/pdf' })) : new File([], m.file);
     if (m.hasPdf) SP.file = file;
@@ -1029,7 +1029,7 @@ async function loadQueued(m) {
 }
 async function openPlanViewer() {
   const a = S.review.ai; if (!a || !a.result) return;
-  const pv = await import('./planviewer.js?v=2fba8b25');
+  const pv = await import('./planviewer.js?v=715d40f3');
   const blob = SP.file && SP.file.name === a.file ? SP.file : await pv.loadPdf(a.file);
   if (!blob) { toast(`Choose ${a.file} again above (it isn't stored in this browser), then open the viewer.`, 'error'); return; }
   pv.openViewer(blob, a, S.review, computeFindings(S.review).F, a.file);
@@ -1043,7 +1043,7 @@ $('#sp-qrefresh').addEventListener('click', renderQueued);
 $('#sp-qlist').addEventListener('click', async (e) => {
   const tr = e.target.closest('tr[data-id]'); if (!tr) return; const m = (S.qItems || []).find(x => x.id === tr.dataset.id); if (!m) return;
   if (e.target.closest('[data-qload]')) loadQueued(m);
-  if (e.target.closest('[data-qdel]')) { if (!confirm(`Delete ${m.file} and its review data from the private queue now?`)) return; try { (await import('./queue.js?v=2fba8b25')).removeQueued(m).then(renderQueued); } catch (err) { toast(err.message, 'error'); } }
+  if (e.target.closest('[data-qdel]')) { if (!confirm(`Delete ${m.file} and its review data from the private queue now?`)) return; try { (await import('./queue.js?v=715d40f3')).removeQueued(m).then(renderQueued); } catch (err) { toast(err.message, 'error'); } }
 });
 { const dz = $('#sp-drop');
   ['dragenter', 'dragover'].forEach(t => dz.addEventListener(t, (e) => { e.preventDefault(); dz.classList.add('over'); }));

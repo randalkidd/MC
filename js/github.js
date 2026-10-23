@@ -26,11 +26,12 @@ export const gh = {
   },
   get passphrase() { return LS('gh.pass') || ''; },
   set passphrase(v) { LS('gh.pass', v || null); },
-  get viaRelay() { return !this.token && !!this.passphrase && !!relayUrl(); },
+  // The relay (passphrase) wins whenever it's set up; a token saved in this browser is only used without a passphrase.
+  get viaRelay() { return !!this.passphrase && !!relayUrl(); },
   get canWrite() { return !!(this.owner && this.repo && (this.token || this.viaRelay)); },
 };
 
-import { settings } from './net.js?v=2fba8b25';
+import { settings } from './net.js?v=715d40f3';
 const relayUrl = () => settings.proxy;
 
 export async function relayFetch(route, init = {}) { return relay(route, init); }
@@ -58,7 +59,7 @@ const b64dec = (b64) => new TextDecoder().decode(Uint8Array.from(atob(b64.replac
 
 async function ghFetch(url, init = {}) {
   const headers = { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', ...(init.headers || {}) };
-  if (gh.token) headers.Authorization = `Bearer ${gh.token}`;
+  if (gh.token && !gh.viaRelay) headers.Authorization = `Bearer ${gh.token}`;
   const r = await fetch(url, { ...init, headers, cache: 'no-store' });
   if (r.status === 404) return null;
   if (!r.ok) {
