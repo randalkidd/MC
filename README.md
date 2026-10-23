@@ -16,7 +16,7 @@ Questions, corrections or suggestions? Email the designer, Randal Kidd, at [rand
 - **Parcel lookup.** Enter an APN and the app pulls:
   - the Assessor record
   - every PlanNet layer in one `identify` call (zoning, overlays, current and historic cases, districts, natural resource, military)
-  - the PLSS nearest section and midsection lines
+  - the PLSS section lines: distance to the closest one north, south, east and west (labeled on both maps, with "Zoom to section lines"), plus the nearest midsection line
   - FEMA effective and preliminary floodplain, plus elevation certificates
 
   It computes lot area, draws the parcel on aerial imagery, and fills the standard parcel-report template (copy, download as .md, **Save PDF**, print, or save to the repo). **Save PDF** downloads a letter-size `Parcel-<APN>-report.pdf` with working links, a running header and page numbers. Printing always comes out in light colors, even when the screen is in dark mode, and puts snapshots of the aerial and parcel-boundary maps (refit to the parcel) right under the **Parcel <APN>** heading. Use the **Print** button for the best map snapshot: it waits for the map tiles to load first. On-demand add-ons: Road Information Tool, TSP2040 corridor projects, and the EDMS septic search (relay needed).
