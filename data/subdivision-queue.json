@@ -1,5 +1,21 @@
 {
   "schema": 1,
-  "updated": "2026-10-23T07:08:55.000Z",
-  "items": []
+  "updated": "2026-10-23T15:58:39.284Z",
+  "items": [
+    {
+      "name": "10 SKY HARBOR BUSINESS CENTER",
+      "displayName": "10 Sky Harbor Business Center",
+      "mcr": "1252-14",
+      "rec": "",
+      "recorded": "",
+      "totalLots": 1,
+      "baseZoning": "",
+      "controllingCases": "",
+      "apns": [],
+      "firstSeen": "2026-10-23",
+      "lastSeen": "2026-10-23",
+      "status": "pending",
+      "note": "Added from All Subdivisions (no parcel lookup yet)"
+    }
+  ]
 }
