@@ -273,3 +273,24 @@ html:not(.locked) .tab[data-tab="p-signin"] { display: none !important; }
 .ld-out-inline { margin: .6rem 0; }
 .ld-out-inline:empty { display: none; }
 .folder h3 { margin: 1rem 0 .3rem; }
+
+/* Behind The Curtain */
+.games-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 1rem; align-items: start; }
+.games-left { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
+.leaderboard { position: sticky; top: 56px; }
+.lb-list { list-style: none; padding: 0; margin: .4rem 0 0; display: grid; gap: .3rem; counter-reset: lb; }
+.lb-list li.lb { display: grid; grid-template-columns: 2rem 1fr auto; gap: .5rem; align-items: center; padding: .35rem .5rem; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); font-size: .88rem; }
+.lb-rank { font: 700 .9rem var(--display); color: var(--muted); text-align: center; }
+.lb-list li:nth-child(1) .lb-rank { color: #f5c542; } .lb-list li:nth-child(2) .lb-rank { color: #c0c7d0; } .lb-list li:nth-child(3) .lb-rank { color: #d8935a; }
+.lb-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-pts { font-weight: 700; } .lb-list li.me { border-color: var(--accent); }
+.mct-cats { display: flex; flex-wrap: wrap; gap: .4rem; margin: .6rem 0; }
+.mct-cats button[aria-checked="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.mct-top { display: flex; gap: .7rem; align-items: center; } .mct-score { margin-left: auto; font-weight: 700; }
+.mct-q { font-size: 1.05rem; line-height: 1.4; margin: .7rem 0; }
+.mct-opts { display: grid; gap: .45rem; }
+.mct-opts button { text-align: left; white-space: normal; padding: .6rem .75rem; line-height: 1.35; }
+.mct-opts button.right { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 18%, transparent); }
+.mct-opts button.wrong { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 18%, transparent); }
+.mct-fb { margin-top: .6rem; padding: .55rem .7rem; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); font-size: .9rem; }
+@media (max-width: 900px) { .games-grid { grid-template-columns: 1fr; } .leaderboard { position: static; } }

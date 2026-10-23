@@ -1,13 +1,13 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=69c81ac9';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=69c81ac9';
-import { settings, setSharedRelay } from './net.js?v=69c81ac9';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache, perms, hasPerm, relayFetch } from './github.js?v=69c81ac9';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=69c81ac9';
-import { CHECKLISTS } from './checklists.js?v=69c81ac9';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown, markupRows, rememberReviewer, rememberedReviewer } from './review.js?v=69c81ac9';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=e4e248ff';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=e4e248ff';
+import { settings, setSharedRelay } from './net.js?v=e4e248ff';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache, perms, hasPerm, relayFetch } from './github.js?v=e4e248ff';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=e4e248ff';
+import { CHECKLISTS } from './checklists.js?v=e4e248ff';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown, markupRows, rememberReviewer, rememberedReviewer } from './review.js?v=e4e248ff';
 let REF = null; // js/refdata.js (76 KB) loads the first time the Reference tab opens
-import { findPlatDoc } from './recorder.js?v=69c81ac9';
-import { loadAllSubdivisions } from './subdivisions.js?v=69c81ac9';
+import { findPlatDoc } from './recorder.js?v=e4e248ff';
+import { loadAllSubdivisions } from './subdivisions.js?v=e4e248ff';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -109,9 +109,10 @@ function showTab(id) {
   try { localStorage.setItem('mc.tab', id); } catch {}
   if (id === 'p-lookup' && S.map) setTimeout(() => { S.map.invalidateSize(); S.map2?.invalidateSize(); }, 50);
   if (id === 'p-saved') renderSaved();
-  if (id === 'p-review') { renderQueued(); (window.requestIdleCallback || setTimeout)(() => { import('./freeread.js?v=69c81ac9').catch(() => {}); import('./siteplan.js?v=69c81ac9').catch(() => {}); }); }
+  if (id === 'p-review') { renderQueued(); (window.requestIdleCallback || setTimeout)(() => { import('./freeread.js?v=e4e248ff').catch(() => {}); import('./siteplan.js?v=e4e248ff').catch(() => {}); }); }
   if (id === 'p-signin') renderSignin();
   if (id === 'p-profile') renderProfile();
+  if (id === 'p-games') renderGames();
   if (id === 'p-settings' && hasPerm('admin')) loadFolderUsers();
   if (id === 'p-ref') renderReference();
   if (id === 'p-subs') { if (!$('#allsubs').classList.contains('collapsed')) openAllSubs(); fitDbRows(); }
@@ -444,12 +445,12 @@ $('#report').addEventListener('click', async (e) => {
 $('#rep-copy').addEventListener('click', () => copy(S.md));
 $('#rep-dl').addEventListener('click', () => download(`${S.R.apn}.md`, S.md));
 $('#rep-save').addEventListener('click', async () => {
-  try { const qm = await import('./queue.js?v=69c81ac9'); await qm.putMine(`parcels/${S.R.apn}.md`, S.md + '\n'); toast('Saved to your Saved Items (private)', 'ok'); } catch (e) { toast(e.message, 'error'); }
+  try { const qm = await import('./queue.js?v=e4e248ff'); await qm.putMine(`parcels/${S.R.apn}.md`, S.md + '\n'); toast('Saved to your Saved Items (private)', 'ok'); } catch (e) { toast(e.message, 'error'); }
 });
 $('#rep-pdf').addEventListener('click', async (e) => {
   const b = e.currentTarget; if (b.disabled || !S.md) return;
   b.disabled = true; const label = b.textContent; b.textContent = 'Building PDF…';
-  try { const { reportPDF } = await import('./pdf.js?v=69c81ac9'); await reportPDF(S.md, { apn: S.R.apn }); toast('PDF saved', 'ok'); }
+  try { const { reportPDF } = await import('./pdf.js?v=e4e248ff'); await reportPDF(S.md, { apn: S.R.apn }); toast('PDF saved', 'ok'); }
   catch (err) { toast(`PDF failed: ${err.message}`, 'error'); }
   finally { b.disabled = false; b.textContent = label; }
 });
@@ -708,7 +709,7 @@ function bindReview() {
       const info = { apn: s.apn, permit: s.permit, date: s.date, plan: s.planTitle, type: CHECKLISTS[s.type]?.label || s.type,
         address: [p.PropertyFullStreetAddress, p.PropertyCity].filter(Boolean).join(', ') || P.site_address || '', owner: p.OwnerName || P.owner_name || '',
         district: s.district, reviewer: s.reviewer || who.name, email: s.reviewerEmail || who.email };
-      const { commentLetterPDF } = await import('./commentletter.js?v=69c81ac9');
+      const { commentLetterPDF } = await import('./commentletter.js?v=e4e248ff');
       const out = await commentLetterPDF({ rows: markupRows(s).rows, info });
       toast(`Comment letter saved — ${out.count} comment${out.count === 1 ? '' : 's'}`, 'ok');
     } catch (err) { toast(err.message, 'error'); }
@@ -718,7 +719,7 @@ function bindReview() {
   $('#rv-dl').addEventListener('click', () => renderOutput() || download(`review-${S.review.apn || 'plan'}-${S.review.date}.md`, $('#rv-md').value));
   $('#rv-save').addEventListener('click', async () => {
     renderOutput();
-    try { const qm = await import('./queue.js?v=69c81ac9'); const base = `reviews/${(S.review.apn || 'no-apn').replace(/[^A-Za-z0-9-]/g, '')}-${S.review.date}-${S.review.type}`; await qm.putMine(`${base}.md`, $('#rv-md').value + '\n'); const { ai, ...pub } = S.review; await qm.putMine(`${base}.json`, JSON.stringify(pub, null, 2) + '\n'); toast('Review saved to your Saved Items (private)', 'ok'); } catch (e) { toast(e.message, 'error'); }
+    try { const qm = await import('./queue.js?v=e4e248ff'); const base = `reviews/${(S.review.apn || 'no-apn').replace(/[^A-Za-z0-9-]/g, '')}-${S.review.date}-${S.review.type}`; await qm.putMine(`${base}.md`, $('#rv-md').value + '\n'); const { ai, ...pub } = S.review; await qm.putMine(`${base}.json`, JSON.stringify(pub, null, 2) + '\n'); toast('Review saved to your Saved Items (private)', 'ok'); } catch (e) { toast(e.message, 'error'); }
   });
 }
 
@@ -798,7 +799,7 @@ async function renderSaved() {
   if (!unlocked) { el.innerHTML = '<p class="sub">Sign in to see your saved items.</p>'; return; }
   el.innerHTML = '<p class="sub">Loading…</p>';
   try {
-    const qm = await import('./queue.js?v=69c81ac9');
+    const qm = await import('./queue.js?v=e4e248ff');
     const files = await qm.listMine();
     const parcels = files.filter(f => f.path.startsWith('parcels/')), reviews = files.filter(f => f.path.startsWith('reviews/') && f.path.endsWith('.md'));
     const li = (f) => `<li data-path="${esc(f.path)}"><span>${esc(f.path.replace(/^(parcels|reviews)\//, '').replace(/\.md$/, ''))}</span><span class="actions"><button class="btn sm" type="button" data-sv="open">Open</button></span></li>`;
@@ -811,7 +812,7 @@ async function renderSaved() {
   $('#saved-list').addEventListener('click', async (e) => {
     const li = e.target.closest('[data-path]'); if (!li || !e.target.closest('[data-sv=open]')) return;
     cur = li.dataset.path; $('#sv-title').textContent = cur.replace(/^(parcels|reviews)\//, ''); $('#sv-text').textContent = 'Loading…'; dlg.showModal();
-    try { text = await (await import('./queue.js?v=69c81ac9')).getMine(cur); $('#sv-text').textContent = text; } catch (err) { $('#sv-text').textContent = err.message; }
+    try { text = await (await import('./queue.js?v=e4e248ff')).getMine(cur); $('#sv-text').textContent = text; } catch (err) { $('#sv-text').textContent = err.message; }
   });
   $('#sv-close').addEventListener('click', () => dlg.close());
   $('#sv-dl').addEventListener('click', () => { if (dlg.dataset.admin) return download(dlg.dataset.admin.split('/').pop(), $('#sv-text').textContent); if (cur) download(cur.split('/').pop(), text); });
@@ -819,14 +820,14 @@ async function renderSaved() {
   $('#sv-del').addEventListener('click', async () => {
     if (dlg.dataset.admin) { const path = dlg.dataset.admin; if (!confirm(`Remove ${path}?`)) return; try { await relayFetch('/admin/del', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path }) }); dlg.close(); toast('Removed', 'ok'); renderFolder(); } catch (err) { toast(err.message, 'error'); } return; }
     if (!cur || !confirm(`Delete ${cur.split('/').pop()} from your Saved Items?`)) return;
-    try { const qm = await import('./queue.js?v=69c81ac9'); await qm.delMine(cur); if (cur.endsWith('.md') && cur.startsWith('reviews/')) await qm.delMine(cur.replace(/\.md$/, '.json')).catch(() => {}); dlg.close(); toast('Deleted', 'ok'); renderSaved(); } catch (err) { toast(err.message, 'error'); }
+    try { const qm = await import('./queue.js?v=e4e248ff'); await qm.delMine(cur); if (cur.endsWith('.md') && cur.startsWith('reviews/')) await qm.delMine(cur.replace(/\.md$/, '.json')).catch(() => {}); dlg.close(); toast('Deleted', 'ok'); renderSaved(); } catch (err) { toast(err.message, 'error'); }
   });
 }
 
 // ---------------- reference ----------------
 let refP = null;
 function renderReference() {
-  return (refP ||= import('./refdata.js?v=69c81ac9').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
+  return (refP ||= import('./refdata.js?v=e4e248ff').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
 }
 function fillReference() {
   const { DIRECTIVES, MCSR_QUICK, REG_DOCS, REG_LOOKUP } = REF;
@@ -1009,7 +1010,7 @@ function renderSitePlan() {
 }
 // Shared by both readers: look up the parcel, check the deed, compare, fill the form.
 async function finishRead(res, meta, st, file = SP.file) {
-  const sp = await import('./siteplan.js?v=69c81ac9');
+  const sp = await import('./siteplan.js?v=e4e248ff');
   const planApn = normalizeApn(res.parcel && res.parcel.apn);
   let R = S.R && S.review.apn && S.R.apn === normalizeApn(S.review.apn) ? S.R : null, lookupError = '';
   const target = normalizeApn(S.review.apn) || planApn;
@@ -1026,9 +1027,9 @@ async function finishRead(res, meta, st, file = SP.file) {
   sp.applyToReview(S.review, res, compare, { merge: meta.engine === 'free' });
   S.review.ai = { file: file.name, at: new Date().toISOString(), ...meta, result: res, compare, deedNames: deed, apn: R ? R.apn : null, lookupError };
   saveDraft(S.review); renderReview();
-  import('./planviewer.js?v=69c81ac9').then(m => m.savePdf(file)).catch(() => {});
+  import('./planviewer.js?v=e4e248ff').then(m => m.savePdf(file)).catch(() => {});
   // Keep what was read in the private plan-review database (45 days). Queued reads are already stored by the routine.
-  if (unlocked && meta.engine !== 'queued') import('./queue.js?v=69c81ac9').then(qm => qm.saveRecord({ source: meta.engine === 'free' ? 'superficial' : 'rapid', file: file.name, apn: (R && R.apn) || normalizeApn(res.parcel && res.parcel.apn) || '', type: S.review.type, model: meta.model, result: res, compare })).catch(e => console.warn('private db', e));
+  if (unlocked && meta.engine !== 'queued') import('./queue.js?v=e4e248ff').then(qm => qm.saveRecord({ source: meta.engine === 'free' ? 'superficial' : 'rapid', file: file.name, apn: (R && R.apn) || normalizeApn(res.parcel && res.parcel.apn) || '', type: S.review.type, model: meta.model, result: res, compare })).catch(e => console.warn('private db', e));
   return compare.filter(c => c[3] === 'deficient').length;
 }
 // Three ways to read a plan: Superficial (free, in this browser), Rapid (Claude API through the relay, ~1 min),
@@ -1039,7 +1040,7 @@ async function runFreeRead() {
   SP.busy = true; spButtons();
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'Superficial Review: reading the PDF text in your browser…';
   try {
-    const fr = await import('./freeread.js?v=69c81ac9');
+    const fr = await import('./freeread.js?v=e4e248ff');
     const out = await fr.freeReadSitePlan(SP.file, S.review.type);
     if (out.quality === 'none') { st.className = 'status warn'; st.textContent = 'Superficial Review couldn\'t read this plan: the PDF has no selectable text (a scan or flattened drawing). Use Rapid Review or Queued Review.'; return; }
     const bad = await finishRead(out.result, { engine: 'free', model: 'Superficial Review (in-browser text reader)', quality: out.quality, found: out.found, missing: out.missing }, st);
@@ -1053,7 +1054,7 @@ async function runSitePlan() {
   SP.busy = true; spButtons();
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'Rapid Review: sending the PDF to Claude — reading every sheet usually takes 30–90 seconds…';
   try {
-    const sp = await import('./siteplan.js?v=69c81ac9');
+    const sp = await import('./siteplan.js?v=e4e248ff');
     const d = await sp.readSitePlan(SP.file, S.review.type);
     const bad = await finishRead(d.result || {}, { engine: 'claude', relay: d.relay || null, model: d.model, usage: d.usage, truncated: !!d.truncated }, st);
     st.className = `status ${bad ? 'warn' : 'ok'}`; st.textContent = `Rapid Review done — the form is filled in from the plan.${bad ? ` ${bad} record mismatch${bad > 1 ? 'es' : ''} found (see below).` : ''} Verify every value before issuing comments.`;
@@ -1066,7 +1067,7 @@ async function runQueued() {
   SP.busy = true; spButtons();
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'Queued Review: uploading the plan to the private queue…';
   try {
-    const qm = await import('./queue.js?v=69c81ac9');
+    const qm = await import('./queue.js?v=e4e248ff');
     const m = await qm.queuePlan(SP.file, { apn: normalizeApn(S.review.apn) || '', type: S.review.type, reviewer: S.review.reviewer });
     st.className = 'status ok'; st.textContent = `Queued ${m.file}. It will be read on LONDON at 12:15 AM (Sunday–Thursday nights); the results appear under Plan Queue on the right. The plan is kept 14 days, its data 45 days.`;
     renderQueued(true);
@@ -1082,7 +1083,7 @@ async function renderQueued(force = false) {
   if (qBusy) return; qBusy = true;
   el.innerHTML = '<p class="sub">Loading…</p>';
   try {
-    const qm = await import('./queue.js?v=69c81ac9');
+    const qm = await import('./queue.js?v=e4e248ff');
     const items = await qm.listQueue();
     const st = (m) => m.status === 'done' ? (m.hasResult ? '✅ Ready' : '✅ Done (data expired)') : m.status === 'failed' ? `⚠ ${esc(m.note || 'Could not be read')}` : m.status === 'processing' ? '⏳ Processing' : '🕛 Queued for 12:15 AM';
     el.innerHTML = items.length ? `<ul class="qfiles">${items.map(m => `<li data-id="${esc(m.id)}" class="q-${esc(m.status)}">
@@ -1098,7 +1099,7 @@ async function renderQueued(force = false) {
 async function loadQueued(m) {
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = `Loading the queued review of ${m.file}…`;
   try {
-    const qm = await import('./queue.js?v=69c81ac9');
+    const qm = await import('./queue.js?v=e4e248ff');
     const rec = await qm.getRecord(m.db || `db/${m.id}.json`);
     const file = m.hasPdf ? await qm.getPdf(m.id).then(f => new File([f], m.file, { type: 'application/pdf' })) : new File([], m.file);
     if (m.hasPdf) SP.file = file;
@@ -1110,7 +1111,7 @@ async function loadQueued(m) {
 }
 async function openPlanViewer() {
   const a = S.review.ai; if (!a || !a.result) return;
-  const pv = await import('./planviewer.js?v=69c81ac9');
+  const pv = await import('./planviewer.js?v=e4e248ff');
   const blob = SP.file && SP.file.name === a.file ? SP.file : await pv.loadPdf(a.file);
   if (!blob) { toast(`Choose ${a.file} again above (it isn't stored in this browser), then open the viewer.`, 'error'); return; }
   pv.openViewer(blob, a, S.review, computeFindings(S.review).F, a.file);
@@ -1124,7 +1125,7 @@ $('#sp-qrefresh').addEventListener('click', () => renderQueued(true));
 $('#sp-qlist').addEventListener('click', async (e) => {
   const tr = e.target.closest('[data-id]'); if (!tr) return; const m = (S.qItems || []).find(x => x.id === tr.dataset.id); if (!m) return;
   if (e.target.closest('[data-qload]')) loadQueued(m);
-  if (e.target.closest('[data-qdel]')) { if (!confirm(`Delete ${m.file} and its review data from the private queue now?`)) return; try { (await import('./queue.js?v=69c81ac9')).removeQueued(m).then(() => renderQueued(true)); } catch (err) { toast(err.message, 'error'); } }
+  if (e.target.closest('[data-qdel]')) { if (!confirm(`Delete ${m.file} and its review data from the private queue now?`)) return; try { (await import('./queue.js?v=e4e248ff')).removeQueued(m).then(() => renderQueued(true)); } catch (err) { toast(err.message, 'error'); } }
 });
 { const dz = $('#sp-drop');
   ['dragenter', 'dragover'].forEach(t => dz.addEventListener(t, (e) => { e.preventDefault(); dz.classList.add('over'); }));
@@ -1279,6 +1280,74 @@ $('#sf-list').addEventListener('click', async (e) => {
     $('#sv-title').textContent = name; $('#sv-text').textContent = text; dlg.dataset.admin = path; dlg.showModal();
   } catch (err) { toast(err.message, 'error'); }
 });
+
+
+// ---------------- Behind The Curtain (games) ----------------
+const GM = { cat: 'mixed', round: null, i: 0, correct: 0, answered: 0, token: null, locked: false };
+async function renderBoard() {
+  const el = $('#lb-list');
+  try {
+    const r = await fetch(`${settings.proxy}/g/board`, { cache: 'no-store' });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(r.status === 404 ? 'The leaderboard needs relay v20.' : d.error || `Relay error ${r.status}`);
+    const me = unlocked ? userName() : '';
+    el.innerHTML = (d.board || []).map((p, i) => `<li class="lb${p.name === me ? ' me' : ''}"><span class="lb-rank">${i + 1}</span><span class="lb-name" title="${esc(p.name)} · ${p.rounds} round${p.rounds === 1 ? '' : 's'} · ${p.accuracy}% correct · best round ${p.best}">${esc(p.name)}</span><span class="lb-pts">${fmtNum(p.points)}</span></li>`).join('') || '<li class="sub">No scores yet — be the first.</li>';
+  } catch (e) { el.innerHTML = `<li class="sub">${esc(/Failed to fetch/.test(e.message) ? "Couldn't reach the relay." : e.message)}</li>`; }
+}
+const fmtNum = (n) => Number(n || 0).toLocaleString('en-US');
+async function renderGames() {
+  const cats = $('#mct .mct-cats');
+  if (!cats.childElementCount) {
+    const { CATS } = await import('./games.js?v=e4e248ff');
+    cats.innerHTML = CATS.map(([k, l]) => `<button class="btn sm" type="button" role="radio" data-cat="${k}" aria-checked="${k === GM.cat}">${l}</button>`).join('');
+  }
+  $('#mct-go').disabled = !unlocked;
+  $('#mct-lock').textContent = unlocked ? `Playing as ${userName()}` : 'Sign in with a key to play — anyone can watch the leaderboard.';
+  renderBoard();
+}
+function showQuestion() {
+  const x = GM.round[GM.i];
+  $('#mct-cat').textContent = x.cat; $('#mct-prog').textContent = `Question ${GM.i + 1} of ${GM.round.length}`; $('#mct-score').textContent = `${GM.correct * 10} pts`;
+  $('#mct-q').textContent = x.prompt;
+  $('#mct-opts').innerHTML = x.options.map((o, i) => `<button class="btn" type="button" data-opt="${i}">${String.fromCharCode(65 + i)}. ${esc(o)}</button>`).join('');
+  $('#mct-fb').hidden = true; $('#mct-next').hidden = true;
+}
+async function finishRound(quit = false) {
+  $('#mct-play').hidden = true; const done = $('#mct-done'); done.hidden = false;
+  done.innerHTML = `<p>${quit ? 'Round ended early.' : 'Round complete!'} You got <b>${GM.correct} of ${GM.answered}</b> right.</p><p class="sub">Saving your score…</p>`;
+  try {
+    const d = await relayFetch('/g/finish', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: GM.token, answered: GM.answered, correct: GM.correct }) });
+    done.innerHTML = `<p>${quit ? 'Round ended early.' : 'Round complete!'} You got <b>${GM.correct} of ${GM.answered}</b> right and earned <b>${d.earned} points</b>${d.earned > GM.correct * 10 ? ' (perfect-round bonus!)' : ''}. Your total: <b>${fmtNum(d.total)}</b>.</p>`;
+  } catch (e) { done.innerHTML += `<p class="bad">${esc(e.message)}</p>`; }
+  done.innerHTML += '<div class="actions"><button class="btn primary" type="button" id="mct-again">Play again</button></div>';
+  $('#mct-start').hidden = false; renderBoard();
+}
+$('#mct .mct-cats').addEventListener('click', (e) => { const b = e.target.closest('[data-cat]'); if (!b) return; GM.cat = b.dataset.cat; $$('#mct .mct-cats [data-cat]').forEach(x => x.setAttribute('aria-checked', String(x === b))); });
+$('#mct-go').addEventListener('click', async () => {
+  if (!unlocked) { toast('Sign in with a key to play.', 'error'); return; }
+  const btn = $('#mct-go'); btn.disabled = true;
+  try {
+    const [{ buildRound }, start] = await Promise.all([import('./games.js?v=e4e248ff'), relayFetch('/g/start', { method: 'POST' })]);
+    Object.assign(GM, { round: await buildRound(GM.cat, start.questions || 10), i: 0, correct: 0, answered: 0, token: start.token, locked: false });
+    $('#mct-start').hidden = true; $('#mct-done').hidden = true; $('#mct-play').hidden = false; showQuestion();
+  } catch (e) { toast(/Not found|404/.test(e.message) ? 'Games need relay v20 — ask the administrator to update the relay.' : e.message, 'error'); }
+  finally { btn.disabled = !unlocked; }
+});
+$('#mct-opts').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-opt]'); if (!b || GM.locked) return; GM.locked = true;
+  const x = GM.round[GM.i]; const pickI = +b.dataset.opt; const right = pickI === x.answer;
+  GM.answered++; if (right) GM.correct++;
+  $$('#mct-opts [data-opt]').forEach(o => { o.disabled = true; if (+o.dataset.opt === x.answer) o.classList.add('right'); });
+  if (!right) b.classList.add('wrong');
+  const fb = $('#mct-fb'); fb.hidden = false;
+  fb.innerHTML = `<b>${right ? '✅ Correct!' : '❌ Not quite.'}</b> ${esc(x.explain)} <span class="sub">— <a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.cite)}</a></span>`;
+  $('#mct-score').textContent = `${GM.correct * 10} pts`;
+  const last = GM.i === GM.round.length - 1; const nx = $('#mct-next'); nx.hidden = false; nx.textContent = last ? 'Finish round' : 'Next question'; nx.focus();
+});
+$('#mct-next').addEventListener('click', () => { if (GM.i >= GM.round.length - 1) return finishRound(); GM.i++; GM.locked = false; showQuestion(); });
+$('#mct-quit').addEventListener('click', () => { if (GM.answered && confirm('End this round now? Answers so far still count.')) finishRound(true); else if (!GM.answered) { $('#mct-play').hidden = true; $('#mct-start').hidden = false; } });
+$('#mct-done').addEventListener('click', (e) => { if (e.target.id === 'mct-again') { $('#mct-done').hidden = true; $('#mct-go').click(); } });
+$('#lb-refresh').addEventListener('click', renderBoard);
 
 bindReview(); renderReview(); renderSettings(); classify(); loadSharedConfig();
 loadDB().catch(e => { $('#db-source').textContent = `Could not load database: ${e.message}`; }).finally(() => loadQueue());

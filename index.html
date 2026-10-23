@@ -7,14 +7,14 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https://gis.maricopa.gov https://server.arcgisonline.com https://*.arcgisonline.com https://unpkg.com; connect-src 'self' https://gis.maricopa.gov https://publicapi.recorder.maricopa.gov https://edms.maricopa.gov https://recorder.maricopa.gov https://api.github.com https://*.workers.dev; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="preconnect" href="https://gis.maricopa.gov" crossorigin>
-<script src="js/theme.js?v=69c81ac9"></script>
+<script src="js/theme.js?v=e4e248ff"></script>
 <title>Unofficial Maricopa County Zoning Hub</title>
 <meta name="description" content="Maricopa County parcel lookup, MCZO/MCSR standards, subdivision plat database and plan-review deficiency builder.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23F26724'/><path d='M7 24V9l9 7 9-7v15' fill='none' stroke='%2304161a' stroke-width='3' stroke-linejoin='round'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=69c81ac9">
-<link rel="modulepreload" href="js/app.js?v=69c81ac9"><link rel="modulepreload" href="js/lookup.js?v=69c81ac9"><link rel="modulepreload" href="js/report.js?v=69c81ac9"><link rel="modulepreload" href="js/net.js?v=69c81ac9"><link rel="modulepreload" href="js/github.js?v=69c81ac9"><link rel="modulepreload" href="js/standards.js?v=69c81ac9"><link rel="modulepreload" href="js/checklists.js?v=69c81ac9"><link rel="modulepreload" href="js/review.js?v=69c81ac9"><link rel="modulepreload" href="js/recorder.js?v=69c81ac9"><link rel="modulepreload" href="js/subdivisions.js?v=69c81ac9">
+<link rel="stylesheet" href="css/app.css?v=e4e248ff">
+<link rel="modulepreload" href="js/app.js?v=e4e248ff"><link rel="modulepreload" href="js/lookup.js?v=e4e248ff"><link rel="modulepreload" href="js/report.js?v=e4e248ff"><link rel="modulepreload" href="js/net.js?v=e4e248ff"><link rel="modulepreload" href="js/github.js?v=e4e248ff"><link rel="modulepreload" href="js/standards.js?v=e4e248ff"><link rel="modulepreload" href="js/checklists.js?v=e4e248ff"><link rel="modulepreload" href="js/review.js?v=e4e248ff"><link rel="modulepreload" href="js/recorder.js?v=e4e248ff"><link rel="modulepreload" href="js/subdivisions.js?v=e4e248ff">
 </head>
 <body>
 <header class="top">
@@ -27,6 +27,7 @@
   <button class="tab gated" role="tab" data-tab="p-subs" hidden>SubdivisionDB</button>
   <button class="tab gated" role="tab" data-tab="p-saved" data-perm="review" hidden>Saved Items</button>
   <button class="tab" role="tab" data-tab="p-ref">Reference</button>
+  <button class="tab" role="tab" data-tab="p-games">Behind The Curtain</button>
   <button class="tab" role="tab" data-tab="p-signin">Sign In</button>
   <button class="tab" role="tab" data-tab="p-settings" data-perm="settings">⚙ Settings</button>
 </nav>
@@ -249,6 +250,39 @@
   </ul></div>
 </section>
 
+<!-- BEHIND THE CURTAIN -->
+<section class="panel" id="p-games" hidden>
+  <div class="games-grid">
+    <div class="games-left">
+      <div class="card game-card" id="mct">
+        <div class="cardhead"><div><h2>MCTrained</h2><p class="sub">Multiple-choice rounds on the Zoning Ordinance, Local Additions &amp; Addenda, department directives and quick plan-review scenarios. 10 questions a round · 10 points per correct answer · +20 for a perfect round.</p></div></div>
+        <div id="mct-start">
+          <div class="mct-cats" role="radiogroup" aria-label="Category"></div>
+          <div class="actions"><button class="btn primary" id="mct-go" type="button">Start a round</button><span class="sub" id="mct-lock"></span></div>
+        </div>
+        <div id="mct-play" hidden>
+          <div class="mct-top"><span class="pill" id="mct-cat"></span><span class="sub" id="mct-prog"></span><span class="mct-score" id="mct-score"></span></div>
+          <h3 id="mct-q" class="mct-q"></h3>
+          <div id="mct-opts" class="mct-opts"></div>
+          <div id="mct-fb" class="mct-fb" hidden></div>
+          <div class="actions"><button class="btn primary" id="mct-next" type="button" hidden>Next question</button><button class="btn ghost" id="mct-quit" type="button">Quit round</button></div>
+        </div>
+        <div id="mct-done" hidden></div>
+      </div>
+      <div class="card game-card" id="trivia">
+        <div class="cardhead"><h2>Trivia &amp; More</h2></div>
+        <p class="sub">General trivia and other games are coming soon. Points from every game count toward the leaderboard.</p>
+      </div>
+    </div>
+    <aside class="card leaderboard" id="lb">
+      <div class="cardhead"><h2>Leaderboard</h2><button class="btn sm" id="lb-refresh" type="button">Refresh</button></div>
+      <p class="sub">Top 20 players by total points.</p>
+      <ol id="lb-list" class="lb-list"><li class="sub">Loading…</li></ol>
+    </aside>
+  </div>
+  <p class="sub">Everyone can watch; playing needs a key (Sign In). Questions are built from the site's own reference tables — the ordinance text controls.</p>
+</section>
+
 <!-- PROFILE -->
 <section class="panel" id="p-profile" hidden>
   <div class="card profile">
@@ -336,8 +370,8 @@
 <dialog id="saved-view" class="saved-view"><div class="cardhead"><h2 id="sv-title"></h2><button class="btn sm ghost" id="sv-close" type="button" aria-label="Close">✕</button></div><pre id="sv-text" class="sv-text"></pre><div class="actions"><button class="btn" id="sv-dl" type="button">Download</button><button class="btn danger" id="sv-del" type="button">Delete</button></div></dialog>
 </main>
 <footer class="foot">All information in this system is public and accessible to anyone; items saved here are stored in a public GitHub repository. Reference tool — verify findings against the adopted ordinance, recorded documents and case files before relying on them.
-<div class="build">Version <span id="build">10.23.26.024</span> · <span id="relay-ver" data-latest="19" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
+<div class="build">Version <span id="build">10.23.26.026</span> · <span id="relay-ver" data-latest="20" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
 <div id="toasts" aria-live="polite"></div>
-<script type="module" src="js/app.js?v=69c81ac9"></script>
+<script type="module" src="js/app.js?v=e4e248ff"></script>
 </body>
 </html>

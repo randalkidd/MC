@@ -13,7 +13,7 @@
 //   ANTHROPIC_API_KEY = sk-ant-...  (optional; enables Plan review → "Read a site plan PDF" via POST /ai/siteplan)
 //   ANTHROPIC_MODEL   = optional Text variable to override the model (default below)
 
-const RELAY_VERSION = '19';
+const RELAY_VERSION = '20';
 // Settings. Defaults below; each can be overridden by a Cloudflare variable (Worker → Settings → Variables and
 // Secrets, Type: Text) or, for local `wrangler dev`, by worker/.dev.vars (never committed — see .dev.vars.example).
 //   ALLOWED_ORIGIN = https://randalkidd.github.io   (comma-separate to add e.g. http://localhost:8000 for local testing)
@@ -479,6 +479,72 @@ async function handleUser(req, env, origin, route, url, who) {
   return json({ error: 'Not found' }, 404, origin);
 }
 
+// ---------------- Behind The Curtain: game scores ----------------
+// games/scores.json in QUEUE_REPO: { players: { <keyId>: { name, points, rounds, correct, answered, best, last } }, used: [nonces] }.
+// The leaderboard is readable by the site without a key; playing needs a key. A round is opened by /g/start (a signed,
+// single-use token) and scored by /g/finish, which caps the points a round can earn, rejects reused or stale tokens,
+// and ignores rounds finished impossibly fast.
+const SCORES_PATH = 'games/scores.json';
+const ROUND_Q = 10, PTS = 10, PERFECT_BONUS = 20;
+async function hmac(env, msg) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(`games:${env.SITE_KEY}`), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return [...new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(msg)))].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function loadScores(env) {
+  const r = await ghq(env, `contents/${SCORES_PATH}`);
+  if (r.status === 404) return { data: { schema: 1, players: {}, used: [] }, sha: null };
+  if (!r.ok) throw new Error(`GitHub ${r.status} reading scores`);
+  const d = await r.json();
+  let data = { schema: 1, players: {}, used: [] };
+  try { data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(String(d.content).replace(/\n/g, '')), c => c.charCodeAt(0)))); } catch {}
+  data.players = data.players || {}; data.used = data.used || [];
+  return { data, sha: d.sha };
+}
+function board(data, names) {
+  return Object.entries(data.players).map(([id, p]) => ({ name: names.get(id) || p.name || 'Player', points: p.points || 0, rounds: p.rounds || 0, accuracy: p.answered ? Math.round(100 * (p.correct || 0) / p.answered) : 0, best: p.best || 0 }))
+    .sort((a, b) => b.points - a.points || b.accuracy - a.accuracy || a.name.localeCompare(b.name)).slice(0, 20);
+}
+async function handleGames(req, env, origin, route) {
+  if (!env.GITHUB_TOKEN || !env.SITE_KEY) return json({ error: 'Relay is missing GITHUB_TOKEN / SITE_KEY.' }, 500, origin);
+  const names = async () => { const m = new Map(); try { const k = await loadKeys(env); for (const x of k.list) m.set(x.id, x.label); if (k.superName) m.set('super', k.superName); } catch {} return m; };
+  if (route === '/g/board' && req.method === 'GET') {
+    const { data } = await loadScores(env);
+    return json({ ok: true, board: board(data, await names()), players: Object.keys(data.players).length }, 200, origin);
+  }
+  const who = await authenticate(req, env);
+  if (!who) return json({ error: 'Sign in with a key to play.' }, 401, origin);
+  if (route === '/g/start' && req.method === 'POST') {
+    const nonce = [...crypto.getRandomValues(new Uint8Array(12))].map(b => b.toString(16).padStart(2, '0')).join('');
+    const ts = Date.now(); const sig = await hmac(env, `${who.id}.${nonce}.${ts}`);
+    return json({ ok: true, token: `${nonce}.${ts}.${sig}`, questions: ROUND_Q }, 200, origin);
+  }
+  if (route === '/g/finish' && req.method === 'POST') {
+    let body = {}; try { body = await req.json(); } catch {}
+    const [nonce, ts, sig] = String(body.token || '').split('.');
+    if (!nonce || !ts || !sig || !sameKey(sig, await hmac(env, `${who.id}.${nonce}.${ts}`))) return json({ error: 'Invalid round — start a new one.' }, 400, origin);
+    const age = Date.now() - +ts;
+    if (age > 45 * 60000) return json({ error: 'That round expired — start a new one.' }, 400, origin);
+    const answered = Math.max(0, Math.min(ROUND_Q, parseInt(body.answered, 10) || 0));
+    let correct = Math.max(0, Math.min(answered, parseInt(body.correct, 10) || 0));
+    if (age < answered * 2500) correct = 0; // faster than ~2.5 s per question: not counted
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const { data, sha } = await loadScores(env);
+      if (data.used.includes(nonce)) return json({ error: 'That round was already scored.' }, 409, origin);
+      const p = data.players[who.id] || { name: who.label, points: 0, rounds: 0, correct: 0, answered: 0, best: 0 };
+      const earned = correct * PTS + (answered === ROUND_Q && correct === ROUND_Q ? PERFECT_BONUS : 0);
+      Object.assign(p, { name: who.label, points: p.points + earned, rounds: p.rounds + 1, correct: p.correct + correct, answered: p.answered + answered, best: Math.max(p.best || 0, earned), last: new Date().toISOString() });
+      data.players[who.id] = p; data.used = [...data.used, nonce].slice(-500);
+      const out = JSON.stringify(data, null, 2) + '\n';
+      const put = await ghq(env, `contents/${SCORES_PATH}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: `Game round: ${who.label} +${earned}`, content: b64(out), ...(sha ? { sha } : {}) }) });
+      if (put.ok) return json({ ok: true, earned, total: p.points, board: board(data, await names()) }, 200, origin);
+      if (put.status !== 409 && put.status !== 422) return json({ error: `GitHub ${put.status} saving the score` }, 502, origin);
+      await new Promise(r => setTimeout(r, 300 * (attempt + 1)));
+    }
+    return json({ error: 'Busy — try again.' }, 503, origin);
+  }
+  return json({ error: 'Not found' }, 404, origin);
+}
+
 export default {
   async fetch(req, env, ctxW) {
     configure(env);
@@ -488,7 +554,7 @@ export default {
     if (origin && !allowed(origin)) return new Response('Forbidden origin', { status: 403, headers: cors(origin) });
     if (!['GET', 'POST'].includes(req.method)) return new Response('Method not allowed', { status: 405, headers: cors(origin) });
     const u0 = new URL(req.url);
-    if (/^\/(gh|q|ai|admin|u|me)\//.test(u0.pathname) && throttled(req)) return json({ error: 'Too many wrong passphrases from this network — wait 10 minutes and try again.' }, 429, origin);
+    if (/^\/(gh|q|ai|admin|u|me|g)\//.test(u0.pathname) && throttled(req)) return json({ error: 'Too many wrong passphrases from this network — wait 10 minutes and try again.' }, 429, origin);
     if (u0.pathname.startsWith('/gh/')) {
       if (!allowed(origin)) return json({ error: 'Saving is only allowed from the site.' }, 403, origin);
       return handleGitHub(req, env, origin, u0.pathname, await authenticate(req, env));
@@ -497,6 +563,10 @@ export default {
       if (!allowed(origin)) return json({ error: 'Only the site may use this.' }, 403, origin);
       const who = await authenticate(req, env); if (!who) return json({ error: 'Wrong passphrase.' }, 401, origin);
       try { return await handleAdmin(req, env, origin, u0.pathname, who); } catch (e) { return json({ error: e.message }, 502, origin); }
+    }
+    if (u0.pathname.startsWith('/g/')) {
+      if (!allowed(origin)) return json({ error: 'Only the site may use this.' }, 403, origin);
+      try { return await handleGames(req, env, origin, u0.pathname); } catch (e) { return json({ error: e.message }, 502, origin); }
     }
     if (u0.pathname.startsWith('/me/')) {
       if (!allowed(origin)) return json({ error: 'Only the site may use this.' }, 403, origin);
