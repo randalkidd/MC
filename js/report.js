@@ -1,6 +1,6 @@
 // Renders a lookup result in the project's parcel-report-template structure (HTML + Markdown).
-import { LINKS } from './lookup.js?v=37d37c1b';
-import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=37d37c1b';
+import { LINKS } from './lookup.js?v=4b715c96';
+import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=4b715c96';
 
 // Only allow http(s) URLs into href attributes; everything else becomes "#".
 const safeUrl = (u) => { try { const x = new URL(String(u), location.href); return /^https?:$/.test(x.protocol) ? x.href : '#'; } catch { return '#'; } };
@@ -228,8 +228,9 @@ export function renderReportHTML(R, db) {
   const ez = easementList(R, plat);
   if (ez.length) {
     table(ez.map(e => [`<b>${esc(e.kind)}</b>`, `${esc(e.detail)}${e.rec ? ` · ${a(`Rec. #${e.rec}`, e.url || LINKS.recDoc(e.rec))}` : ''}${e.platUrl ? ` · ${a('plat', e.platUrl)}` : ''}`, esc(e.source)]), ['Intersecting easement', 'Details', 'Source']);
-    if (ez.some(e => e.patent)) out.push(`<div class="warn">Patent easement: structures inside it can be removed without compensation, and yard setbacks are measured from the easement line, not the property line (<a href="https://www.maricopa.gov/6446/Patent-Easements-DD-2015-09" target="_blank" rel="noopener">DD-2015-09</a>).</div>`);
+    if (ez.some(e => e.patent)) out.push(`<div class="warn">Patent easement: structures inside it can be removed without compensation, and yard setbacks are measured from the easement line, not the property line (<a href="https://www.maricopa.gov/6446/Patent-Easements-DD-2015-09" target="_blank" rel="noopener">DD-2015-09</a>).${ez.some(e => e.pab && e.abandoned && !e.related) ? ' <b>An abandonment is recorded for this parcel</b> (listed above) — open the resolution to confirm which easement strips it released before applying the setback.' : ''}</div>`);
   } else out.push('<p><b>None found, verify</b></p>');
+  out.push(pabLine(R, true));
   const rc = R.recorder || {};
   if (rc.error) out.push(`<p class="sub">⚠ County Recorder not checked (${esc(rc.error)}).</p>`);
   else {
@@ -237,7 +238,7 @@ export function renderReportHTML(R, db) {
     if (d) out.push(`<p class="sub">Deed ${a(`#${d.rec}`, LINKS.recDoc(d.rec))} (${esc(d.codes.join(', ') || 'type n/a')}${d.date ? `, ${esc(d.date)}` : ''}${d.pages ? `, ${d.pages} pp.` : ''}) checked: ${d.hasEasement ? 'recorded with an easement — listed above.' : 'no easement recorded with it.'} Easements written into the deed's text ("subject to…", reservations) aren't read automatically — open the deed to check its exceptions.</p>`);
     if (rc.owner) out.push(`<p class="sub">Recorder searched for easements recorded by <b>${esc(rc.owner.label)}</b> since the deed${rc.easements && rc.easements.length ? ` — ${rc.easements.length} found (listed above; name match, confirm each covers this parcel)` : ' — none found'}.</p>`);
   }
-  out.push('<p class="sub">Also checked: patent easements, Flood Control District easements, MCDOT right-of-way, and easements recorded on plats in the subdivision database. Public utility, shared-well, ingress/egress and other private easements are not mapped — check the deed, the title report and the recorded plat.</p>');
+  out.push('<p class="sub">Also checked: patent easements, MCDOT\'s Patent Easement Abandonment Tracker, Flood Control District easements, MCDOT right-of-way, and easements recorded on plats in the subdivision database. Public utility, shared-well, ingress/egress and other private easements are not mapped — check the deed, the title report and the recorded plat.</p>');
 
   h('Zoning / Planning Cases');
   const caseTable = (list) => list.length ? table(list.map(c => [esc(c.type), permitHTML(c.permit), esc(dash(c.name)), esc(dash(c.status)), esc(dash(c.date)), esc(dash(c.request))]), ['Type', 'Permit #', 'Name', 'Status', 'Date', 'Request']) : out.push('<p>None found.</p>');
@@ -321,7 +322,8 @@ export function renderReportMD(R, db, extras = {}) {
   { const hit = R.overlays.filter(o => o.hit); hit.length ? t(hit.map(o => [o.name, o.notes || '—']), ['Intersecting overlay', 'Notes']) : L.push('No overlay districts intersect this parcel.', ''); L.push(`_${R.overlays.length - hit.length} other overlays checked — no intersection._`, ''); }
   H('Easements');
   { const ez = easementList(R, plat); ez.length ? t(ez.map(e => [e.kind, `${e.detail}${e.rec ? ` · ${mdLink(`Rec. #${e.rec}`, e.url || LINKS.recDoc(e.rec))}` : ''}`, e.source]), ['Intersecting easement', 'Details', 'Source']) : L.push('None found, verify', '');
-    const d = R.recorder && R.recorder.deed; if (d) L.push(`Deed ${mdLink(`#${d.rec}`, LINKS.recDoc(d.rec))} (${d.codes.join(', ')}) checked: ${d.hasEasement ? 'recorded with an easement.' : 'no easement recorded with it;'} deed text exceptions not read automatically — review the deed.`, ''); }
+    const d = R.recorder && R.recorder.deed; if (d) L.push(`Deed ${mdLink(`#${d.rec}`, LINKS.recDoc(d.rec))} (${d.codes.join(', ')}) checked: ${d.hasEasement ? 'recorded with an easement.' : 'no easement recorded with it;'} deed text exceptions not read automatically — review the deed.`, ''); 
+    L.push(pabLine(R, false), ''); }
   H('Zoning / Planning Cases'); L.push('**Current / pending:**', '');
   const pmd = (n) => { const k = permitLink(n); return k ? mdLink(n, k.url) : dash(n); };
   R.currentCases.length ? t(R.currentCases.map(c => [c.type, pmd(c.permit), c.name, c.status, c.date]), ['Case type', 'Permit #', 'Name', 'Status', 'Date']) : L.push('None found.', '');
@@ -341,4 +343,18 @@ export function renderReportMD(R, db, extras = {}) {
     `- Pending cases: ${R.currentCases.map(c => c.permit).join(', ') || 'None'}`, `- Historical cases: ${R.historicCases.length}`,
     `- Flags needing verification: ${[zones.length > 1 && 'split zoning', zones.some(z => overlaySuffixes(z).length) && 'overlay stipulations', R.errors.length && 'some sources failed'].filter(Boolean).join('; ') || 'none'}`);
   return L.join('\n');
+}
+
+// One line in the Easements section saying whether the parcel is in MCDOT's Patent Easement Abandonment Tracker.
+function pabLine(R, html) {
+  const p = R.pab || {}; const url = p.url || 'https://www.maricopa.gov/DocumentCenter/View/111506/Patent-Easement-Abandonment-Tracking-PDF';
+  const lk = (t) => (html ? `<a href="${url}" target="_blank" rel="noopener">${t}</a>` : mdLink(t, url));
+  const b = (t) => (html ? `<b>${esc(t)}</b>` : `**${t}**`);
+  if (!R.pab) return '';
+  if (p.error) return html ? `<p class="sub">⚠ ${lk('Patent Easement Abandonment Tracker')} not checked (${esc(p.error)}).</p>` : `${lk('Patent Easement Abandonment Tracker')} not checked (${p.error}).`;
+  const hits = p.hits || [], rel = p.related || [];
+  const msg = hits.length ? b(`Parcel listed — ${hits.map(h => `PAB-${h.pab}`).join(', ')}`) + ' (details above)' : b('Parcel not listed') + ' — no patent-easement abandonment has been applied for on this APN';
+  const relMsg = rel.length ? `; another split of the same parent is listed (${rel.map(h => `PAB-${h.pab} ${h.apn}`).join('; ')})` : '';
+  const txt = `${lk('MCDOT Patent Easement Abandonment Tracker')} (snapshot ${html ? esc(p.fetched) : p.fetched}, ${p.count} cases): ${msg}${html ? esc(relMsg) : relMsg}.`;
+  return html ? `<p class="sub">${txt}</p>` : txt;
 }

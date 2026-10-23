@@ -1,5 +1,5 @@
 // Parcel lookup — ports reference/workflow-standards.md to in-browser REST calls.
-import { arcgis, request } from './net.js?v=37d37c1b';
+import { arcgis, request } from './net.js?v=4b715c96';
 
 const GIS = 'https://gis.maricopa.gov/arcgis/rest/services';
 export const EP = {
@@ -257,6 +257,10 @@ export async function lookupParcel(apnInput, { onStep = () => {} } = {}) {
     if (d && d.hasEasement) R.easements.push({ kind: 'Easement in the deed', detail: `Deed recorded with document codes ${d.codes.join(', ')}${d.date ? ` on ${d.date}` : ''}`, source: 'County Recorder', rec: d.rec });
     for (const e of rec.v.easements) R.easements.push({ kind: 'Recorded easement (current owner)', detail: `${e.code} recorded ${e.date} — ${e.names}`, source: 'County Recorder (owner-name match)', rec: e.rec, nameMatch: true });
   }
+  // MCDOT Patent Easement Abandonment Tracker (weekly snapshot): is this parcel — or another split of the same parent — listed?
+  R.pab = await checkPatentAbandonments(R.apn);
+  for (const h of R.pab.hits || []) R.easements.push(pabEasement(h, false));
+  for (const h of R.pab.related || []) R.easements.push(pabEasement(h, true));
   R.easements = R.easements.filter((e, i, a) => a.findIndex(x => x.kind === e.kind && x.detail === e.detail && x.rec === e.rec) === i);
   return R;
 }
@@ -354,4 +358,37 @@ export async function lookupRecorder(R) {
   }));
   await Promise.all(tasks);
   return out;
+}
+
+// ---------- MCDOT Patent Easement Abandonment Tracker ----------
+export const PAB_URL = 'https://www.maricopa.gov/DocumentCenter/View/111506/Patent-Easement-Abandonment-Tracking-PDF';
+let pabP = null;
+export function patentAbandonments() {
+  pabP = pabP || fetch('data/patent-abandonments.json', { cache: 'no-cache' }).then(r => (r.ok ? r.json() : null)).catch(() => null);
+  return pabP;
+}
+export async function checkPatentAbandonments(apn) {
+  const snap = await patentAbandonments();
+  if (!snap || !Array.isArray(snap.rows)) return { error: 'tracker snapshot unavailable', url: PAB_URL };
+  const key = String(apn || '').replace(/[^0-9A-Z]/gi, '').toUpperCase(); const base = key.slice(0, 8);
+  const pick = (r) => ({ pab: r.pab, location: r.location, apn: r.apn, status: r.status, open: r.open, phase: r.phase || '', filed: r.payment, decision: r.bosDecision, hearing: r.board2, resolution: r.resolution, expires: r.expires || '' });
+  const hits = snap.rows.filter(r => (r.apns || []).includes(key)).map(pick);
+  // Same parent (book-map-item) but a different suffix: the abandonment may have been granted before a split, or for a neighbour.
+  const related = key.length >= 8 ? snap.rows.filter(r => !(r.apns || []).includes(key) && (r.apns || []).some(a => a.slice(0, 8) === base)).map(pick) : [];
+  return { fetched: snap.fetched, count: snap.count, url: snap.source || PAB_URL, hits, related };
+}
+export function pabState(h) {
+  if (h.open) return `In progress — ${h.phase || 'open'} phase`;
+  if (/RECORDED/i.test(h.status) || /APPROV/i.test(h.decision || '') && h.resolution) return 'Abandoned — resolution recorded';
+  return h.status ? h.status.charAt(0) + h.status.slice(1).toLowerCase() : 'Closed';
+}
+function pabEasement(h, related) {
+  const rec = (String(h.resolution || '').match(/(\d{4})-?(\d{7})/) || []).slice(1).join('') || null;
+  const st = pabState(h);
+  const what = h.open ? `${st}${h.filed ? `; filed ${h.filed}` : ''}${h.expires ? `; 6-month expiration ${h.expires}` : ''} — the patent easement is NOT abandoned yet`
+    : rec ? `Board ${String(h.decision || 'approved').toLowerCase()}${h.hearing ? ` ${h.hearing}` : ''}; abandonment resolution recorded`
+    : `${st}${h.filed ? ` (filed ${h.filed})` : ''} — the patent easement was NOT abandoned by this case`;
+  return { kind: related ? 'Patent easement abandonment — same parent parcel' : (h.open ? 'Patent easement abandonment — in progress' : rec ? 'Patent easement abandoned (MCDOT)' : 'Patent easement abandonment — not completed'),
+    detail: `PAB-${h.pab}: ${what}. Tracker lists APN ${h.apn}${h.location ? ` (${h.location})` : ''}${related ? ' — another split of the same parent; confirm whether it covers this lot' : ''}`,
+    source: 'MCDOT Patent Easement Abandonment Tracker', rec, pab: true, abandoned: !!rec && !h.open, related };
 }

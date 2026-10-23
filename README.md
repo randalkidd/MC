@@ -96,6 +96,16 @@ County GIS answers the site directly. `edms.maricopa.gov` (septic) and the Recor
 
 The relay only forwards to an allow-list of `*.maricopa.gov` hosts, and (from relay v7) only for requests coming from the site itself, so it can't be used as an open proxy by scripts or other websites. If county GIS ever starts blocking cross-site requests, tick **"Send all county requests through the relay"**.
 
+## Patent Easement Abandonment Tracker
+
+Every parcel lookup checks MCDOT's [Patent Easement Abandonment Tracker](https://www.maricopa.gov/DocumentCenter/View/111506/Patent-Easement-Abandonment-Tracking-PDF) and says in the **Easements** section whether the parcel is listed:
+
+- **Listed** — each case (PAB number) is added to the easement table: *abandoned* (Board approved, with a link to the recorded resolution), *in progress* (Initial Determination, Application or Board of Supervisors phase — not abandoned yet), or *lapsed / withdrawn* (not abandoned). When PlanNet also shows a patent easement and an abandonment is recorded, the warning says to open the resolution before applying the setback.
+- **Same parent** — another split of the same book-map-item is listed (the abandonment may predate a lot split); confirm whether it covers this lot.
+- **Not listed** — no abandonment has been applied for on this APN.
+
+The site reads a snapshot, `data/patent-abandonments.json`, made from the PDF by `tools/refresh_patent_abandonments.py` in the GitHub Action **Refresh Patent Easement Abandonments** (Mondays, or "Run workflow" on the Actions tab). The downloaded PDF and its text are kept in `data/source/`. Multi-parcel cells ("216-50-159C, 159D", "202-13-007E, F, G", "formerly …") are expanded to every APN. The tracker is also linked under Reference → County Tools.
+
 ## Sources and limits
 - MCZO: Dec 10, 2025 edition (effective 1/9/2026). Use DD-3014-01 to decide which edition governs an application.
 - MCSR: the **January 9, 2026** revision (10/23/2024 amendment plus updated MCZO references). The 2016 text and its Administrative Guidelines are retired; current submittal details live in the county application packets.

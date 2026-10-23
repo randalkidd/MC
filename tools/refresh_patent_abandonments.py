@@ -16,8 +16,10 @@ PDF = ROOT / 'data/source/patent-easement-tracker.pdf'
 OUT = ROOT / 'data/patent-abandonments.json'
 TXT = ROOT / 'data/source/patent-easement-tracker.txt'
 
-KEYS = ['pab', 'applicant', 'location', 'apn', 'payment', 'routedInitial', 'initialLetter', 'appReceived', 'appRouted',
-        'reportToBos', 'board1', 'certifiedLetter', 'posted', 'board2', 'bosDecision', 'finalLetter', 'resolution', 'status', 'expires']
+KEYS = ['pab', 'first', 'last', 'location', 'apn', 'payment', 'routed', 'initialLetter', 'appReceived', 'appRouted',
+        'reportToBos', 'board1', 'certifiedLetter', 'posted', 'board2', 'bosDecision', 'finalLetter', 'resolution', 'status']
+DATE = re.compile(r'^\d{1,2}/\d{1,2}/\d{2,4}$')
+CLOSED = re.compile(r'CLOSED|LAPSED|DENIED|WITHDRAWN|EXPIRED|VOID|CANCEL', re.I)
 
 def fetch():
     if len(sys.argv) > 1 and sys.argv[1] == '--local':
@@ -37,16 +39,24 @@ def clean(v):
 def expand_apns(cell):
     """'216-50-159C, 159D' -> ['21650159C','21650159D']; '202-13-007E, F, G' -> E, F, G; '211-44-066, 095' -> both."""
     out, book, item = [], None, None
+    cell = re.sub(r'-\s+', '-', cell or '')                       # '210- 09-017C' -> '210-09-017C'
+    cell = re.sub(r'\(|\)|\bformerly\b', ',', cell, flags=re.I)  # former numbers are listed too
+    cell = re.sub(r'\b(\d{3})-0(\d{2})-', r'\1-\2-', cell)          # '201-008-036A' typo -> '201-08-036A'
+    cell = re.sub(r'(\d{3})\s+([A-Z](?:-[A-Z])?)\b', r'\1\2', cell)    # '017 J-F' -> '017J-F'
     for tok in re.split(r'[,;&/]|\band\b|\s+(?=\d{3}-\d{2}-)', cell or ''):
         t = tok.strip().upper().replace(' ', '')
         if not t:
             continue
-        m = re.match(r'^(\d{3})-?(\d{2})-?(\d{3})([A-Z]?)$', t)
+        m = re.match(r'^(\d{3})-?(\d{2})-?(\d{2,3})([A-Z])-([A-Z])$', t)   # letter range '017A-D'
         if m:
-            book = m.group(1) + m.group(2); item = m.group(3); out.append(book + item + m.group(4)); continue
-        m = re.match(r'^(\d{3})([A-Z]?)$', t)
+            book = m.group(1) + m.group(2); item = m.group(3).zfill(3); a, b = sorted([m.group(4), m.group(5)])
+            out += [book + item + chr(c) for c in range(ord(a), ord(b) + 1)]; continue
+        m = re.match(r'^(\d{3})-?(\d{2})-?(\d{2,3})([A-Z]?)$', t)
+        if m:
+            book = m.group(1) + m.group(2); item = m.group(3).zfill(3); out.append(book + item + m.group(4)); continue
+        m = re.match(r'^(\d{2,3})([A-Z]?)$', t)
         if m and book:
-            item = m.group(1); out.append(book + item + m.group(2)); continue
+            item = m.group(1).zfill(3); out.append(book + item + m.group(2)); continue
         m = re.match(r'^([A-Z])$', t)
         if m and book and item:
             out.append(book + item + m.group(1)); continue
@@ -88,23 +98,35 @@ def main():
                         cells.append('')
                     rec = dict(zip(KEYS, cells[:len(KEYS)]))
                     rec['pab'] = re.sub(r'\D', '', rec['pab']).zfill(4)
+                    rec['applicant'] = clean(f"{rec.pop('first')} {rec.pop('last')}")
                     rec['apns'] = expand_apns(rec['apn'])
-                    # phase from the row's fill colour
-                    try:
-                        y0, y1 = tb.rows[i].bbox[1], tb.rows[i].bbox[3]
-                        names = [colour_name(r['non_stroking_color']) for r in fills if r['top'] < y1 - 1 and r['bottom'] > y0 + 1]
-                        names = [n for n in names if n]
-                        if names:
-                            rec['phase'] = PHASE[max(set(names), key=names.count)]
-                    except Exception:
-                        pass
+                    st = rec['status']
+                    if DATE.match(st):
+                        rec['expires'], rec['status'] = st, ''
+                    rec['open'] = not CLOSED.search(st) and not (rec['resolution'] and re.search(r'\d{4}-?\d{6,}', rec['resolution']))
+                    if rec['open']:
+                        # Phase = the row colour where it is a solid fill (blue Application, orange Board); pattern fills are green.
+                        try:
+                            y0, y1 = tb.rows[i].bbox[1], tb.rows[i].bbox[3]
+                            cs = [r['non_stroking_color'] for r in fills if r['top'] < y1 - 1 and r['bottom'] > y0 + 1 and r['width'] > 20]
+                            names = [colour_name(c) for c in cs if isinstance(c, (list, tuple)) and len(c) >= 3]
+                            names = [n for n in names if n]
+                            if names: rec['phase'] = PHASE[names[0]]
+                            elif any(isinstance(c, str) and c.startswith('P') for c in cs): rec['phase'] = PHASE['green']
+                        except Exception:
+                            pass
+                        if 'phase' not in rec:
+                            rec['phase'] = PHASE['orange'] if (rec['reportToBos'] or rec['board1'] or rec['board2']) else PHASE['blue'] if DATE.match(rec['appReceived']) else PHASE['green']
                     rec['page'] = pno
                     rows.append(rec)
     TXT.write_text('\n'.join(txt))
     snap = {'source': URL, 'title': 'MCDOT Patent Easement Abandonment Tracker', 'fetched': datetime.date.today().isoformat(),
             'count': len(rows), 'rows': rows}
     OUT.write_text(json.dumps(snap, indent=1) + '\n')
-    print(f'{len(rows)} rows, {sum(len(r["apns"]) for r in rows)} APNs, {sum(1 for r in rows if r.get("phase"))} with phase colour')
+    bad = [r['pab'] for r in rows if not r['apns']]
+    print(f'{len(rows)} rows, {sum(len(r["apns"]) for r in rows)} APNs, {sum(1 for r in rows if r["open"])} open; rows without a parseable APN: {bad}')
+    if len(rows) < 100:
+        raise SystemExit('Too few rows parsed — the PDF layout may have changed; keeping the previous snapshot.')
 
 if __name__ == '__main__':
     main()
