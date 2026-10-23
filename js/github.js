@@ -31,7 +31,7 @@ export const gh = {
   get canWrite() { return !!(this.owner && this.repo && (this.token || this.viaRelay)); },
 };
 
-import { settings } from './net.js?v=4b715c96';
+import { settings } from './net.js?v=b361b4ec';
 const relayUrl = () => settings.proxy;
 
 export async function relayFetch(route, init = {}) { return relay(route, init); }
@@ -117,6 +117,8 @@ export function clearDirCache() { dirCache.clear(); }
 
 export async function testAccess() {
   if (gh.viaRelay) { const d = await relay('/gh/ping'); return { name: `${d.repo} (via relay)`, canPush: d.canPush, private: false, ai: d.ai, perms: d.perms, label: d.label, super: d.super }; }
+  // Without a passphrase or a token there is nothing to test: an anonymous read would only ever look "read-only".
+  if (!gh.token) throw new Error(gh.passphrase ? 'The relay address is missing on this browser. Reload the page, then enter your access key again and click Test GitHub.' : 'No access key is saved on this browser yet. Enter your name and the access key you were given (it starts with mc-) in the Passphrase box, then click Test GitHub.');
   const r = await ghFetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}`);
   if (!r) throw new Error('Repo not found (check owner/repo, or the token lacks access).');
   return { name: r.full_name, canPush: !!(r.permissions && r.permissions.push), private: r.private };
