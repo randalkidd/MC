@@ -3,8 +3,8 @@
 // each plan-vs-record mismatch or other finding, and each value the reader marked hard to read.
 // Decisions are written straight into the review (checklist statuses/notes/corrections, reviewer overrides of the
 // measured checks in s.verified, and markup rows in s.extra), so the Checklist box and Markup Table fill as you go.
-import { CHECKLISTS } from './checklists.js?v=05f8d57c';
-import { computeFindings } from './review.js?v=05f8d57c';
+import { CHECKLISTS } from './checklists.js?v=2b87f216';
+import { computeFindings } from './review.js?v=2b87f216';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const yn = (v) => (v === true ? 'Yes' : v === false ? 'No' : null);

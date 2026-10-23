@@ -1,6 +1,6 @@
 // Plan review: measurement checks (setbacks, coverage, height) + checklist → markup table (Markdown).
-import { DISTRICTS, normalizeDistrict, MCZO_URL } from './standards.js?v=05f8d57c';
-import { CHECKLISTS } from './checklists.js?v=05f8d57c';
+import { DISTRICTS, normalizeDistrict, MCZO_URL } from './standards.js?v=2b87f216';
+import { CHECKLISTS } from './checklists.js?v=2b87f216';
 
 const DD2021 = 'https://www.maricopa.gov/6459/Lot-Coverage-Calculations---DD-2021-01';
 const DD3012 = 'https://www.maricopa.gov/6353/Accessory-Structures-Equipment-and-Setba';
@@ -151,7 +151,7 @@ export function buildMarkdown(s) {
   const md = [];
   md.push(`## Plan Review — ${s.apn || '<APN>'} — ${CHECKLISTS[s.type]?.label || s.type} — ${s.date}`, '');
   md.push(`**Plan reviewed:** ${s.planTitle || '—'}  **Reviewer:** ${s.reviewer || '—'}`);
-  if (s.ai && s.ai.result) md.push(`**Plan read:** ${s.ai.file} read ${s.ai.engine === 'free' ? 'by Superficial Review (in-browser text reader)' : s.ai.engine === 'queued' ? 'by Queued Review (Claude on LONDON)' : `by In-Depth Review (Claude, ${s.ai.model || 'AI'})`} on ${String(s.ai.at).slice(0, 10)}; the reviewer verified the values before issuing these comments.`);
+  if (s.ai && s.ai.result) md.push(`**Plan read:** ${s.ai.file} read ${s.ai.engine === 'free' ? 'by Superficial Review (in-browser text reader)' : s.ai.engine === 'queued' ? 'by Queued Review (Claude)' : `by In-Depth Review (Claude, ${s.ai.model || 'AI'})`} on ${String(s.ai.at).slice(0, 10)}; the reviewer verified the values before issuing these comments.`);
   md.push(`**Controlling standards:** ${key ? `${key} per [MCZO Ch. 5 §${d.section}](${MCZO_URL}) (Dec 10, 2025 edition — confirm per DD-3014-01)` : 'district not set'}${Object.values(s.platSetbacks).some(v => v) ? `; recorded plat BSL F/R/S/SS = ${['front', 'rear', 'side', 'street'].map(k => s.platSetbacks[k] || '—').join('/')} ft` : ''}`);
   const vd = Object.values(s.verified || {}).filter(v => v && v.done);
   if (vd.length) md.push(`**Review verification:** ${vd.length} item${vd.length === 1 ? '' : 's'} verified one by one by the reviewer (last ${vd.map(v => v.at || '').sort().pop().slice(0, 10)}).`);
