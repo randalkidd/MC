@@ -445,3 +445,5 @@ html.vf-open { overflow: hidden; }
 .ro-grid > label { display: flex !important; flex-direction: row; align-items: flex-start; gap: .5rem; margin: 0; }
 .ro-grid > label > input[type=checkbox] { width: auto; flex: none; margin: .2rem 0 0; }
 .ro-grid > label > span { min-width: 0; }
+.map-key { grid-column: 1 / -1; margin: 0; display: flex; align-items: center; gap: .4rem; }
+.sec-swatch { display: inline-block; width: 28px; height: 0; border-top: 3px dashed #e03131; }

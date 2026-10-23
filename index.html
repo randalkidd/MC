@@ -7,14 +7,14 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https://gis.maricopa.gov https://server.arcgisonline.com https://*.arcgisonline.com https://unpkg.com; connect-src 'self' https://gis.maricopa.gov https://publicapi.recorder.maricopa.gov https://edms.maricopa.gov https://recorder.maricopa.gov https://api.github.com https://*.workers.dev; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="preconnect" href="https://gis.maricopa.gov" crossorigin>
-<script src="js/theme.js?v=f662204d"></script>
+<script src="js/theme.js?v=c5e54942"></script>
 <title>Unofficial Maricopa County Zoning Hub</title>
 <meta name="description" content="Maricopa County parcel lookup, MCZO/MCSR standards, subdivision plat database and plan-review deficiency builder.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%232ec4b6'/><path d='M7 24V9l9 7 9-7v15' fill='none' stroke='%2304161a' stroke-width='3' stroke-linejoin='round'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=f662204d">
-<link rel="modulepreload" href="js/app.js?v=f662204d"><link rel="modulepreload" href="js/lookup.js?v=f662204d"><link rel="modulepreload" href="js/report.js?v=f662204d"><link rel="modulepreload" href="js/net.js?v=f662204d"><link rel="modulepreload" href="js/github.js?v=f662204d"><link rel="modulepreload" href="js/standards.js?v=f662204d"><link rel="modulepreload" href="js/checklists.js?v=f662204d"><link rel="modulepreload" href="js/review.js?v=f662204d"><link rel="modulepreload" href="js/recorder.js?v=f662204d"><link rel="modulepreload" href="js/subdivisions.js?v=f662204d">
+<link rel="stylesheet" href="css/app.css?v=c5e54942">
+<link rel="modulepreload" href="js/app.js?v=c5e54942"><link rel="modulepreload" href="js/lookup.js?v=c5e54942"><link rel="modulepreload" href="js/report.js?v=c5e54942"><link rel="modulepreload" href="js/net.js?v=c5e54942"><link rel="modulepreload" href="js/github.js?v=c5e54942"><link rel="modulepreload" href="js/standards.js?v=c5e54942"><link rel="modulepreload" href="js/checklists.js?v=c5e54942"><link rel="modulepreload" href="js/review.js?v=c5e54942"><link rel="modulepreload" href="js/recorder.js?v=c5e54942"><link rel="modulepreload" href="js/subdivisions.js?v=c5e54942">
 </head>
 <body>
 <header class="top">
@@ -51,6 +51,7 @@
   <div id="maps" class="maps" hidden data-box="lookup-maps" data-box-label="Aerial and parcel maps">
     <figure><figcaption>Aerial</figcaption><div id="map" class="map"></div></figure>
     <figure><figcaption>Parcel Boundaries <span class="sub">(County Assessor Parcels)</span></figcaption><div id="map2" class="map"></div></figure>
+    <p class="sub map-key"><span class="sec-swatch"></span> Section lines (PLSS, County GIS)</p>
   </div>
   <div id="report-actions" class="actions" hidden data-box="lookup-report" data-box-label="Parcel report (and its buttons)">
     <button class="btn" id="rep-copy">Copy as Markdown</button>
@@ -434,8 +435,8 @@
 <dialog id="saved-view" class="saved-view"><div class="cardhead"><h2 id="sv-title"></h2><button class="btn sm ghost" id="sv-close" type="button" aria-label="Close">✕</button></div><pre id="sv-text" class="sv-text"></pre><div class="actions"><button class="btn" id="sv-dl" type="button">Download</button><button class="btn danger" id="sv-del" type="button">Delete</button></div></dialog>
 </main>
 <footer class="foot">All information in this system is public and accessible to anyone; items saved here are stored in a public GitHub repository. Reference tool — verify findings against the adopted ordinance, recorded documents and case files before relying on them.
-<div class="build">Version <span id="build">10.23.26.063</span> · <span id="relay-ver" data-latest="23" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
+<div class="build">Version <span id="build">10.23.26.065</span> · <span id="relay-ver" data-latest="23" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
 <div id="toasts" aria-live="polite"></div>
-<script type="module" src="js/app.js?v=f662204d"></script>
+<script type="module" src="js/app.js?v=c5e54942"></script>
 </body>
 </html>

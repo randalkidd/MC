@@ -3,8 +3,8 @@
 //   queue/<id>.pdf   the queued plan            — deleted after 14 days
 //   queue/<id>.json  { id, file, size, apn, type, reviewer, submitted, status, note?, processedAt?, db? }
 //   db/<id>.json     data read from a plan       — deleted 45 days after `inserted`
-import { gh } from './github.js?v=f662204d';
-import { settings } from './net.js?v=f662204d';
+import { gh } from './github.js?v=c5e54942';
+import { settings } from './net.js?v=c5e54942';
 
 export const PDF_DAYS = 14, DATA_DAYS = 45;
 const DAY = 86400000;
