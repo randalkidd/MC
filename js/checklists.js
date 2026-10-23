@@ -38,6 +38,38 @@ const COMMON = [
   ['c-match', 'Site plan, building plans and application are consistent', 'Common checklist item 2', null, 'Reconcile the site plan with the application work description and building plans.'],
 ];
 
+// Sign permits (MCZO Ch. 11, Dec 10, 2025). The county doesn't publish a separate sign checklist, so submittal items
+// follow DD-5016-01 (site plan rules) and §1101.3.9; building/electrical items are confirmed with Building Safety.
+const SIGN_COMMON = [
+  ['s-app', 'Application complete: owner, APN, site address, contact; licensed sign contractor (ROC); valuation; each sign described', 'Application; DD-5016-01', DD('5016'), 'Complete the application: owner, APN, address, contact, sign contractor and ROC license, valuation, and a description of each sign.'],
+  ['s-site', 'Site plan (separate, standard engineer/architect scale, north arrow) showing property lines, streets and ROW widths, driveways, buildings, and every sign with dimensioned setbacks to property lines and ROW', 'DD-5016-01; MCZO §1101.3.5', DD('5016'), 'Provide a separate, to-scale site plan locating each sign with setbacks to the property lines and right-of-way, plus streets/ROW widths, driveways and buildings.'],
+  ['s-elev', 'Sign elevation for each sign: face dimensions and area calculation (one face if identical double-faced), overall height from grade, base, materials, colors', 'MCZO §1101.3.1–1101.3.2', MCZO, 'Provide a dimensioned elevation of each sign with its area calculation, overall height from grade, base, materials and colors.'],
+  ['s-type', 'Each sign is a type specifically permitted in the zoning district (anything not listed is prohibited); no roof, movable, animated or audible signs', 'MCZO §1101.3.6–1101.3.7, §1101.4.8', MCZO, 'Remove or change any sign type not permitted in this district; roof, movable, animated and audible signs are prohibited.'],
+  ['s-row', 'No sign in or projecting into the right-of-way, street, alley, clear zone or sight visibility triangle (25 ft × 25 ft)', 'MCZO §1101.3.5, §811.4', MCZO, 'Move each sign out of the right-of-way, clear zone and sight visibility triangle, and dimension it from the property line.'],
+  ['s-light', 'Illumination: indirect/internal only as allowed; no flashing or blinking; no glare onto streets or neighbors; external light source not visible from a residential district; complies with Outdoor Lighting (§812)', 'MCZO §1101.3.3, §812', MCZO, 'Note the illumination type and shielding; remove any flashing/blinking element and aim or shield lights so there is no glare and the source is not visible from residential property.'],
+  ['s-overlay', 'Overlay / scenic corridor standards checked (Wickenburg §1105.1, Highway 74 §1105.2, Carefree Highway DD-3013-01; Military Airport overlay)', 'MCZO §1105; DD-3013-01', MCZO, 'Apply the overlay or scenic corridor sign standards that cover this parcel.'],
+  ['s-struct', 'Structural: footing/foundation and attachment details for freestanding, wall and projecting signs; engineered (sealed) where Building Safety requires', 'Building code — Building Safety review', null, 'Provide footing/attachment details (sealed by an Arizona registrant where required) for Building Safety review.'],
+  ['s-elec', 'Electrical (lit signs): listed sign/components (UL 48), branch circuit and disconnect per NEC Art. 600; EMD spec sheet', 'NEC Art. 600 — Building Safety review', null, 'For illuminated signs, show the listing (UL 48), branch circuit and disconnect (NEC 600), and include the EMD specification sheet.'],
+  ['s-match', 'Application, site plan and sign elevations are consistent (count, sizes, locations)', 'DD-5016-01', DD('5016'), 'Reconcile the application, site plan and elevations so every sign matches.'],
+];
+const SIGN_RES = [
+  ['sr-yard', 'Signs not in any required yard and only on the property they pertain to (institutional, directional, temporary directional and contractor signs may be in a required yard)', 'MCZO §1102.1, §1102.5', MCZO, 'Relocate the sign out of the required yards and onto the property it pertains to.'],
+  ['sr-limits', 'Within the residential limits: identification ≤ 2 sf, ≤ 8 ft, 1 per dwelling; subdivision/perimeter wall ≤ 32 sf, ≤ 6 ft, 2 per entrance, base ≥ ½ sign width; institutional ≤ 48 sf (freestanding ≤ 12 ft, wall ≤ 18 ft), 1 per entrance; no sign > 24 sf unless stated', 'MCZO §1102.1–1102.5', MCZO, 'Reduce the sign to the area/height/number allowed for its type in Rural/Residential districts.'],
+  ['sr-entry', 'Entry feature (if any): over a driveway, one per parcel, no lighting, ≤ 24 ft high, ≤ 30 ft wide, supports ≤ 3 ft, opening ≥ 12 ft × 16 ft, sign ≤ 24 sf within the frame', 'MCZO §1102.3', MCZO, 'Revise the entry feature to the §1102.3 dimensions, remove any lighting, and keep the sign within the frame.'],
+  ['sr-light', 'Lit signs unlit 10 PM–6 AM; no EMD except Level 1 on institutional signs (§1102.5); no variable message otherwise', 'MCZO §1101.3.3.2, §1102.1.4, §1102.5.3', MCZO, 'Add a timer note (unlit 10 PM–6 AM) and remove any EMD or variable message not allowed in Rural/Residential districts.'],
+  ['sr-permit', 'Construction permit and zoning clearance for every permanent sign other than residence identification', 'MCZO §1101.3.9', MCZO, 'Include the construction permit and zoning clearance for each permanent sign.'],
+  ['sr-temp', 'Temporary signs (if any): ≤ 18 sf, ≤ 12 ft, ≤ 180 days, not lit; sale/lease ≤ 6 / 12 sf by acreage, 1 per frontage, not in a required yard; contractor ≤ 24 sf, 1 per lot', 'MCZO §1101.4', MCZO, 'Bring the temporary sign within §1101.4 (area, height, duration, number, location, no lighting).'],
+];
+const SIGN_COM = [
+  ['sc-orient', 'Signs oriented to the business street frontage or to common parking/courtyards/pedestrian ways; Level 4 EMD not oriented to any street', 'MCZO §1103.1.2, §1104.1.2', MCZO, 'Reorient the sign to the business frontage or common parking area (Level 4 EMD away from streets).'],
+  ['sc-wall', 'Wall signs (incl. parapet, awning, projecting, perimeter wall, canopy): total ≤ 15% of the front face plane (dimensioned), ≤ 20 ft high; perimeter wall signs ≤ 120 sf, bordered, on a wall fronting a street, ≤ wall height', 'MCZO §1103.2.1, §1104.2.1', MCZO, 'Dimension the front face plane and reduce wall signage to ≤ 15% of it; keep wall signs ≤ 20 ft high and perimeter wall signs ≤ 120 sf.'],
+  ['sc-free', 'Freestanding: ≤ 120 sf (commercial) / ≤ 150 sf (industrial); ≤ 24 ft, but ≤ 12 ft within 200 ft of a Rural/Residential zone (+1 ft per 5 ft beyond); one per driveway, ≤ 2 per street frontage (industrial ≥ 200 ft apart); rotating ≤ 7 rpm (C-2/C-3/industrial only)', 'MCZO §1103.2.3, §1104.2.2', MCZO, 'Reduce the freestanding sign to the allowed area, height and number, and dimension its distance to the nearest Rural/Residential zone.'],
+  ['sc-emd', 'EMD level allowed by district (C-1/C-O ≤ 2; C-2/C-3 ≤ 3; C-S ≤ 4; industrial ≤ 3; pylon ≤ 3): photo sensor and dimming, ≤ 300 nits dusk–dawn, ≤ 0.3 fc above ambient, message hold ≥ 8 s', 'MCZO §1101.3.3–1101.3.8, §1103.1.3, §1104.1.4', MCZO, 'Limit the EMD to the level allowed in this district and provide the spec sheet showing the photo sensor, dimming, brightness and 8-second hold.'],
+  ['sc-special', 'Special types meet their article: fuel canopy (≤ 24 sf/side, 2 per canopy, ≤ 12 in projection), menu boards (≤ 2 + 2, ≤ 32 sf, ≤ 7 ft, screened, speakers ≥ 200 ft from residential), freeway pylon (C-S/C-2, ≤ 65/80 ft, ≤ 2.5:1, base ≥ 20 ft from property lines, landscaped), A-frame (C-1/C-2/C-S, ≤ 12 sf, ≤ 2 ft from the building, zoning clearance), directory (≤ 18 sf, ≤ 6 ft), directional (≤ 6 sf, ≤ 12 ft), light pole banners (≤ 18 sf, pole ≤ 18 ft)', 'MCZO §1101.3.11–1101.3.13, §1103.2.2–1103.2.6', MCZO, 'Revise the sign to the standards of its article.'],
+  ['sc-bill', 'Billboards (if any): C-2/C-3/industrial only; separation 1,000 ft (≤ 3 mi of a city/town) or 3,000 ft; ≥ 100 ft from residential (150 ft lit/digital); ≥ 500 ft from parks/schools/rest areas; not within 660 ft of a Scenic Corridor Overlay; size/height by freeway distance; digital rules; UCCD in the Military Airport overlay', 'MCZO §1103.3, §1104.3; DD-3002-01; DD-3003-01; DD-3004-01', MCZO, 'Provide the billboard radius map and dimensions demonstrating every separation, setback, size and digital-display requirement.'],
+  ['sc-temp', 'Temporary signs (if any): within the permanent wall/freestanding allowance, ≤ 12 ft, not lit, tied to a temporary event (TUP) or a pending permanent sign permit', 'MCZO §1101.4.1–1101.4.3', MCZO, 'Tie the temporary sign to a TUP or a pending permanent sign permit and keep it within the permanent sign allowance, ≤ 12 ft and unlit.'],
+];
+
 export const CHECKLISTS = {
   residential: {
     label: 'Residential site plan (building permit)',
@@ -139,5 +171,13 @@ export const CHECKLISTS = {
       ['f-waiver', 'Each approved waiver listed in a plat note by MCSR section', 'DD-3017-01 ¶5', DD('3017'), 'Add the waiver plat note.'],
       ['f-city', 'City/town within 3 miles routed for review (and A.R.S. 9-474 filing)', 'MCSR §203.3.a.14; A.R.S. 9-474', MCSR, 'Route the plat to the city and certify the filing.'],
     ],
+  },
+  'sign-res': {
+    label: 'Sign permit — residential / rural',
+    items: [...SIGN_COMMON, ...SIGN_RES],
+  },
+  'sign-com': {
+    label: 'Sign permit — commercial / industrial',
+    items: [...SIGN_COMMON, ...SIGN_COM],
   },
 };

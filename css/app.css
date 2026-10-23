@@ -421,3 +421,5 @@ html.vf-open { overflow: hidden; }
 .cs-top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .4rem 1.6rem; margin-bottom: .6rem; }
 .cs-top h3, #rv-coverage > h3 { margin-top: .2rem; }
 @media (max-width: 900px) { .cs-top { grid-template-columns: 1fr; } }
+.sg-chk { align-self: end; padding-bottom: .5rem; }
+#rv-signs select { min-width: 0; max-width: 100%; }

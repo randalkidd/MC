@@ -1,11 +1,11 @@
 // Plan review → "Read a site plan PDF": sends the PDF through the relay to Claude (POST /ai/siteplan), maps the
 // structured result onto the review form, and checks the plan's APN / owner / address / lot area / zoning against
 // the Assessor record and the recorded deed.
-import { relayFetch } from './github.js?v=8d5d8abe';
-import { request } from './net.js?v=8d5d8abe';
-import { EP, normalizeApn } from './lookup.js?v=8d5d8abe';
-import { CHECKLISTS } from './checklists.js?v=8d5d8abe';
-import { normalizeDistrict } from './standards.js?v=8d5d8abe';
+import { relayFetch } from './github.js?v=5d976b11';
+import { request } from './net.js?v=5d976b11';
+import { EP, normalizeApn } from './lookup.js?v=5d976b11';
+import { CHECKLISTS } from './checklists.js?v=5d976b11';
+import { normalizeDistrict } from './standards.js?v=5d976b11';
 
 export const MAX_PDF_MB = 30;
 const b64 = (str) => { const b = new TextEncoder().encode(str); let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); };

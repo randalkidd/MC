@@ -1,6 +1,7 @@
 // Plan review: measurement checks (setbacks, coverage, height) + checklist → markup table (Markdown).
-import { DISTRICTS, normalizeDistrict, MCZO_URL } from './standards.js?v=8d5d8abe';
-import { CHECKLISTS } from './checklists.js?v=8d5d8abe';
+import { DISTRICTS, normalizeDistrict, MCZO_URL } from './standards.js?v=5d976b11';
+import { CHECKLISTS } from './checklists.js?v=5d976b11';
+import { signFindings, blankSign, blankSignCtx } from './signs.js?v=5d976b11';
 
 const DD2021 = 'https://www.maricopa.gov/6459/Lot-Coverage-Calculations---DD-2021-01';
 const DD3012 = 'https://www.maricopa.gov/6353/Accessory-Structures-Equipment-and-Setba';
@@ -25,6 +26,8 @@ export function blankReview() {
     checks: {},
     extra: [],
     verified: {},
+    signs: [blankSign(1)],
+    signCtx: blankSignCtx(),
   };
 }
 export function loadDraft() {
@@ -50,6 +53,8 @@ export function computeFindings(s) {
   const cite = (sec) => `[MCZO §${sec}](${MCZO_URL})`;
   const push = (loc, item, shows, req, c, ok, fix) => F.push({ loc, item, shows, req, cite: c, status: ok === null ? 'verify' : ok ? 'ok' : 'deficient', fix: ok ? '—' : fix });
   if (!d) { F.push({ loc: 'General', item: 'Zoning district', shows: s.district || 'not set', req: 'A district in MCZO Ch. 5', cite: cite('502'), status: 'verify', fix: 'Set the district (run a parcel lookup) so dimensional checks can run.' }); return { F: applyVerified(s, F), key, d }; }
+  // Sign permits are checked against MCZO Chapter 11 instead of the site-plan standards.
+  if (String(s.type).startsWith('sign')) return { F: applyVerified(s, signFindings(s, key, d)), key, d };
   const sec = d.section; const p = s.primary;
 
   // Lot area / width
