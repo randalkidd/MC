@@ -13,9 +13,6 @@
   --accent: #12786d; --accent-strong: #0d5e55; --accent-ink: #ffffff;
   --ok: #1a7f47; --bad: #b42318; --yellow: #9a6100; --warn-bg: #fff4e0; --warn-line: #f0c27a; --note-bg: #e8f1f9; --note-line: #0070B9;
 }
-/* Saved color: the original Sunrise Orange accent (with turquoise OK). Teal is the default; the ● button in the header switches. */
-:root[data-accent="orange"] { --accent: #F26724; --accent-strong: #ff8a52; --accent-ink: #131D28; --ok: #2fbfad; }
-:root[data-accent="orange"][data-theme="light"] { --accent: #c4500f; --accent-strong: #a8430b; --accent-ink: #ffffff; --ok: #167a6f; }
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -25,7 +22,7 @@ h2 { font-size: 1.1rem; margin: 0 0 .75rem; } h2 small { font-weight: 400; color
 h3 { font-size: .95rem; margin: 1.25rem 0 .5rem; } h4 { font-size: .85rem; margin: .75rem 0 .4rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
 code { font-family: var(--mono); font-size: .85em; background: var(--surface); padding: .05em .35em; border-radius: 4px; }
 
-.top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .9rem 16px; border-bottom: 1px solid var(--line); background: var(--surface); }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .9rem 16px; border-bottom: 1px solid var(--line); background: var(--surface); position: relative; z-index: 600; }
 .brand { display: flex; gap: .7rem; align-items: center; } .brand small { display: block; color: var(--muted); font-size: .75rem; }
 .mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); font-weight: 600; font-size: .8rem; }
 .badge { font-size: .75rem; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: .2rem .6rem; white-space: nowrap; } .badge.ok { color: var(--ok); border-color: currentColor; }
@@ -106,7 +103,6 @@ html.printing .report .maps figcaption { color: #4f5d6b; }
     --accent: #12786d; --accent-strong: #0d5e55; --accent-ink: #ffffff;
     --ok: #1a7f47; --bad: #b42318; --yellow: #9a6100; --warn-bg: #fff4e0; --warn-line: #f0c27a; --note-bg: #e8f1f9; --note-line: #0070B9;
   }
-  :root[data-accent="orange"] { --accent: #c4500f; --accent-strong: #a8430b; --ok: #167a6f; }
   html, body { background: #fff !important; color: #131D28 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .card, .report { box-shadow: none !important; background: #fff !important; }
   th { background: #e9eef0 !important; }
@@ -115,7 +111,16 @@ html.printing .report .maps figcaption { color: #4f5d6b; }
 
 .theme-btn { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 999px; width: 30px; height: 30px; cursor: pointer; font-size: .9rem; line-height: 1; }
 .theme-btn:hover { color: var(--accent); border-color: var(--accent); }
-.accent-btn { color: var(--accent); font-size: 1.05rem; margin-right: .35rem; }
+.accent-btn { color: var(--accent); font-size: 1.05rem; }
+.accent-wrap { position: relative; display: inline-block; margin-right: .35rem; }
+.accent-pop { position: absolute; right: 0; top: calc(100% + 6px); z-index: 60; width: 236px; padding: .6rem; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: 0 10px 28px rgb(0 0 0 / .35); }
+.accent-pop[hidden] { display: none; }
+.accent-pop .ap-title { font-size: .78rem; color: var(--muted); margin: 0 0 .45rem; display: flex; justify-content: space-between; }
+.accent-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .45rem; }
+.sw { width: 100%; aspect-ratio: 1; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; position: relative; box-shadow: inset 0 0 0 1px rgb(0 0 0 / .15); }
+.sw:hover, .sw:focus-visible { outline: none; transform: scale(1.08); }
+.sw[aria-checked="true"] { border-color: var(--ink); }
+.sw[aria-checked="true"]::after { content: '✓'; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-weight: 700; text-shadow: 0 0 3px rgb(0 0 0 / .7); }
 .top-right { display: flex; gap: .5rem; align-items: center; }
 fieldset.stbl { border: 1px solid var(--line); border-radius: 8px; margin: .5rem 0; padding: .5rem .75rem; } fieldset.stbl legend { font-size: .82rem; color: var(--ink); padding: 0 .3rem; } fieldset.stbl input { width: 5.5rem; }
 details.miss { margin: .4rem 0 .2rem; font-size: .85rem; } details.miss summary { color: var(--muted); cursor: pointer; } details.miss summary:hover { color: var(--accent); }
@@ -356,3 +361,52 @@ dialog.vf::backdrop { background: rgba(0, 0, 0, .45); }
 .ok-line { color: var(--ok); font-weight: 600; }
 html.vf-open { overflow: hidden; }
 @media (max-width: 600px) { .vf-jump { order: 5; max-width: none; width: 100%; } }
+
+/* 16 accent colors (● button). Teal is the default (no data-accent); each has a dark- and a light-theme shade. */
+:root[data-accent="orange"] { --accent: #F26724; --accent-strong: #ff8a52; --accent-ink: #04161a; --ok: #2fbfad; }
+:root[data-accent="orange"][data-theme="light"] { --accent: #c4500f; --accent-strong: #a8430b; --accent-ink: #ffffff; --ok: #167a6f; }
+:root[data-accent="coral"] { --accent: #ff8a65; --accent-strong: #ffab91; --accent-ink: #04161a; }
+:root[data-accent="coral"][data-theme="light"] { --accent: #c2451f; --accent-strong: #9f3517; --accent-ink: #ffffff; }
+:root[data-accent="red"] { --accent: #ff6b81; --accent-strong: #ff94a4; --accent-ink: #04161a; }
+:root[data-accent="red"][data-theme="light"] { --accent: #c0283f; --accent-strong: #9c1f33; --accent-ink: #ffffff; }
+:root[data-accent="rose"] { --accent: #ff6ec7; --accent-strong: #ff9ad8; --accent-ink: #04161a; }
+:root[data-accent="rose"][data-theme="light"] { --accent: #b0237a; --accent-strong: #8f1c63; --accent-ink: #ffffff; }
+:root[data-accent="purple"] { --accent: #d07cff; --accent-strong: #e0a6ff; --accent-ink: #04161a; }
+:root[data-accent="purple"][data-theme="light"] { --accent: #8a2fb8; --accent-strong: #712596; --accent-ink: #ffffff; }
+:root[data-accent="violet"] { --accent: #a78bfa; --accent-strong: #c4b5fd; --accent-ink: #04161a; }
+:root[data-accent="violet"][data-theme="light"] { --accent: #6d3fd1; --accent-strong: #5730ad; --accent-ink: #ffffff; }
+:root[data-accent="indigo"] { --accent: #818cf8; --accent-strong: #a5b4fc; --accent-ink: #04161a; }
+:root[data-accent="indigo"][data-theme="light"] { --accent: #3949c7; --accent-strong: #2d3aa3; --accent-ink: #ffffff; }
+:root[data-accent="blue"] { --accent: #4ea8ff; --accent-strong: #82c2ff; --accent-ink: #04161a; }
+:root[data-accent="blue"][data-theme="light"] { --accent: #0062b0; --accent-strong: #004f8f; --accent-ink: #ffffff; }
+:root[data-accent="cyan"] { --accent: #22d3ee; --accent-strong: #67e8f9; --accent-ink: #04161a; }
+:root[data-accent="cyan"][data-theme="light"] { --accent: #0e7490; --accent-strong: #0b5d73; --accent-ink: #ffffff; }
+:root[data-accent="emerald"] { --accent: #34d399; --accent-strong: #6ee7b7; --accent-ink: #04161a; --ok: #4ea8ff; }
+:root[data-accent="emerald"][data-theme="light"] { --accent: #047857; --accent-strong: #03634a; --accent-ink: #ffffff; --ok: #0062b0; }
+:root[data-accent="green"] { --accent: #4ade80; --accent-strong: #86efac; --accent-ink: #04161a; --ok: #2fbfad; }
+:root[data-accent="green"][data-theme="light"] { --accent: #15803d; --accent-strong: #116a32; --accent-ink: #ffffff; --ok: #167a6f; }
+:root[data-accent="lime"] { --accent: #a3e635; --accent-strong: #bef264; --accent-ink: #04161a; --ok: #2fbfad; }
+:root[data-accent="lime"][data-theme="light"] { --accent: #4d7c0f; --accent-strong: #3f650c; --accent-ink: #ffffff; --ok: #167a6f; }
+:root[data-accent="gold"] { --accent: #f5e050; --accent-strong: #f9eb8a; --accent-ink: #04161a; }
+:root[data-accent="gold"][data-theme="light"] { --accent: #857400; --accent-strong: #6d5f00; --accent-ink: #ffffff; }
+:root[data-accent="amber"] { --accent: #fbbf24; --accent-strong: #fcd34d; --accent-ink: #04161a; }
+:root[data-accent="amber"][data-theme="light"] { --accent: #9a6100; --accent-strong: #7e4f00; --accent-ink: #ffffff; }
+:root[data-accent="silver"] { --accent: #cbd5e1; --accent-strong: #e2e8f0; --accent-ink: #04161a; }
+:root[data-accent="silver"][data-theme="light"] { --accent: #475569; --accent-strong: #334155; --accent-ink: #ffffff; }
+@media print {
+  :root[data-accent="orange"], :root[data-accent="orange"][data-theme] { --accent: #c4500f; --accent-strong: #a8430b; --accent-ink: #ffffff; --ok: #167a6f; }
+  :root[data-accent="coral"], :root[data-accent="coral"][data-theme] { --accent: #c2451f; --accent-strong: #9f3517; --accent-ink: #ffffff; }
+  :root[data-accent="red"], :root[data-accent="red"][data-theme] { --accent: #c0283f; --accent-strong: #9c1f33; --accent-ink: #ffffff; }
+  :root[data-accent="rose"], :root[data-accent="rose"][data-theme] { --accent: #b0237a; --accent-strong: #8f1c63; --accent-ink: #ffffff; }
+  :root[data-accent="purple"], :root[data-accent="purple"][data-theme] { --accent: #8a2fb8; --accent-strong: #712596; --accent-ink: #ffffff; }
+  :root[data-accent="violet"], :root[data-accent="violet"][data-theme] { --accent: #6d3fd1; --accent-strong: #5730ad; --accent-ink: #ffffff; }
+  :root[data-accent="indigo"], :root[data-accent="indigo"][data-theme] { --accent: #3949c7; --accent-strong: #2d3aa3; --accent-ink: #ffffff; }
+  :root[data-accent="blue"], :root[data-accent="blue"][data-theme] { --accent: #0062b0; --accent-strong: #004f8f; --accent-ink: #ffffff; }
+  :root[data-accent="cyan"], :root[data-accent="cyan"][data-theme] { --accent: #0e7490; --accent-strong: #0b5d73; --accent-ink: #ffffff; }
+  :root[data-accent="emerald"], :root[data-accent="emerald"][data-theme] { --accent: #047857; --accent-strong: #03634a; --accent-ink: #ffffff; --ok: #0062b0; }
+  :root[data-accent="green"], :root[data-accent="green"][data-theme] { --accent: #15803d; --accent-strong: #116a32; --accent-ink: #ffffff; --ok: #167a6f; }
+  :root[data-accent="lime"], :root[data-accent="lime"][data-theme] { --accent: #4d7c0f; --accent-strong: #3f650c; --accent-ink: #ffffff; --ok: #167a6f; }
+  :root[data-accent="gold"], :root[data-accent="gold"][data-theme] { --accent: #857400; --accent-strong: #6d5f00; --accent-ink: #ffffff; }
+  :root[data-accent="amber"], :root[data-accent="amber"][data-theme] { --accent: #9a6100; --accent-strong: #7e4f00; --accent-ink: #ffffff; }
+  :root[data-accent="silver"], :root[data-accent="silver"][data-theme] { --accent: #475569; --accent-strong: #334155; --accent-ink: #ffffff; }
+}

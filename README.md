@@ -121,7 +121,7 @@ Playing needs a key. Scores live in `games/scores.json` in the private repo; the
 
 ## Accent color
 
-Teal is the default accent. The original Sunrise Orange is saved as a preset: the **●** button next to the light/dark switch (top right) toggles Teal ↔ Orange, and each browser remembers the choice. Printed/PDF reports and the parcel outline on the map follow the chosen accent.
+Click the **●** button next to the light/dark switch (top right) to pick one of **16 accent colors**: Teal (default), Sunrise Orange (the original), Coral, Red, Rose, Purple, Violet, Indigo, Sky Blue, Cyan, Emerald, Green, Lime, Gold, Amber and Silver. Each has a bright shade for dark mode and a deeper one for light mode and printing, and each browser remembers its choice. With the green accents, OK/✅ marks switch to turquoise (or blue for Emerald) so they stay distinct from the accent. Printed/PDF reports and the parcel outline on the map follow the chosen accent.
 
 ## Sign In and Profile
 
