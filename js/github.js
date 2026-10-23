@@ -31,7 +31,7 @@ export const gh = {
   get canWrite() { return !!(this.owner && this.repo && (this.token || this.viaRelay)); },
 };
 
-import { settings } from './net.js?v=75d04be2';
+import { settings } from './net.js?v=2f06fd4d';
 const relayUrl = () => settings.proxy;
 
 export async function relayFetch(route, init = {}) { return relay(route, init); }
@@ -87,7 +87,11 @@ export async function readFile(path) {
 }
 
 // Create or update a file with a commit. Retries once on a sha conflict by re-reading.
+// Permissions of this browser's access key (from the relay's /gh/ping). Old relays don't send them: treat as full access.
+export function perms() { try { const v = JSON.parse(localStorage.getItem('mc.perms') || 'null'); return v && Array.isArray(v.perms) ? v : { perms: ['review', 'write', 'queue', 'rapid'], label: '', legacy: true }; } catch { return { perms: [], label: '' }; } }
+export const hasPerm = (p) => perms().perms.includes(p);
 export async function writeFile(path, text, message) {
+  if (gh.viaRelay && !hasPerm('write')) throw new Error('Your access key can\'t save to GitHub (needs "write"). Ask the site administrator.');
   if (!gh.canWrite) throw new Error('Not connected to GitHub yet — tap "⚙ Connect GitHub to save" (top right) and enter your passphrase (or token).');
   if (gh.viaRelay) return relay('/gh/write', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path, content: text, message }) });
   const put = async () => {
@@ -112,7 +116,7 @@ export async function listDir(path, { fresh = false } = {}) {
 export function clearDirCache() { dirCache.clear(); }
 
 export async function testAccess() {
-  if (gh.viaRelay) { const d = await relay('/gh/ping'); return { name: `${d.repo} (via relay)`, canPush: d.canPush, private: false, ai: d.ai }; }
+  if (gh.viaRelay) { const d = await relay('/gh/ping'); return { name: `${d.repo} (via relay)`, canPush: d.canPush, private: false, ai: d.ai, perms: d.perms, label: d.label, super: d.super }; }
   const r = await ghFetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}`);
   if (!r) throw new Error('Repo not found (check owner/repo, or the token lacks access).');
   return { name: r.full_name, canPush: !!(r.permissions && r.permissions.push), private: r.private };

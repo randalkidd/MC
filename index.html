@@ -7,14 +7,14 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https://gis.maricopa.gov https://server.arcgisonline.com https://*.arcgisonline.com https://unpkg.com; connect-src 'self' https://gis.maricopa.gov https://publicapi.recorder.maricopa.gov https://edms.maricopa.gov https://recorder.maricopa.gov https://api.github.com https://*.workers.dev; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="preconnect" href="https://gis.maricopa.gov" crossorigin>
-<script src="js/theme.js?v=75d04be2"></script>
+<script src="js/theme.js?v=2f06fd4d"></script>
 <title>Unofficial Maricopa County Zoning Hub</title>
 <meta name="description" content="Maricopa County parcel lookup, MCZO/MCSR standards, subdivision plat database and plan-review deficiency builder.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23F26724'/><path d='M7 24V9l9 7 9-7v15' fill='none' stroke='%2304161a' stroke-width='3' stroke-linejoin='round'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=75d04be2">
-<link rel="modulepreload" href="js/app.js?v=75d04be2"><link rel="modulepreload" href="js/lookup.js?v=75d04be2"><link rel="modulepreload" href="js/report.js?v=75d04be2"><link rel="modulepreload" href="js/net.js?v=75d04be2"><link rel="modulepreload" href="js/github.js?v=75d04be2"><link rel="modulepreload" href="js/standards.js?v=75d04be2"><link rel="modulepreload" href="js/checklists.js?v=75d04be2"><link rel="modulepreload" href="js/review.js?v=75d04be2"><link rel="modulepreload" href="js/recorder.js?v=75d04be2"><link rel="modulepreload" href="js/subdivisions.js?v=75d04be2">
+<link rel="stylesheet" href="css/app.css?v=2f06fd4d">
+<link rel="modulepreload" href="js/app.js?v=2f06fd4d"><link rel="modulepreload" href="js/lookup.js?v=2f06fd4d"><link rel="modulepreload" href="js/report.js?v=2f06fd4d"><link rel="modulepreload" href="js/net.js?v=2f06fd4d"><link rel="modulepreload" href="js/github.js?v=2f06fd4d"><link rel="modulepreload" href="js/standards.js?v=2f06fd4d"><link rel="modulepreload" href="js/checklists.js?v=2f06fd4d"><link rel="modulepreload" href="js/review.js?v=2f06fd4d"><link rel="modulepreload" href="js/recorder.js?v=2f06fd4d"><link rel="modulepreload" href="js/subdivisions.js?v=2f06fd4d">
 </head>
 <body>
 <header class="top">
@@ -23,10 +23,10 @@
 </header>
 <nav class="tabs" role="tablist">
   <button class="tab" role="tab" data-tab="p-lookup">Parcel lookup</button>
-  <button class="tab gated" role="tab" data-tab="p-review" hidden>Plan Review Hub</button>
-  <button class="tab gated" role="tab" data-tab="p-division" hidden>Land division</button>
+  <button class="tab gated" role="tab" data-tab="p-review" data-perm="review" hidden>Plan Review Hub</button>
+  <button class="tab gated" role="tab" data-tab="p-division" data-perm="review" hidden>Land division</button>
   <button class="tab gated" role="tab" data-tab="p-subs" hidden>SubdivisionDB</button>
-  <button class="tab gated" role="tab" data-tab="p-saved" hidden>Saved Parcels</button>
+  <button class="tab gated" role="tab" data-tab="p-saved" data-perm="review" hidden>Saved Parcels</button>
   <button class="tab" role="tab" data-tab="p-ref">Reference</button>
   <button class="tab" role="tab" data-tab="p-settings">⚙ Settings</button>
 </nav>
@@ -53,7 +53,7 @@
   <div id="report-actions" class="actions" hidden>
     <button class="btn" id="rep-copy">Copy as Markdown</button>
     <button class="btn" id="rep-dl">Download .md</button>
-    <button class="btn" id="rep-save">Save to GitHub</button>
+    <button class="btn" id="rep-save" data-perm="write">Save to GitHub</button>
     <button class="btn" id="rep-pdf">Save PDF</button>
     <button class="btn ghost" id="rep-print">Print</button>
   </div>
@@ -71,14 +71,14 @@
       <span id="sp-name" class="sub">or drag a PDF here (max 30 MB)</span>
       <span class="sp-btns">
         <button class="btn" id="sp-free" type="button" disabled title="Free, instant, in this browser: reads the PDF's own text (CAD/Word exports). Not for scans.">Superficial Review</button>
-        <button class="btn primary" id="sp-run" type="button" disabled title="Claude reads every sheet now (about a minute). Uses the Anthropic API key in your relay — billed per plan.">Rapid Review</button>
-        <button class="btn" id="sp-queue-btn" type="button" disabled title="Stored in your private repo and read by Claude on LONDON at 12:15 AM Sunday–Thursday. No API cost.">Queued Review</button>
+        <button class="btn primary" id="sp-run" data-perm="rapid" type="button" disabled title="Claude reads every sheet now (about a minute). Uses the Anthropic API key in your relay — billed per plan.">Rapid Review</button>
+        <button class="btn" id="sp-queue-btn" data-perm="queue" type="button" disabled title="Stored in your private repo and read by Claude on LONDON at 12:15 AM Sunday–Thursday. No API cost.">Queued Review</button>
       </span>
     </div>
     <div id="sp-status" class="status" hidden></div>
     <div id="sp-out"></div>
   </div>
-  <aside class="card sp-qcard" id="sp-queued">
+  <aside class="card sp-qcard" id="sp-queued" data-perm="queue">
     <div class="cardhead"><h2>MC-queue files</h2><button class="btn sm" id="sp-qrefresh" type="button">Refresh</button></div>
     <p class="sub">Plans sent with Queued Review (private repo). Read on LONDON at 12:15 AM Sun–Thu · plans kept 14 days, data 45 days.</p>
     <div id="sp-qlist"><p class="sub">Click Refresh to load.</p></div>
@@ -142,7 +142,7 @@
 
   <div class="card">
     <div class="cardhead"><h2>Markup table</h2>
-      <div class="actions"><button class="btn" id="rv-copy">Copy</button><button class="btn" id="rv-dl">Download .md</button><button class="btn primary" id="rv-letter" title="Zoning Plan Review Comments letter (Maricopa County template) listing only the items that do not meet requirements">Comment letter (PDF)</button><button class="btn" id="rv-save">Save to GitHub</button><button class="btn ghost" id="rv-reset">New review</button></div></div>
+      <div class="actions"><button class="btn" id="rv-copy">Copy</button><button class="btn" id="rv-dl">Download .md</button><button class="btn primary" id="rv-letter" title="Zoning Plan Review Comments letter (Maricopa County template) listing only the items that do not meet requirements">Comment letter (PDF)</button><button class="btn" id="rv-save" data-perm="write">Save to GitHub</button><button class="btn ghost" id="rv-reset">New review</button></div></div>
     <textarea id="rv-md" class="md" rows="16" spellcheck="false"></textarea>
   </div>
 </section>
@@ -179,7 +179,7 @@
   <div class="card">
     <div class="cardhead">
       <div><h2>Subdivision plat database</h2><p class="sub"><span id="db-count"></span> · <span id="db-source"></span> <span id="db-dirty" class="pill warn-pill" hidden>Unsaved changes</span></p></div>
-      <div class="actions"><button class="btn" id="db-new">+ Add</button><button class="btn primary" id="db-save">Save to GitHub</button><button class="btn ghost" id="db-reload">Reload</button><button class="btn ghost" id="db-export">Export JSON</button></div>
+      <div class="actions"><button class="btn" id="db-new" data-perm="write">+ Add</button><button class="btn primary" id="db-save" data-perm="write">Save to GitHub</button><button class="btn ghost" id="db-reload">Reload</button><button class="btn ghost" id="db-export">Export JSON</button></div>
     </div>
     <input id="db-q" class="filter" placeholder="Search SubdivisionDB: name, case, zoning, APN…">
     <div class="tw db-scroll"><table><thead><tr><th>Subdivision</th><th>MCR</th><th>Plat</th><th>Lots</th><th>Recorded setbacks</th><th>Lot coverage</th><th>Last Updated</th><th></th></tr></thead><tbody id="db-body"></tbody></table></div>
@@ -198,14 +198,14 @@
   </div>
   <div id="queue" class="card queue">
     <div class="cardhead"><div><h2>Plat Automation Waitlist <span class="pill" id="queue-count">0</span></h2><p class="sub">Subdivisions found by a parcel lookup that aren't in SubdivisionDB yet. <b>Process with Claude</b> opens Claude with this list; Claude reads each plat in the Claude desktop app's browser on your computer, adds it to SubdivisionDB and clears it from this list.</p></div>
-      <div class="actions"><button class="btn primary" id="queue-run" type="button">✦ Process with Claude</button><button class="btn ghost" id="queue-copy" type="button">Copy request</button></div></div>
+      <div class="actions"><button class="btn primary" id="queue-run" data-perm="write" type="button">✦ Process with Claude</button><button class="btn ghost" id="queue-copy" type="button">Copy request</button></div></div>
     <div class="tw"><table><thead><tr><th>Subdivision</th><th>MCR</th><th>Plat</th><th>Lots</th><th>Found from APN</th><th>First seen</th><th></th></tr></thead><tbody id="queue-body"></tbody></table></div>
   </div>
 </section>
 <dialog id="db-editor">
   <h2 id="ed-title"></h2>
   <form id="ed-form" class="stack"></form>
-  <div class="actions"><button class="btn ghost" id="ed-count" type="button">Count lots from Assessor</button><span class="grow"></span><button class="btn danger" id="ed-delete" type="button">Delete</button><button class="btn ghost" id="ed-cancel" type="button">Cancel</button><button class="btn primary" id="ed-save" type="button">Apply</button></div>
+  <div class="actions"><button class="btn ghost" id="ed-count" type="button">Count lots from Assessor</button><span class="grow"></span><button class="btn danger" id="ed-delete" type="button">Delete</button><button class="btn ghost" id="ed-cancel" type="button">Cancel</button><button class="btn primary" id="ed-save" data-perm="write" type="button">Apply</button></div>
 </dialog>
 
 <!-- SAVED -->
@@ -272,11 +272,36 @@
       <p id="st-test-out" class="status"></p>
     </div>
   </div>
+  <div class="card" id="st-keys" data-perm="admin">
+    <div class="cardhead"><h2>Access keys <span class="sub" id="st-keys-who"></span></h2><button class="btn sm" id="st-keys-refresh" type="button">Refresh</button></div>
+    <p class="sub">Your passphrase (<code>SITE_KEY</code> in Cloudflare) is the <b>super account</b>: every permission. Give other people their own key with less access. Each key is typed into ⚙ Settings → Passphrase on their browser, works through the same relay, and can be revoked here at any time (takes effect within a minute). Keys are stored only as hashes in the private repo; a new key is shown once.</p>
+    <form id="st-keys-form" class="keys-form">
+      <label>Who is it for<input name="label" required maxlength="60" placeholder="e.g. Jane Smith (planner)"></label>
+      <label>Role<select name="role">
+        <option value="viewer">Read-only — look up, review (Superficial), no saving</option>
+        <option value="reviewer" selected>Reviewer — + save to GitHub, Queued Review</option>
+        <option value="senior">Senior reviewer — + Rapid Review (uses the API key)</option>
+        <option value="admin">Administrator — everything, incl. managing keys</option>
+        <option value="custom">Custom…</option>
+      </select></label>
+      <fieldset class="perm-boxes"><legend class="sub">Permissions</legend>
+        <label class="rowc"><input type="checkbox" name="p" value="review" checked> review — Plan Review Hub, Land division, Saved Parcels</label>
+        <label class="rowc"><input type="checkbox" name="p" value="write" checked> write — save to GitHub (SubdivisionDB, waitlist, reports, reviews)</label>
+        <label class="rowc"><input type="checkbox" name="p" value="queue" checked> queue — Queued Review (private MC-queue)</label>
+        <label class="rowc"><input type="checkbox" name="p" value="rapid"> rapid — Rapid Review (Anthropic API, costs money)</label>
+        <label class="rowc"><input type="checkbox" name="p" value="admin"> admin — manage access keys</label>
+      </fieldset>
+      <label>Expires after (days, 0 = never)<input name="days" type="number" min="0" max="3650" value="0"></label>
+      <div class="actions"><button class="btn primary" type="submit">Create key</button></div>
+    </form>
+    <div id="st-newkey" class="warn" hidden></div>
+    <div id="st-keys-list"><p class="sub">Click Refresh to load.</p></div>
+  </div>
 </section>
 </main>
 <footer class="foot">All information in this system is public and accessible to anyone; items saved here are stored in a public GitHub repository. Reference tool — verify findings against the adopted ordinance, recorded documents and case files before relying on them.
-<div class="build">Version <span id="build">10.23.26.006</span> · <span id="relay-ver" data-latest="15" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
+<div class="build">Version <span id="build">10.23.26.010</span> · <span id="relay-ver" data-latest="16" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
 <div id="toasts" aria-live="polite"></div>
-<script type="module" src="js/app.js?v=75d04be2"></script>
+<script type="module" src="js/app.js?v=2f06fd4d"></script>
 </body>
 </html>

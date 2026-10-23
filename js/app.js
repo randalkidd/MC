@@ -1,13 +1,13 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=75d04be2';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=75d04be2';
-import { settings, setSharedRelay } from './net.js?v=75d04be2';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=75d04be2';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=75d04be2';
-import { CHECKLISTS } from './checklists.js?v=75d04be2';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown, markupRows, rememberReviewer, rememberedReviewer } from './review.js?v=75d04be2';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=2f06fd4d';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=2f06fd4d';
+import { settings, setSharedRelay } from './net.js?v=2f06fd4d';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache, perms, hasPerm, relayFetch } from './github.js?v=2f06fd4d';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=2f06fd4d';
+import { CHECKLISTS } from './checklists.js?v=2f06fd4d';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown, markupRows, rememberReviewer, rememberedReviewer } from './review.js?v=2f06fd4d';
 let REF = null; // js/refdata.js (76 KB) loads the first time the Reference tab opens
-import { findPlatDoc } from './recorder.js?v=75d04be2';
-import { loadAllSubdivisions } from './subdivisions.js?v=75d04be2';
+import { findPlatDoc } from './recorder.js?v=2f06fd4d';
+import { loadAllSubdivisions } from './subdivisions.js?v=2f06fd4d';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -44,20 +44,30 @@ function renderBadge() {
   const b = $('#gh-badge'); if (!b) return;
   b.textContent = unlocked ? 'Connected' : 'Not Connected';
   b.className = `badge ${unlocked ? 'ok' : 'no'}`;
-  b.title = unlocked ? `Saving to ${gh.owner}/${gh.repo} through the relay` : 'Not saving: open ⚙ Settings, enter the relay URL and passphrase, Save settings, then Test GitHub';
+  b.title = unlocked ? `${perms().label ? `${perms().label} — ` : ''}permissions: ${perms().perms.join(', ')}` : 'Not saving: open ⚙ Settings, enter the relay URL and passphrase, Save settings, then Test GitHub';
 }
+const PERM_LIST = ['review', 'write', 'queue', 'rapid', 'admin'];
 function applyAccess(on) {
   unlocked = !!on; renderBadge();
   document.documentElement.classList.toggle('locked', !unlocked);
+  const mine = unlocked ? perms().perms : [];
+  PERM_LIST.forEach(p => document.documentElement.classList.toggle(`perm-${p}`, mine.includes(p)));
   $$('.tab.gated').forEach(b => (b.hidden = !unlocked));
   $('#landing').hidden = unlocked;
   if (!unlocked && GATED.includes(S.tab)) showTab('p-lookup');
+  else if (S.tab && !tabAllowed(S.tab)) showTab('p-lookup');
+  if (unlocked && hasPerm('admin')) renderKeys(false);
 }
-async function grantAccess() {
+function tabAllowed(id) { const b = document.querySelector(`.tab[data-tab="${id}"]`); const need = b && b.dataset.perm; return !need || (unlocked && hasPerm(need)); }
+function storePerms(r) {
+  try { if (r && Array.isArray(r.perms)) localStorage.setItem('mc.perms', JSON.stringify({ perms: r.perms, label: r.label || '', super: !!r.super })); else localStorage.removeItem('mc.perms'); } catch {}
+}
+async function grantAccess(r) {
+  if (r) storePerms(r);
   try { localStorage.setItem(ACCESS_KEY, await accessFingerprint()); } catch {}
   applyAccess(true);
 }
-function revokeAccess() { try { localStorage.removeItem(ACCESS_KEY); } catch {} applyAccess(false); }
+function revokeAccess() { try { localStorage.removeItem(ACCESS_KEY); localStorage.removeItem('mc.perms'); } catch {} applyAccess(false); }
 // On load (and after settings change): unlock at once if this passphrase + relay were tested before, then re-check quietly.
 async function checkAccess() {
   let saved = ''; try { saved = localStorage.getItem(ACCESS_KEY) || ''; } catch {}
@@ -67,12 +77,13 @@ async function checkAccess() {
   verifyAccess(); // network re-check runs in the background; it can only lock, never delay the page
 }
 function verifyAccess() {
-  testAccess().then((r) => { if (!r.canPush) revokeAccess(); })
+  testAccess().then((r) => { const okay = Array.isArray(r.perms) ? r.perms.length > 0 : r.canPush; if (!okay) return revokeAccess(); const before = JSON.stringify(perms().perms); storePerms(r); if (JSON.stringify(perms().perms) !== before) applyAccess(true); })
     .catch((e) => { if (/passphrase|token|GitHub \d|not the relay|old code/i.test(e.message)) { revokeAccess(); toast(`Locked staff tools: ${e.message}`, 'error'); } }); // offline → keep the tested state
 }
 
 function showTab(id) {
   if (!unlocked && GATED.includes(id)) { id = 'p-lookup'; toast('Connect in ⚙ Settings (relay + passphrase, then Test GitHub) to use this tool.'); }
+  else if (unlocked && !tabAllowed(id)) { id = 'p-lookup'; toast('Your access key doesn\'t include this tool.'); }
   S.tab = id;
   $$('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === id));
   $$('.panel').forEach(p => (p.hidden = p.id !== id));
@@ -274,6 +285,7 @@ function flushQueue() {
   qChain = qChain.catch(() => {}); // keep the chain alive after a failure
 }
 async function queueSubdivision(R) {
+  if (!hasPerm('write')) return;
   const p = R.parcel; const name = p.SubdivisionName;
   if (!name || inDB(name)) return;
   if (!S.queue) await loadQueue();
@@ -293,6 +305,7 @@ async function queueSubdivision(R) {
   catch (e) { toast(`Couldn't save the waitlist: ${e.message}`, 'error'); }
 }
 async function queueByName(name, mcr) {
+  if (!hasPerm('write')) throw new Error('Your access key can\'t change the waitlist (needs "write").');
   if (inDB(name)) return toast(`${titleCase(name)} is already in SubdivisionDB`);
   if (!S.queue) await loadQueue();
   if (S.queue.items.some(x => sameName(x.name, name))) return toast(`${titleCase(name)} is already on the Plat Automation Waitlist`);
@@ -414,7 +427,7 @@ $('#rep-save').addEventListener('click', async () => {
 $('#rep-pdf').addEventListener('click', async (e) => {
   const b = e.currentTarget; if (b.disabled || !S.md) return;
   b.disabled = true; const label = b.textContent; b.textContent = 'Building PDF…';
-  try { const { reportPDF } = await import('./pdf.js?v=75d04be2'); await reportPDF(S.md, { apn: S.R.apn }); toast('PDF saved', 'ok'); }
+  try { const { reportPDF } = await import('./pdf.js?v=2f06fd4d'); await reportPDF(S.md, { apn: S.R.apn }); toast('PDF saved', 'ok'); }
   catch (err) { toast(`PDF failed: ${err.message}`, 'error'); }
   finally { b.disabled = false; b.textContent = label; }
 });
@@ -673,7 +686,7 @@ function bindReview() {
       const info = { apn: s.apn, permit: s.permit, date: s.date, plan: s.planTitle, type: CHECKLISTS[s.type]?.label || s.type,
         address: [p.PropertyFullStreetAddress, p.PropertyCity].filter(Boolean).join(', ') || P.site_address || '', owner: p.OwnerName || P.owner_name || '',
         district: s.district, reviewer: s.reviewer || who.name, email: s.reviewerEmail || who.email };
-      const { commentLetterPDF } = await import('./commentletter.js?v=75d04be2');
+      const { commentLetterPDF } = await import('./commentletter.js?v=2f06fd4d');
       const out = await commentLetterPDF({ rows: markupRows(s).rows, info });
       toast(`Comment letter saved — ${out.count} comment${out.count === 1 ? '' : 's'}`, 'ok');
     } catch (err) { toast(err.message, 'error'); }
@@ -773,7 +786,7 @@ async function renderSaved() {
 // ---------------- reference ----------------
 let refP = null;
 function renderReference() {
-  return (refP ||= import('./refdata.js?v=75d04be2').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
+  return (refP ||= import('./refdata.js?v=2f06fd4d').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
 }
 function fillReference() {
   const { DIRECTIVES, MCSR_QUICK, REG_DOCS, REG_LOOKUP } = REF;
@@ -820,7 +833,7 @@ $('#st-copy-relay').addEventListener('click', async () => {
   catch (e) { toast('Copy blocked by the browser — use "View relay code", then select all and copy', 'error'); }
 });
 $('#st-test-gis').addEventListener('click', async () => { const o = $('#st-test-out'); o.textContent = 'Testing county GIS…'; try { o.textContent = `County GIS reachable (${await ping()} ms).`; } catch (e) { o.textContent = e.message; } });
-$('#st-test-gh').addEventListener('click', async () => { const o = $('#st-test-out'); o.textContent = 'Testing GitHub…'; try { const r = await testAccess(); o.textContent = `${r.name}: ${r.canPush ? 'write access OK' : 'READ-ONLY — on GitHub, edit the token: Repository access must include randalkidd/MC and Contents must be Read and write'}${r.private ? ' (private repo — Pages needs a paid plan)' : ''}${r.ai === true ? ' · Site-plan reading (Claude): on' : r.ai === false ? ' · Site-plan reading (Claude): off — add ANTHROPIC_API_KEY to the relay to enable' : ''}`; if (r.canPush && gh.viaRelay) { await grantAccess(); toast('Connected — staff tools unlocked', 'ok'); } else revokeAccess(); if (r.canPush && gh.viaRelay) { try { if (await shareRelayIfNeeded()) { o.textContent += ' · Relay address shared — other browsers now need only the passphrase.'; renderSettings(); } } catch (e) { o.textContent += ` · Couldn't share relay address: ${e.message}`; } } } catch (e) { o.textContent = e.message; revokeAccess(); } });
+$('#st-test-gh').addEventListener('click', async () => { const o = $('#st-test-out'); o.textContent = 'Testing GitHub…'; try { const r = await testAccess(); o.textContent = `${r.name}: ${Array.isArray(r.perms) ? 'connected' : r.canPush ? 'write access OK' : 'READ-ONLY — on GitHub, edit the token: Repository access must include randalkidd/MC and Contents must be Read and write'}${r.private ? ' (private repo — Pages needs a paid plan)' : ''}${r.ai === true ? ' · Site-plan reading (Claude): on' : r.ai === false ? ' · Site-plan reading (Claude): off — add ANTHROPIC_API_KEY to the relay to enable' : ''}`; const okay = gh.viaRelay && (Array.isArray(r.perms) ? r.perms.length > 0 : r.canPush); if (Array.isArray(r.perms)) o.textContent += ` · Signed in as ${r.super ? 'the super account' : `“${r.label}”`} — ${r.perms.join(', ')}`; if (okay) { await grantAccess(r); toast('Connected — staff tools unlocked', 'ok'); } else revokeAccess(); if (okay && hasPerm('write')) { try { if (await shareRelayIfNeeded()) { o.textContent += ' · Relay address shared — other browsers now need only the passphrase.'; renderSettings(); } } catch (e) { o.textContent += ` · Couldn't share relay address: ${e.message}`; } } } catch (e) { o.textContent = e.message; revokeAccess(); } });
 
 $('#st-cleartok').addEventListener('click', () => { gh.save({ owner: gh.owner, repo: gh.repo, branch: gh.branch, token: '' }); renderSettings(); toast('Saved token removed from this browser. Click Test GitHub.', 'ok'); });
 $('#gh-badge').addEventListener('click', () => { showTab('p-settings'); setTimeout(() => $('#st-pass').focus(), 50); });
@@ -932,7 +945,7 @@ function renderSitePlan() {
 }
 // Shared by both readers: look up the parcel, check the deed, compare, fill the form.
 async function finishRead(res, meta, st, file = SP.file) {
-  const sp = await import('./siteplan.js?v=75d04be2');
+  const sp = await import('./siteplan.js?v=2f06fd4d');
   const planApn = normalizeApn(res.parcel && res.parcel.apn);
   let R = S.R && S.review.apn && S.R.apn === normalizeApn(S.review.apn) ? S.R : null, lookupError = '';
   const target = normalizeApn(S.review.apn) || planApn;
@@ -949,9 +962,9 @@ async function finishRead(res, meta, st, file = SP.file) {
   sp.applyToReview(S.review, res, compare, { merge: meta.engine === 'free' });
   S.review.ai = { file: file.name, at: new Date().toISOString(), ...meta, result: res, compare, deedNames: deed, apn: R ? R.apn : null, lookupError };
   saveDraft(S.review); renderReview();
-  import('./planviewer.js?v=75d04be2').then(m => m.savePdf(file)).catch(() => {});
+  import('./planviewer.js?v=2f06fd4d').then(m => m.savePdf(file)).catch(() => {});
   // Keep what was read in the private plan-review database (45 days). Queued reads are already stored by the routine.
-  if (unlocked && meta.engine !== 'queued') import('./queue.js?v=75d04be2').then(qm => qm.saveRecord({ source: meta.engine === 'free' ? 'superficial' : 'rapid', file: file.name, apn: (R && R.apn) || normalizeApn(res.parcel && res.parcel.apn) || '', type: S.review.type, model: meta.model, result: res, compare })).catch(e => console.warn('private db', e));
+  if (unlocked && meta.engine !== 'queued') import('./queue.js?v=2f06fd4d').then(qm => qm.saveRecord({ source: meta.engine === 'free' ? 'superficial' : 'rapid', file: file.name, apn: (R && R.apn) || normalizeApn(res.parcel && res.parcel.apn) || '', type: S.review.type, model: meta.model, result: res, compare })).catch(e => console.warn('private db', e));
   return compare.filter(c => c[3] === 'deficient').length;
 }
 // Three ways to read a plan: Superficial (free, in this browser), Rapid (Claude API through the relay, ~1 min),
@@ -962,7 +975,7 @@ async function runFreeRead() {
   SP.busy = true; spButtons();
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'Superficial Review: reading the PDF text in your browser…';
   try {
-    const fr = await import('./freeread.js?v=75d04be2');
+    const fr = await import('./freeread.js?v=2f06fd4d');
     const out = await fr.freeReadSitePlan(SP.file, S.review.type);
     if (out.quality === 'none') { st.className = 'status warn'; st.textContent = 'Superficial Review couldn\'t read this plan: the PDF has no selectable text (a scan or flattened drawing). Use Rapid Review or Queued Review.'; return; }
     const bad = await finishRead(out.result, { engine: 'free', model: 'Superficial Review (in-browser text reader)', quality: out.quality, found: out.found, missing: out.missing }, st);
@@ -976,7 +989,7 @@ async function runSitePlan() {
   SP.busy = true; spButtons();
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'Rapid Review: sending the PDF to Claude — reading every sheet usually takes 30–90 seconds…';
   try {
-    const sp = await import('./siteplan.js?v=75d04be2');
+    const sp = await import('./siteplan.js?v=2f06fd4d');
     const d = await sp.readSitePlan(SP.file, S.review.type);
     const bad = await finishRead(d.result || {}, { engine: 'claude', relay: d.relay || null, model: d.model, usage: d.usage, truncated: !!d.truncated }, st);
     st.className = `status ${bad ? 'warn' : 'ok'}`; st.textContent = `Rapid Review done — the form is filled in from the plan.${bad ? ` ${bad} record mismatch${bad > 1 ? 'es' : ''} found (see below).` : ''} Verify every value before issuing comments.`;
@@ -989,7 +1002,7 @@ async function runQueued() {
   SP.busy = true; spButtons();
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'Queued Review: uploading the plan to the private queue…';
   try {
-    const qm = await import('./queue.js?v=75d04be2');
+    const qm = await import('./queue.js?v=2f06fd4d');
     const m = await qm.queuePlan(SP.file, { apn: normalizeApn(S.review.apn) || '', type: S.review.type, reviewer: S.review.reviewer });
     st.className = 'status ok'; st.textContent = `Queued ${m.file}. It will be read on LONDON at 12:15 AM (Sunday–Thursday nights); the results appear under MC-queue files on the right. The plan is kept 14 days, its data 45 days.`;
     renderQueued();
@@ -1000,10 +1013,11 @@ let qBusy = false;
 async function renderQueued() {
   const el = $('#sp-qlist'); if (!el) return;
   if (!unlocked) { el.innerHTML = '<p class="sub">Connect this browser (⚙ Settings → Test GitHub) to see queued reviews.</p>'; return; }
+  if (!hasPerm('queue')) return;
   if (qBusy) return; qBusy = true;
   el.innerHTML = '<p class="sub">Loading…</p>';
   try {
-    const qm = await import('./queue.js?v=75d04be2');
+    const qm = await import('./queue.js?v=2f06fd4d');
     const items = await qm.listQueue();
     const st = (m) => m.status === 'done' ? (m.hasResult ? '✅ Ready' : '✅ Done (data expired)') : m.status === 'failed' ? `⚠ ${esc(m.note || 'Could not be read')}` : m.status === 'processing' ? '⏳ Processing' : '🕛 Queued for 12:15 AM';
     el.innerHTML = items.length ? `<ul class="qfiles">${items.map(m => `<li data-id="${esc(m.id)}" class="q-${esc(m.status)}">
@@ -1019,7 +1033,7 @@ async function renderQueued() {
 async function loadQueued(m) {
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = `Loading the queued review of ${m.file}…`;
   try {
-    const qm = await import('./queue.js?v=75d04be2');
+    const qm = await import('./queue.js?v=2f06fd4d');
     const rec = await qm.getRecord(m.db || `db/${m.id}.json`);
     const file = m.hasPdf ? await qm.getPdf(m.id).then(f => new File([f], m.file, { type: 'application/pdf' })) : new File([], m.file);
     if (m.hasPdf) SP.file = file;
@@ -1031,7 +1045,7 @@ async function loadQueued(m) {
 }
 async function openPlanViewer() {
   const a = S.review.ai; if (!a || !a.result) return;
-  const pv = await import('./planviewer.js?v=75d04be2');
+  const pv = await import('./planviewer.js?v=2f06fd4d');
   const blob = SP.file && SP.file.name === a.file ? SP.file : await pv.loadPdf(a.file);
   if (!blob) { toast(`Choose ${a.file} again above (it isn't stored in this browser), then open the viewer.`, 'error'); return; }
   pv.openViewer(blob, a, S.review, computeFindings(S.review).F, a.file);
@@ -1045,12 +1059,55 @@ $('#sp-qrefresh').addEventListener('click', renderQueued);
 $('#sp-qlist').addEventListener('click', async (e) => {
   const tr = e.target.closest('[data-id]'); if (!tr) return; const m = (S.qItems || []).find(x => x.id === tr.dataset.id); if (!m) return;
   if (e.target.closest('[data-qload]')) loadQueued(m);
-  if (e.target.closest('[data-qdel]')) { if (!confirm(`Delete ${m.file} and its review data from the private queue now?`)) return; try { (await import('./queue.js?v=75d04be2')).removeQueued(m).then(renderQueued); } catch (err) { toast(err.message, 'error'); } }
+  if (e.target.closest('[data-qdel]')) { if (!confirm(`Delete ${m.file} and its review data from the private queue now?`)) return; try { (await import('./queue.js?v=2f06fd4d')).removeQueued(m).then(renderQueued); } catch (err) { toast(err.message, 'error'); } }
 });
 { const dz = $('#sp-drop');
   ['dragenter', 'dragover'].forEach(t => dz.addEventListener(t, (e) => { e.preventDefault(); dz.classList.add('over'); }));
   ['dragleave', 'drop'].forEach(t => dz.addEventListener(t, (e) => { e.preventDefault(); dz.classList.remove('over'); }));
   dz.addEventListener('drop', (e) => spPick(e.dataTransfer.files[0])); }
+
+
+// ---------------- access keys (admin) ----------------
+const ROLES = { viewer: ['review'], reviewer: ['review', 'write', 'queue'], senior: ['review', 'write', 'queue', 'rapid'], admin: ['review', 'write', 'queue', 'rapid', 'admin'] };
+async function renderKeys(fresh = true) {
+  const el = $('#st-keys-list'); if (!el || !hasPerm('admin')) return;
+  $('#st-keys-who').textContent = perms().super ? '— you are signed in with the super account' : `— signed in as “${perms().label}”`;
+  if (!fresh && el.dataset.loaded) return;
+  el.innerHTML = '<p class="sub">Loading…</p>';
+  try {
+    const d = await relayFetch('/admin/keys');
+    el.dataset.loaded = '1';
+    el.innerHTML = `<ul class="keylist"><li><div><b>Super account</b> <span class="sub">— your passphrase (SITE_KEY in Cloudflare). Change it there to rotate.</span><div>${PERM_LIST.map(p => `<span class="pill">${p}</span>`).join('')}</div></div></li>${(d.keys || []).map(k => {
+      const exp = k.expires ? new Date(k.expires) : null; const dead = exp && exp < new Date();
+      return `<li data-key="${esc(k.id)}"><div><b>${esc(k.label)}</b> <span class="sub">— created ${esc(new Date(k.created).toLocaleDateString())}${k.createdBy ? ` by ${esc(k.createdBy)}` : ''}${exp ? ` · ${dead ? 'EXPIRED' : 'expires'} ${esc(exp.toLocaleDateString())}` : ''}</span><div>${(k.perms || []).map(p => `<span class="pill">${esc(p)}</span>`).join('')}</div></div><button class="btn sm ghost" type="button" data-revoke>Revoke</button></li>`; }).join('')}</ul>${(d.keys || []).length ? '' : '<p class="sub">No other keys yet.</p>'}`;
+  } catch (e) { el.innerHTML = `<p class="bad">${esc(e.message)}</p>`; }
+}
+{
+  const f = $('#st-keys-form');
+  const setBoxes = (list) => $$('input[name=p]', f).forEach(b => { b.checked = list.includes(b.value); });
+  f.role.addEventListener('change', () => { if (ROLES[f.role.value]) setBoxes(ROLES[f.role.value]); });
+  $$('input[name=p]', f).forEach(b => b.addEventListener('change', () => { f.role.value = 'custom'; }));
+  setBoxes(ROLES.reviewer);
+  f.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = f.querySelector('button[type=submit]'); btn.disabled = true;
+    try {
+      const body = { label: f.label.value.trim(), perms: $$('input[name=p]:checked', f).map(b => b.value), days: +f.days.value || 0 };
+      const d = await relayFetch('/admin/keys/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const box = $('#st-newkey'); box.hidden = false;
+      box.innerHTML = `<b>Key for ${esc(d.record.label)}</b> — copy it now; it won't be shown again:<div class="newkey">${esc(d.key)}</div><div class="actions"><button class="btn sm" type="button" id="st-newkey-copy">Copy key</button><button class="btn sm ghost" type="button" id="st-newkey-hide">Done</button></div><p class="sub">They open ${esc(location.origin + location.pathname)}, go to ⚙ Settings, paste it as the <b>Passphrase</b>, click Save settings, then Test GitHub.</p>`;
+      $('#st-newkey-copy').onclick = () => copy(d.key); $('#st-newkey-hide').onclick = () => { box.hidden = true; box.innerHTML = ''; };
+      f.reset(); setBoxes(ROLES.reviewer); renderKeys(true);
+    } catch (err) { toast(err.message, 'error'); }
+    finally { btn.disabled = false; }
+  });
+  $('#st-keys-refresh').addEventListener('click', () => renderKeys(true));
+  $('#st-keys-list').addEventListener('click', async (e) => {
+    const li = e.target.closest('[data-key]'); if (!li || !e.target.closest('[data-revoke]')) return;
+    if (!confirm('Revoke this key? Anyone using it loses access within a minute.')) return;
+    try { await relayFetch('/admin/keys/revoke', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: li.dataset.key }) }); toast('Key revoked', 'ok'); renderKeys(true); } catch (err) { toast(err.message, 'error'); }
+  });
+}
 
 bindReview(); renderReview(); renderSettings(); classify(); loadSharedConfig();
 loadDB().catch(e => { $('#db-source').textContent = `Could not load database: ${e.message}`; }).finally(() => loadQueue());

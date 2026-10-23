@@ -232,3 +232,15 @@ table.check td { vertical-align: middle; }
 .qf-st { white-space: nowrap; font-size: .8rem; }
 .qf-act { display: flex; gap: .35rem; margin-top: .35rem; }
 @media (max-width: 900px) { .sp-grid { grid-template-columns: 1fr; } .sp-qcard { position: static; max-height: none; } }
+
+/* Access-key permissions: elements marked data-perm show only when this browser's key has that permission */
+html:not(.perm-review) [data-perm="review"], html:not(.perm-write) [data-perm="write"], html:not(.perm-queue) [data-perm="queue"],
+html:not(.perm-rapid) [data-perm="rapid"], html:not(.perm-admin) [data-perm="admin"] { display: none !important; }
+.keys-form { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem .8rem; align-items: end; }
+.keys-form .perm-boxes, .keys-form .actions { grid-column: 1 / -1; }
+.perm-boxes { border: 1px solid var(--line); border-radius: 8px; padding: .4rem .7rem; display: grid; gap: .15rem; }
+.keylist { list-style: none; padding: 0; margin: .6rem 0 0; display: grid; gap: .4rem; }
+.keylist li { display: flex; justify-content: space-between; gap: .6rem; align-items: center; border: 1px solid var(--line); border-radius: 8px; padding: .45rem .6rem; background: var(--surface); font-size: .86rem; }
+.keylist .pill { margin-right: .2rem; }
+.newkey { font: 600 1rem var(--mono); user-select: all; }
+@media (max-width: 700px) { .keys-form { grid-template-columns: 1fr; } }

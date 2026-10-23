@@ -13,7 +13,7 @@
 //   ANTHROPIC_API_KEY = sk-ant-...  (optional; enables Plan review → "Read a site plan PDF" via POST /ai/siteplan)
 //   ANTHROPIC_MODEL   = optional Text variable to override the model (default below)
 
-const RELAY_VERSION = '15';
+const RELAY_VERSION = '16';
 // Settings. Defaults below; each can be overridden by a Cloudflare variable (Worker → Settings → Variables and
 // Secrets, Type: Text) or, for local `wrangler dev`, by worker/.dev.vars (never committed — see .dev.vars.example).
 //   ALLOWED_ORIGIN = https://randalkidd.github.io   (comma-separate to add e.g. http://localhost:8000 for local testing)
@@ -75,16 +75,84 @@ async function tokenProblem(env, status) {
   return `GitHub ${status}: the GITHUB_TOKEN stored in this relay${who ? ` (belongs to ${who})` : ''} works but can't ${status === 403 ? 'write to' : 'see'} ${REPO}. Edit the token on GitHub → Repository access → include ${REPO.split('/')[1]}, Permissions → Contents: Read and write, then save (or create a new token and replace GITHUB_TOKEN in Cloudflare).`;
 }
 
-async function handleGitHub(req, env, origin, route) {
+// ---------------- access keys ----------------
+// SITE_KEY (the original passphrase) is the SUPER account: every permission, including managing keys.
+// More keys, with fewer permissions, live hashed (SHA-256) in the private repo at access/keys.json and are created /
+// revoked from ⚙ Settings → Access keys by a key with "admin". The plain key is shown once and never stored.
+//   review — Plan Review Hub, Land division, Saved Parcels (read)      write — save to GitHub (SubdivisionDB, waitlist,
+//   queue  — Queued Review (private queue)                             rapid — Rapid Review (Anthropic API, costs money)
+//   admin  — manage access keys
+const PERMS = ['review', 'write', 'queue', 'rapid', 'admin'];
+const KEYS_PATH = 'access/keys.json';
+let keyCache = { t: 0, list: null, sha: null };
+const sha256hex = async (s) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
+async function loadKeys(env, fresh = false) {
+  if (!fresh && keyCache.list && Date.now() - keyCache.t < 60000) return keyCache;
+  const r = await ghq(env, `contents/${KEYS_PATH}`);
+  if (r.status === 404) { keyCache = { t: Date.now(), list: [], sha: null }; return keyCache; }
+  if (!r.ok) { if (keyCache.list) return keyCache; throw new Error(`GitHub ${r.status} reading access keys`); }
+  const d = await r.json();
+  const txt = new TextDecoder().decode(Uint8Array.from(atob(String(d.content).replace(/\n/g, '')), c => c.charCodeAt(0)));
+  let list = []; try { list = JSON.parse(txt).keys || []; } catch {}
+  keyCache = { t: Date.now(), list, sha: d.sha }; return keyCache;
+}
+// → { label, perms[], super } or null
+async function authenticate(req, env) {
+  const k = req.headers.get('X-MC-Key') || '';
+  if (!k) return null;
+  if (env.SITE_KEY && sameKey(k, env.SITE_KEY)) return { id: 'super', label: 'Super account', perms: PERMS.slice(), super: true };
+  if (!env.GITHUB_TOKEN || k.length < 16) return null;
+  let keys; try { keys = (await loadKeys(env)).list; } catch { return null; }
+  const h = await sha256hex(k); const now = Date.now();
+  const hit = keys.find(x => sameKey(x.hash || '', h) && !x.disabled && !(x.expires && Date.parse(x.expires) < now));
+  return hit ? { id: hit.id, label: hit.label, perms: (hit.perms || []).filter(p => PERMS.includes(p)), super: false } : null;
+}
+const can = (who, perm) => !!who && who.perms.includes(perm);
+const denied = (origin, perm) => json({ error: `Your access key doesn't allow this (needs "${perm}"). Ask the site administrator.` }, 403, origin);
+async function handleAdmin(req, env, origin, route, who) {
+  if (!can(who, 'admin')) return denied(origin, 'admin');
+  if (!env.GITHUB_TOKEN) return json({ error: 'Relay is missing GITHUB_TOKEN.' }, 500, origin);
+  const save = async (list, sha, message) => {
+    const body = JSON.stringify({ schema: 1, updated: new Date().toISOString(), keys: list }, null, 2) + '\n';
+    const put = await ghq(env, `contents/${KEYS_PATH}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message, content: b64(body), ...(sha ? { sha } : {}) }) });
+    if (!put.ok) throw new Error(`GitHub ${put.status} saving access keys${put.status === 404 ? ` — check that ${QUEUE_REPO} exists and the token can write to it` : ''}`);
+    keyCache = { t: 0, list: null, sha: null };
+  };
+  const pub = (x) => ({ id: x.id, label: x.label, perms: x.perms, created: x.created, createdBy: x.createdBy, expires: x.expires || null, disabled: !!x.disabled });
+  if (route === '/admin/keys' && req.method === 'GET') { const { list } = await loadKeys(env, true); return json({ ok: true, keys: list.map(pub) }, 200, origin); }
+  let body = {}; try { body = await req.json(); } catch {}
+  if (route === '/admin/keys/create' && req.method === 'POST') {
+    const label = String(body.label || '').trim().slice(0, 60); if (!label) return json({ error: 'Give the key a name (who it is for).' }, 400, origin);
+    const perms = [...new Set((Array.isArray(body.perms) ? body.perms : []).filter(p => PERMS.includes(p)))];
+    if (!perms.length) return json({ error: 'Pick at least one permission.' }, 400, origin);
+    const days = Math.max(0, Math.min(3650, parseInt(body.days, 10) || 0));
+    const raw = crypto.getRandomValues(new Uint8Array(15)); const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789';
+    const key = 'mc-' + [...raw].map(b => alphabet[b % alphabet.length]).join('').replace(/(.{5})(?=.)/g, '$1-');
+    const { list, sha } = await loadKeys(env, true);
+    const rec = { id: `k${Date.now().toString(36)}`, label, perms, hash: await sha256hex(key), created: new Date().toISOString(), createdBy: who.label, ...(days ? { expires: new Date(Date.now() + days * 86400000).toISOString() } : {}) };
+    await save([...list, rec], sha, `Access key added: ${label}`);
+    return json({ ok: true, key, record: pub(rec) }, 200, origin);
+  }
+  if (route === '/admin/keys/revoke' && req.method === 'POST') {
+    const { list, sha } = await loadKeys(env, true);
+    if (!list.some(x => x.id === body.id)) return json({ error: 'No such key.' }, 404, origin);
+    await save(list.filter(x => x.id !== body.id), sha, 'Access key revoked');
+    return json({ ok: true }, 200, origin);
+  }
+  return json({ error: 'Not found' }, 404, origin);
+}
+
+async function handleGitHub(req, env, origin, route, who) {
   if (!env.GITHUB_TOKEN || !env.SITE_KEY) return json({ error: 'Relay is missing the GITHUB_TOKEN and/or SITE_KEY secrets.' }, 500, origin);
-  if (!sameKey(req.headers.get('X-MC-Key') || '', env.SITE_KEY)) return json({ error: 'Wrong passphrase.' }, 401, origin);
+  if (!who) return json({ error: 'Wrong passphrase.' }, 401, origin);
   if (route === '/gh/ping') {
     const r = await gh(env, '');
     if (!r.ok) return json({ error: await tokenProblem(env, r.status) }, 502, origin);
     const d = await r.json();
-    return json({ ok: true, repo: d.full_name, canPush: !!(d.permissions && d.permissions.push), ai: !!env.ANTHROPIC_API_KEY }, 200, origin);
+    return json({ ok: true, repo: d.full_name, canPush: !!(d.permissions && d.permissions.push), ai: !!env.ANTHROPIC_API_KEY, perms: who.perms, label: who.label, super: !!who.super }, 200, origin);
   }
   if (route === '/gh/write' && req.method === 'POST') {
+    if (!can(who, 'write')) return denied(origin, 'write');
     let body; try { body = await req.json(); } catch { return json({ error: 'Bad JSON' }, 400, origin); }
     const { path, content, message } = body || {};
     if (typeof path !== 'string' || !/^data\/[A-Za-z0-9._\/-]+$/.test(path) || path.includes('..')) return json({ error: 'Only files under data/ may be written.' }, 400, origin);
@@ -165,9 +233,10 @@ Rules:
 Checklist items:
 ${items || '- (none supplied)'}`;
 }
-async function handleAI(req, env, origin, route, ctxW) {
+async function handleAI(req, env, origin, route, ctxW, who) {
   if (!env.SITE_KEY) return json({ error: 'Relay is missing the SITE_KEY secret.' }, 500, origin);
-  if (!sameKey(req.headers.get('X-MC-Key') || '', env.SITE_KEY)) return json({ error: 'Wrong passphrase.' }, 401, origin);
+  if (!who) return json({ error: 'Wrong passphrase.' }, 401, origin);
+  if (!can(who, 'rapid')) return denied(origin, 'rapid');
   if (route !== '/ai/siteplan' || req.method !== 'POST') return json({ error: 'Not found' }, 404, origin);
   if (!env.ANTHROPIC_API_KEY) return json({ error: 'Site-plan reading is not set up: add an ANTHROPIC_API_KEY secret to this relay in Cloudflare (Worker → Settings → Variables and Secrets → Type: Secret), then Deploy.' }, 501, origin);
   if (+(req.headers.get('Content-Length') || 0) > MAX_PDF) return json({ error: 'PDF is larger than 30 MB — export a smaller PDF (site plan sheets only).' }, 413, origin);
@@ -216,9 +285,10 @@ async function handleAI(req, env, origin, route, ctxW) {
 const QPATH = /^(queue|db)\/[A-Za-z0-9._-]{1,120}\.(pdf|json)$/;
 const ghq = (env, path, init = {}) => fetch(`https://api.github.com/repos/${QUEUE_REPO}${path ? `/${path}` : ''}`, {
   ...init, headers: { Authorization: `Bearer ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'mc-relay', ...(init.headers || {}) } });
-async function handleQueue(req, env, origin, route, url) {
+async function handleQueue(req, env, origin, route, url, who) {
   if (!env.GITHUB_TOKEN || !env.SITE_KEY) return json({ error: 'Relay is missing the GITHUB_TOKEN and/or SITE_KEY secrets.' }, 500, origin);
-  if (!sameKey(req.headers.get('X-MC-Key') || '', env.SITE_KEY)) return json({ error: 'Wrong passphrase.' }, 401, origin);
+  if (!who) return json({ error: 'Wrong passphrase.' }, 401, origin);
+  { const p0 = url.searchParams.get('path') || ''; const need = route === '/q/put' && p0.startsWith('db/') ? (can(who, 'write') || can(who, 'queue') ? null : 'write') : (can(who, 'queue') ? null : 'queue'); if (need) return denied(origin, need); }
   const noRepo = async (r) => json({ error: r.status === 404 ? `The private repo ${QUEUE_REPO} doesn't exist yet or the relay's GITHUB_TOKEN can't see it. Create it (private) on GitHub and add it to the token's Repository access with Contents: Read and write.` : `GitHub ${r.status} on ${QUEUE_REPO}` }, 502, origin);
   if (route === '/q/tree') {
     const r = await ghq(env, 'git/trees/main?recursive=1');
@@ -278,15 +348,20 @@ export default {
     const u0 = new URL(req.url);
     if (u0.pathname.startsWith('/gh/')) {
       if (!allowed(origin)) return json({ error: 'Saving is only allowed from the site.' }, 403, origin);
-      return handleGitHub(req, env, origin, u0.pathname);
+      return handleGitHub(req, env, origin, u0.pathname, await authenticate(req, env));
+    }
+    if (u0.pathname.startsWith('/admin/')) {
+      if (!allowed(origin)) return json({ error: 'Only the site may use this.' }, 403, origin);
+      const who = await authenticate(req, env); if (!who) return json({ error: 'Wrong passphrase.' }, 401, origin);
+      try { return await handleAdmin(req, env, origin, u0.pathname, who); } catch (e) { return json({ error: e.message }, 502, origin); }
     }
     if (u0.pathname.startsWith('/q/')) {
       if (!allowed(origin)) return json({ error: 'Only the site may use this.' }, 403, origin);
-      return handleQueue(req, env, origin, u0.pathname, u0);
+      return handleQueue(req, env, origin, u0.pathname, u0, await authenticate(req, env));
     }
     if (u0.pathname.startsWith('/ai/')) {
       if (!allowed(origin)) return json({ error: 'Only the site may use this.' }, 403, origin);
-      return handleAI(req, env, origin, u0.pathname, ctxW);
+      return handleAI(req, env, origin, u0.pathname, ctxW, await authenticate(req, env));
     }
 
     const target = u0.searchParams.get('url');
