@@ -7,14 +7,14 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https://gis.maricopa.gov https://server.arcgisonline.com https://*.arcgisonline.com https://unpkg.com; connect-src 'self' https://gis.maricopa.gov https://publicapi.recorder.maricopa.gov https://edms.maricopa.gov https://recorder.maricopa.gov https://api.github.com https://*.workers.dev; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="preconnect" href="https://gis.maricopa.gov" crossorigin>
-<script src="js/theme.js?v=9bac9315"></script>
+<script src="js/theme.js?v=d8faa46a"></script>
 <title>Unofficial Maricopa County Zoning Hub</title>
 <meta name="description" content="Maricopa County parcel lookup, MCZO/MCSR standards, subdivision plat database and plan-review deficiency builder.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%232ec4b6'/><path d='M7 24V9l9 7 9-7v15' fill='none' stroke='%2304161a' stroke-width='3' stroke-linejoin='round'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=9bac9315">
-<link rel="modulepreload" href="js/app.js?v=9bac9315"><link rel="modulepreload" href="js/lookup.js?v=9bac9315"><link rel="modulepreload" href="js/report.js?v=9bac9315"><link rel="modulepreload" href="js/net.js?v=9bac9315"><link rel="modulepreload" href="js/github.js?v=9bac9315"><link rel="modulepreload" href="js/standards.js?v=9bac9315"><link rel="modulepreload" href="js/checklists.js?v=9bac9315"><link rel="modulepreload" href="js/review.js?v=9bac9315"><link rel="modulepreload" href="js/recorder.js?v=9bac9315"><link rel="modulepreload" href="js/subdivisions.js?v=9bac9315">
+<link rel="stylesheet" href="css/app.css?v=d8faa46a">
+<link rel="modulepreload" href="js/app.js?v=d8faa46a"><link rel="modulepreload" href="js/lookup.js?v=d8faa46a"><link rel="modulepreload" href="js/report.js?v=d8faa46a"><link rel="modulepreload" href="js/net.js?v=d8faa46a"><link rel="modulepreload" href="js/github.js?v=d8faa46a"><link rel="modulepreload" href="js/standards.js?v=d8faa46a"><link rel="modulepreload" href="js/checklists.js?v=d8faa46a"><link rel="modulepreload" href="js/review.js?v=d8faa46a"><link rel="modulepreload" href="js/recorder.js?v=d8faa46a"><link rel="modulepreload" href="js/subdivisions.js?v=d8faa46a">
 </head>
 <body>
 <header class="top">
@@ -190,8 +190,8 @@
     <p class="sub">Countywide, including subdivisions inside cities and towns. The county's MCR numbers are book–page in the Recorder's map books. Plats link to the Recorder; <b>Add to waitlist</b> queues one for <b>Process with Claude</b> in the Plat Automation Waitlist below.</p>
   </div>
   <div id="land-division" class="ld-block" data-perm="review">
-  <div class="card collapsible" id="ls-card">
-    <div class="cardhead"><h2>Check an Existing Parcel — Was the Split Lawful? <button class="collapse-btn" type="button" data-collapse="ls-card" aria-expanded="true" title="Collapse">▾</button></h2></div>
+  <div class="card collapsible collapsed" id="ls-card">
+    <div class="cardhead"><h2>Check an Existing Parcel — Was the Split Lawful? <button class="collapse-btn" type="button" data-collapse="ls-card" aria-expanded="false" title="Expand">▸</button></h2></div>
     <form id="ls-form" class="searchbar"><input id="ls-apn" placeholder="APN — e.g. 401-52-034C" autocomplete="off"><button class="btn primary">Check split</button></form>
     <div id="ld-out" class="ld-out-inline"></div>
     <p class="sub">Finds every Assessor parcel split from the same parent (same book-map-item, suffix letters A, B, C…), then checks the count against the 6-lot subdivision threshold, each lot's size against the zoning minimum, and street access. Screening only — confirm with deeds and recording history.</p>
@@ -199,8 +199,8 @@
     <div id="ls-out"></div>
   </div>
   <div>
-    <form id="ld-form" class="card collapsible">
-      <div class="cardhead"><h2>Classify a Land Division <button class="collapse-btn" type="button" data-collapse="ld-form" aria-expanded="true" title="Collapse">▾</button></h2></div>
+    <form id="ld-form" class="card collapsible collapsed">
+      <div class="cardhead"><h2>Classify a Land Division <button class="collapse-btn" type="button" data-collapse="ld-form" aria-expanded="false" title="Expand">▸</button></h2></div>
       <label>Number of resulting lots/parcels (including the remainder)<input name="lots" type="number" min="1" value="2"></label>
       <label>Smallest resulting parcel (acres, to the road/easement centerline)<input name="minAc" type="number" step="0.01" min="0"></label>
       <label>Inside a recorded subdivision (recorded after 3/1/1973)?<select name="inSub"><option value="no">No</option><option value="yes">Yes</option></select></label>
@@ -392,8 +392,8 @@
 <dialog id="saved-view" class="saved-view"><div class="cardhead"><h2 id="sv-title"></h2><button class="btn sm ghost" id="sv-close" type="button" aria-label="Close">✕</button></div><pre id="sv-text" class="sv-text"></pre><div class="actions"><button class="btn" id="sv-dl" type="button">Download</button><button class="btn danger" id="sv-del" type="button">Delete</button></div></dialog>
 </main>
 <footer class="foot">All information in this system is public and accessible to anyone; items saved here are stored in a public GitHub repository. Reference tool — verify findings against the adopted ordinance, recorded documents and case files before relying on them.
-<div class="build">Version <span id="build">10.23.26.047</span> · <span id="relay-ver" data-latest="21" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
+<div class="build">Version <span id="build">10.23.26.049</span> · <span id="relay-ver" data-latest="21" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
 <div id="toasts" aria-live="polite"></div>
-<script type="module" src="js/app.js?v=9bac9315"></script>
+<script type="module" src="js/app.js?v=d8faa46a"></script>
 </body>
 </html>

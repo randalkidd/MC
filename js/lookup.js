@@ -1,5 +1,5 @@
 // Parcel lookup — ports reference/workflow-standards.md to in-browser REST calls.
-import { arcgis, request } from './net.js?v=9bac9315';
+import { arcgis, request } from './net.js?v=d8faa46a';
 
 const GIS = 'https://gis.maricopa.gov/arcgis/rest/services';
 export const EP = {
