@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated": "2026-10-23T18:40:26.724Z",
+  "updated": "2026-10-23T18:41:59.525Z",
   "items": [
     {
       "name": "ANTHEM UNIT 15",
@@ -29,6 +29,22 @@
       "controllingCases": "CPA1989003 (12:00:00 AM, Remove); CPA2023014 (9/13/2023, Approved); CPA2004003 (6/24/2004, Remove)",
       "apns": [
         "502-70-145A"
+      ],
+      "firstSeen": "2026-10-23",
+      "lastSeen": "2026-10-23",
+      "status": "pending"
+    },
+    {
+      "name": "SUN CITY WEST 36  LOT 1-315 TR A-D",
+      "displayName": "Sun City West 36  Lot 1-315 Tr A-D",
+      "mcr": "310-35",
+      "rec": "",
+      "recorded": "",
+      "totalLots": 319,
+      "baseZoning": "R1-7",
+      "controllingCases": "CPA2023014 (9/13/2023, Approved); CPA2004003 (6/24/2004, Remove); DMP1977003 (12:00:00 AM, Approved); DMP1990003 (12/19/1990, ?); DMP1994001 (7/7/1994, ?); Z85-133 (7/11/1985, APPROVED)",
+      "apns": [
+        "232-17-152"
       ],
       "firstSeen": "2026-10-23",
       "lastSeen": "2026-10-23",
