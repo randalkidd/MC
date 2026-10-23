@@ -1,6 +1,6 @@
 // Sign permit review: MCZO Chapter 11 (Dec 10, 2025) limits by sign type and district class, and the computed checks
 // for each sign entered on the Sign Details card. Area is one face (identical double faces count once, §1101.3.2).
-import { MCZO_URL } from './standards.js?v=5d976b11';
+import { MCZO_URL } from './standards.js?v=f46a0e70';
 
 const C = (sec) => `[MCZO §${sec}](${MCZO_URL})`;
 // cls: which district classes allow the type; lim[cls] = { area, height }; districts: only these districts (if set).

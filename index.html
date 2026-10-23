@@ -7,14 +7,14 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https://gis.maricopa.gov https://server.arcgisonline.com https://*.arcgisonline.com https://unpkg.com; connect-src 'self' https://gis.maricopa.gov https://publicapi.recorder.maricopa.gov https://edms.maricopa.gov https://recorder.maricopa.gov https://api.github.com https://*.workers.dev; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="preconnect" href="https://gis.maricopa.gov" crossorigin>
-<script src="js/theme.js?v=5d976b11"></script>
+<script src="js/theme.js?v=f46a0e70"></script>
 <title>Unofficial Maricopa County Zoning Hub</title>
 <meta name="description" content="Maricopa County parcel lookup, MCZO/MCSR standards, subdivision plat database and plan-review deficiency builder.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%232ec4b6'/><path d='M7 24V9l9 7 9-7v15' fill='none' stroke='%2304161a' stroke-width='3' stroke-linejoin='round'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=5d976b11">
-<link rel="modulepreload" href="js/app.js?v=5d976b11"><link rel="modulepreload" href="js/lookup.js?v=5d976b11"><link rel="modulepreload" href="js/report.js?v=5d976b11"><link rel="modulepreload" href="js/net.js?v=5d976b11"><link rel="modulepreload" href="js/github.js?v=5d976b11"><link rel="modulepreload" href="js/standards.js?v=5d976b11"><link rel="modulepreload" href="js/checklists.js?v=5d976b11"><link rel="modulepreload" href="js/review.js?v=5d976b11"><link rel="modulepreload" href="js/recorder.js?v=5d976b11"><link rel="modulepreload" href="js/subdivisions.js?v=5d976b11">
+<link rel="stylesheet" href="css/app.css?v=f46a0e70">
+<link rel="modulepreload" href="js/app.js?v=f46a0e70"><link rel="modulepreload" href="js/lookup.js?v=f46a0e70"><link rel="modulepreload" href="js/report.js?v=f46a0e70"><link rel="modulepreload" href="js/net.js?v=f46a0e70"><link rel="modulepreload" href="js/github.js?v=f46a0e70"><link rel="modulepreload" href="js/standards.js?v=f46a0e70"><link rel="modulepreload" href="js/checklists.js?v=f46a0e70"><link rel="modulepreload" href="js/review.js?v=f46a0e70"><link rel="modulepreload" href="js/recorder.js?v=f46a0e70"><link rel="modulepreload" href="js/subdivisions.js?v=f46a0e70">
 </head>
 <body>
 <header class="top">
@@ -193,7 +193,7 @@
 <section class="panel" id="p-subs" hidden>
   <div class="card">
     <div class="cardhead">
-      <div><h2>Subdivision Plat Database</h2><p class="sub"><span id="db-count"></span> · <span id="db-source"></span> <span id="db-dirty" class="pill warn-pill" hidden>Unsaved changes</span></p></div>
+      <div><h2>SubdivisionDB Plats</h2><p class="sub"><span id="db-count"></span> · <span id="db-source"></span> <span id="db-dirty" class="pill warn-pill" hidden>Unsaved changes</span></p></div>
       <div class="actions"><button class="btn" id="db-new" data-perm="write">+ Add</button><button class="btn primary" id="db-save" data-perm="write">Save to GitHub</button><button class="btn ghost" id="db-reload">Reload</button><button class="btn ghost" id="db-export">Export JSON</button></div>
     </div>
     <input id="db-q" class="filter" placeholder="Search SubdivisionDB: name, case, zoning, APN…">
@@ -410,12 +410,17 @@
     <label>User<select id="sf-user"><option value="">— pick a user —</option></select></label>
     <div id="sf-list"></div>
   </div>
+  <div class="card" id="st-scores" data-perm="admin">
+    <div class="cardhead"><h2>Behind the Curtains Scoreboard</h2><div class="actions"><button class="btn sm" id="ss-refresh" type="button">Refresh</button><button class="btn sm danger" id="ss-clear" type="button">Clear scoreboard</button></div></div>
+    <p class="sub">Every player's totals. Edit a number and click <b>Save</b>, <b>Remove</b> one player, or <b>Clear scoreboard</b> to reset everyone. Changes show on the leaderboard right away and can't be undone. Needs relay v22.</p>
+    <div class="tw"><table class="edit"><thead><tr><th>Player</th><th>Points</th><th>Rounds</th><th>Correct</th><th>Answered</th><th>Best round</th><th>Last played</th><th></th></tr></thead><tbody id="ss-body"><tr><td colspan="8" class="sub">Click Refresh to load.</td></tr></tbody></table></div>
+  </div>
 </section>
 <dialog id="saved-view" class="saved-view"><div class="cardhead"><h2 id="sv-title"></h2><button class="btn sm ghost" id="sv-close" type="button" aria-label="Close">✕</button></div><pre id="sv-text" class="sv-text"></pre><div class="actions"><button class="btn" id="sv-dl" type="button">Download</button><button class="btn danger" id="sv-del" type="button">Delete</button></div></dialog>
 </main>
 <footer class="foot">All information in this system is public and accessible to anyone; items saved here are stored in a public GitHub repository. Reference tool — verify findings against the adopted ordinance, recorded documents and case files before relying on them.
-<div class="build">Version <span id="build">10.23.26.060</span> · <span id="relay-ver" data-latest="21" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
+<div class="build">Version <span id="build">10.23.26.061</span> · <span id="relay-ver" data-latest="22" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
 <div id="toasts" aria-live="polite"></div>
-<script type="module" src="js/app.js?v=5d976b11"></script>
+<script type="module" src="js/app.js?v=f46a0e70"></script>
 </body>
 </html>

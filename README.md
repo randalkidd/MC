@@ -120,6 +120,8 @@ A tab visible to everyone. **MCTrained** (top left): 10-question multiple-choice
 
 Playing needs a key. Scores live in `games/scores.json` in the private repo; the relay (v20, `/g/board`, `/g/start`, `/g/finish`) issues a signed single-use token per round, caps a round at 10 questions, rejects reused/expired tokens and doesn't count rounds answered faster than ~2.5 s per question. (Answers are checked in the browser, so this deters casual cheating rather than preventing it.)
 
+
+**Admin — scoreboard:** ⚙ Settings → **Behind the Curtains Scoreboard** lists every player's points, rounds, correct/answered and best round. Edit a number and **Save**, **Remove** a player, or **Clear scoreboard** (type CLEAR). Uses the relay's `/admin/scores` routes (**relay v22**).
 ## Accent color
 
 Click the **●** button next to the light/dark switch (top right) to pick one of **16 accent colors**: Teal (default), Sunrise Orange (the original), Coral, Red, Rose, Purple, Violet, Indigo, Sky Blue, Cyan, Emerald, Green, Lime, Gold, Amber and Silver. Each has a bright shade for dark mode and a deeper one for light mode and printing, and each browser remembers its choice. With the green accents, OK/✅ marks switch to turquoise (or blue for Emerald) so they stay distinct from the accent. Printed/PDF reports and the parcel outline on the map follow the chosen accent.

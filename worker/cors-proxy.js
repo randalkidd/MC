@@ -3,6 +3,7 @@
 // 1) CORS relay:  GET/POST /?url=<https://*.maricopa.gov/...>
 //    Forwards to an allow-listed set of Maricopa County hosts and adds CORS headers.
 // 2) GitHub save: POST /gh/write  { path, content, message }   (header X-MC-Key: <your passphrase>)
+//                 GET/POST /admin/scores[/edit|/remove|/clear]   (admin) Behind the Curtains scoreboard
 //                 GET  /gh/ping                                  (header X-MC-Key) → checks passphrase + token
 //    Commits files under data/ in your repo using a token stored ONCE here as a secret,
 //    so each browser only needs the short passphrase.
@@ -13,7 +14,7 @@
 //   ANTHROPIC_API_KEY = sk-ant-...  (optional; enables Plan review → "Read a site plan PDF" via POST /ai/siteplan)
 //   ANTHROPIC_MODEL   = optional Text variable to override the model (default below)
 
-const RELAY_VERSION = '21';
+const RELAY_VERSION = '22';
 // Settings. Defaults below; each can be overridden by a Cloudflare variable (Worker → Settings → Variables and
 // Secrets, Type: Text) or, for local `wrangler dev`, by worker/.dev.vars (never committed — see .dev.vars.example).
 //   ALLOWED_ORIGIN = https://randalkidd.github.io   (comma-separate to add e.g. http://localhost:8000 for local testing)
@@ -216,6 +217,29 @@ async function handleAdmin(req, env, origin, route, who) {
     const k = list.find(x => x.id === body.id); if (!k) return json({ error: 'No such key.' }, 404, origin);
     k.label = label; await save(list, sha, `Access key renamed: ${label}`, superName);
     return json({ ok: true }, 200, origin);
+  }
+  // Behind the Curtains scoreboard (games/scores.json): list every player, edit or remove one, or clear the board.
+  if (route === '/admin/scores' && req.method === 'GET') {
+    const { data } = await loadScores(env); const { list, superName } = await loadKeys(env);
+    const nm = new Map(list.map(x => [x.id, x.label])); if (superName) nm.set('super', superName);
+    const players = Object.entries(data.players).map(([id, p]) => ({ id, name: nm.get(id) || p.name || 'Player', points: p.points || 0, rounds: p.rounds || 0, correct: p.correct || 0, answered: p.answered || 0, best: p.best || 0, last: p.last || '' })).sort((a, b) => b.points - a.points);
+    return json({ ok: true, players }, 200, origin);
+  }
+  if (route.startsWith('/admin/scores/') && req.method === 'POST') {
+    const id = safeId(body.id); const int = (v) => Math.max(0, Math.min(1e7, parseInt(v, 10) || 0));
+    const out = await editScores(env, (data) => {
+      if (route === '/admin/scores/clear') { data.players = {}; return `Scoreboard cleared by ${who.label}`; }
+      if (!id || !data.players[id]) throw Object.assign(new Error('No such player.'), { status: 404 });
+      if (route === '/admin/scores/remove') { delete data.players[id]; return `Scoreboard: player removed by ${who.label}`; }
+      if (route === '/admin/scores/edit') {
+        const p = data.players[id];
+        for (const k of ['points', 'rounds', 'correct', 'answered', 'best']) if (body[k] !== undefined) p[k] = int(body[k]);
+        if (p.correct > p.answered) p.correct = p.answered;
+        return `Scoreboard: ${p.name || id} edited by ${who.label}`;
+      }
+      throw Object.assign(new Error('Not found'), { status: 404 });
+    });
+    return out.ok ? json({ ok: true }, 200, origin) : json({ error: out.error }, out.status || 502, origin);
   }
   if (route === '/admin/keys/revoke' && req.method === 'POST') {
     const { list, sha } = await loadKeys(env, true);
@@ -505,6 +529,18 @@ async function loadScores(env) {
 function board(data, names) {
   return Object.entries(data.players).map(([id, p]) => ({ name: names.get(id) || p.name || 'Player', points: p.points || 0, rounds: p.rounds || 0, accuracy: p.answered ? Math.round(100 * (p.correct || 0) / p.answered) : 0, best: p.best || 0 }))
     .sort((a, b) => b.points - a.points || b.accuracy - a.accuracy || a.name.localeCompare(b.name)).slice(0, 20);
+}
+// Change games/scores.json with retries on a concurrent save (used by the admin scoreboard routes).
+async function editScores(env, change) {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const { data, sha } = await loadScores(env);
+    let message; try { message = change(data); } catch (e) { return { ok: false, error: e.message, status: e.status || 400 }; }
+    const put = await ghq(env, `contents/${SCORES_PATH}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message, content: b64(JSON.stringify(data, null, 2) + '\n'), ...(sha ? { sha } : {}) }) });
+    if (put.ok) return { ok: true };
+    if (put.status !== 409 && put.status !== 422) return { ok: false, error: `GitHub ${put.status} saving the scoreboard`, status: 502 };
+    await new Promise(r => setTimeout(r, 300 * (attempt + 1)));
+  }
+  return { ok: false, error: 'Busy — try again.', status: 503 };
 }
 async function handleGames(req, env, origin, route) {
   if (!env.GITHUB_TOKEN || !env.SITE_KEY) return json({ error: 'Relay is missing GITHUB_TOKEN / SITE_KEY.' }, 500, origin);
