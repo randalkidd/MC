@@ -416,3 +416,4 @@ html.vf-open { overflow: hidden; }
 .as-scope { margin-top: .2rem; }
 /* The land-division classification shows under the split-check query; keep it visible while Classify is open even if that box is collapsed. */
 .ld-block:has(#ld-form:not(.collapsed)) #ls-card.collapsed > #ld-out { display: block !important; }
+.hub-warn { background: var(--warn-bg); border: 1px solid var(--warn-line); border-left: 4px solid var(--yellow); color: var(--ink); border-radius: var(--radius); padding: .7rem 1rem; margin-bottom: 1rem; font-size: .95rem; }
