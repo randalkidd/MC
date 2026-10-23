@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated": "2026-10-23T15:58:39.284Z",
+  "updated": "2026-10-23T18:05:35.777Z",
   "items": [
     {
       "name": "10 SKY HARBOR BUSINESS CENTER",
@@ -16,6 +16,22 @@
       "lastSeen": "2026-10-23",
       "status": "pending",
       "note": "Added from All Subdivisions (no parcel lookup yet)"
+    },
+    {
+      "name": "ANTHEM UNIT 15",
+      "displayName": "Anthem Unit 15",
+      "mcr": "535-06",
+      "rec": "",
+      "recorded": "",
+      "totalLots": 155,
+      "baseZoning": "R1-7",
+      "controllingCases": "CPA1994002 (12:00:00 AM, Remove); CPA2019010 (8/28/2019, Approved); DMP1994006 (12:00:00 AM, Approved); DMP2005011 (8/29/2005, Approved); DMP2000008 (8/22/2000, Approved); Z01-134 (10/29/2001, APPROVED); Z95-53 (12/11/1995, APPROVED); Z00-98 (8/22/2000, APPROVED); Z95-53i (8/7/1998, APPROVED); Z95-53T (9/30/1999, APPROVED); Z95-53B (3/25/1998, APPROVED); Z95-53C (4/9/1998, APPROVED)",
+      "apns": [
+        "203-01-865"
+      ],
+      "firstSeen": "2026-10-23",
+      "lastSeen": "2026-10-23",
+      "status": "pending"
     }
   ]
 }
