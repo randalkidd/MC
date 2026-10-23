@@ -27,6 +27,7 @@ const COMMON = [
   ['c-pl', 'Parcel dimensions, all sides', RESCK, null, 'Dimension every property line.'],
   ['c-bldg', 'Building dimensions, all sides', RESCK, null, 'Dimension all buildings and structures (garage/patio separately from living area).'],
   ['c-row', 'Adjacent streets named; ROW dimensioned; jurisdiction identified', RESCK, null, 'Name each adjacent street, dimension the ROW and note the jurisdiction (MCDOT/private/city).'],
+  ['c-sight', 'Sight visibility triangles (25 ft × 25 ft) verified and clear where a driveway and/or easement intersects County ROW', 'MCZO Art. 811.4.1–811.4.3', MCZO, 'Show and dimension the 25 ft × 25 ft sight visibility triangle at each driveway/easement intersection with County right-of-way, and keep it clear of obstructions over 2 ft, driveways, parking and trees (MCZO 811.4; may be waived only if sight visibility meets the MCDOT Roadway Design Manual). A triangle that falls on an abutting parcel needs a recorded easement (811.4.3).'],
   ['c-ease', 'All easements shown with MCR recording number; washes shown', RESCK, null, 'Show each easement (drainage, ingress/egress, PUE, shared well, patent) with its MCR number; show washes.'],
   ['c-setall', 'Setbacks dimensioned from all structures to property lines (residence: all sides)', RESCK, null, 'Dimension setbacks from every structure to the property lines (4 sides for the residence; 2 for others).'],
   ['c-sep-bldg', 'Distance between buildings shown', 'Typical Site Plan item 10', null, 'Dimension the distance between each pair of buildings.'],

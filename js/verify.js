@@ -3,8 +3,8 @@
 // each plan-vs-record mismatch or other finding, and each value the reader marked hard to read.
 // Decisions are written straight into the review (checklist statuses/notes/corrections, reviewer overrides of the
 // measured checks in s.verified, and markup rows in s.extra), so the Checklist box and Markup Table fill as you go.
-import { CHECKLISTS } from './checklists.js?v=70349faf';
-import { computeFindings } from './review.js?v=70349faf';
+import { CHECKLISTS } from './checklists.js?v=e59c2bd9';
+import { computeFindings } from './review.js?v=e59c2bd9';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const yn = (v) => (v === true ? 'Yes' : v === false ? 'No' : null);
@@ -33,7 +33,7 @@ function evidence(id, s) {
   if (/north|format/.test(key)) { add('North arrow', yn(pl.north_arrow)); add('Vicinity map', yn(pl.vicinity_map)); }
   if (/apn|id$/.test(key)) { add('APN shown', P.apn); add('Owner shown', P.owner_name); add('Address shown', P.site_address); cmp(/APN|Owner|Address|Lot|Subdivision/i); }
   if (/^pl$|lots|area/.test(key)) { add('Lot dimensions', P.lot_dimensions); add('Lot area shown', P.lot_area_sf && `${(+P.lot_area_sf).toLocaleString()} sf`); add('Zoning shown', P.zoning_shown); }
-  if (/ease|patent|vnae/.test(key)) add('Easements', (r.easements || []).map(e => [e.type, e.width, e.recording && `MCR ${e.recording}`, e.location].filter(Boolean).join(' ')).join('; ') || (s.ai ? 'none shown' : null));
+  if (/ease|patent|vnae|sight/.test(key)) add('Easements', (r.easements || []).map(e => [e.type, e.width, e.recording && `MCR ${e.recording}`, e.location].filter(Boolean).join(' ')).join('; ') || (s.ai ? 'none shown' : null));
   if (/row|streets|access|sight|dw/.test(key)) add('Streets / ROW', (r.streets || []).map(x => [x.name, x.row_width && `ROW ${x.row_width}`, x.jurisdiction].filter(Boolean).join(' ')).join('; ') || (s.ai ? 'none shown' : null));
   if (/adj/.test(key)) add('Adjacent uses', (r.adjacent_uses || []).join('; ') || (s.ai ? 'none labeled' : null));
   if (/future/.test(key)) add('Invalidating notes', (pl.invalidating_notes || []).join('; ') || (s.ai ? 'none found' : null));
