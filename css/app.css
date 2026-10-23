@@ -410,3 +410,6 @@ html.vf-open { overflow: hidden; }
   :root[data-accent="amber"], :root[data-accent="amber"][data-theme] { --accent: #9a6100; --accent-strong: #7e4f00; --accent-ink: #ffffff; }
   :root[data-accent="silver"], :root[data-accent="silver"][data-theme] { --accent: #475569; --accent-strong: #334155; --accent-ink: #ffffff; }
 }
+.rl-head { display: flex; align-items: center; justify-content: flex-start; gap: .3rem; margin: .4rem 0 .2rem; }
+.rl-head #rl-count { margin: 0; }
+.rl-results.collapsed .rl-head { margin-bottom: 0; }

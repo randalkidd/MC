@@ -20,7 +20,7 @@ const MAP = { '—': '-', '–': '-', '‘': "'", '’': "'", '“': '"', '”':
 export const clean = (s) => String(s).replace(/[️​-‍]/g, '').replace(/[^\x00-\xFF]/g, (c) => MAP[c] ?? '?');
 
 const C = { ink: [19, 29, 40], muted: [79, 93, 107], line: [216, 223, 225], head: [233, 238, 240], navy: [19, 32, 72], link: [0, 112, 185], accent: [242, 103, 36] }; // orange kept as the saved color
-import { currentAccent } from './accents.js?v=a0d4f6e1';
+import { currentAccent } from './accents.js?v=1e1a0c7b';
 // Rule lines use the chosen accent's print (light-theme) shade.
 const accentRGB = () => { const h = currentAccent().light.replace('#', ''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
 

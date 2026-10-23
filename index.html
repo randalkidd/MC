@@ -7,14 +7,14 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https://gis.maricopa.gov https://server.arcgisonline.com https://*.arcgisonline.com https://unpkg.com; connect-src 'self' https://gis.maricopa.gov https://publicapi.recorder.maricopa.gov https://edms.maricopa.gov https://recorder.maricopa.gov https://api.github.com https://*.workers.dev; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="preconnect" href="https://gis.maricopa.gov" crossorigin>
-<script src="js/theme.js?v=a0d4f6e1"></script>
+<script src="js/theme.js?v=1e1a0c7b"></script>
 <title>Unofficial Maricopa County Zoning Hub</title>
 <meta name="description" content="Maricopa County parcel lookup, MCZO/MCSR standards, subdivision plat database and plan-review deficiency builder.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%232ec4b6'/><path d='M7 24V9l9 7 9-7v15' fill='none' stroke='%2304161a' stroke-width='3' stroke-linejoin='round'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=a0d4f6e1">
-<link rel="modulepreload" href="js/app.js?v=a0d4f6e1"><link rel="modulepreload" href="js/lookup.js?v=a0d4f6e1"><link rel="modulepreload" href="js/report.js?v=a0d4f6e1"><link rel="modulepreload" href="js/net.js?v=a0d4f6e1"><link rel="modulepreload" href="js/github.js?v=a0d4f6e1"><link rel="modulepreload" href="js/standards.js?v=a0d4f6e1"><link rel="modulepreload" href="js/checklists.js?v=a0d4f6e1"><link rel="modulepreload" href="js/review.js?v=a0d4f6e1"><link rel="modulepreload" href="js/recorder.js?v=a0d4f6e1"><link rel="modulepreload" href="js/subdivisions.js?v=a0d4f6e1">
+<link rel="stylesheet" href="css/app.css?v=1e1a0c7b">
+<link rel="modulepreload" href="js/app.js?v=1e1a0c7b"><link rel="modulepreload" href="js/lookup.js?v=1e1a0c7b"><link rel="modulepreload" href="js/report.js?v=1e1a0c7b"><link rel="modulepreload" href="js/net.js?v=1e1a0c7b"><link rel="modulepreload" href="js/github.js?v=1e1a0c7b"><link rel="modulepreload" href="js/standards.js?v=1e1a0c7b"><link rel="modulepreload" href="js/checklists.js?v=1e1a0c7b"><link rel="modulepreload" href="js/review.js?v=1e1a0c7b"><link rel="modulepreload" href="js/recorder.js?v=1e1a0c7b"><link rel="modulepreload" href="js/subdivisions.js?v=1e1a0c7b">
 </head>
 <body>
 <header class="top">
@@ -248,9 +248,11 @@
     <p class="sub">From the county's <a href="https://www.maricopa.gov/2271/Ordinances-Regulations-and-Codes" target="_blank" rel="noopener">Ordinances, Regulations and Codes</a> page. Superseded editions are listed only so they aren't mistaken for current ones.</p></div>
   <div class="card" id="ref-lookup-card"><h2>Regulation Lookup</h2>
     <div class="rl-bar"><input id="rl-q" class="filter" placeholder="Search: pool barrier, weeds, construction hours, noise, AD III, address number, shipping container, yard sale…" autocomplete="off"><select id="rl-doc" aria-label="Filter by document"><option value="">All documents</option></select></div>
-    <p class="sub" id="rl-count"></p>
-    <div class="tw"><table class="dense"><thead><tr><th>Document</th><th>§</th><th>Topic</th><th>Rule</th></tr></thead><tbody id="rl-body"></tbody></table></div>
-    <p class="sub">Condensed from the county PDFs (each row links to its source). Quote the PDF in formal comments. Staff interpretations predate the 2025 MCZO; confirm them first.</p></div>
+    <div class="collapsible rl-results" id="rl-results">
+      <div class="cardhead rl-head"><span class="sub" id="rl-count"></span><button class="collapse-btn" type="button" data-collapse="rl-results" aria-expanded="true" title="Collapse">▾</button></div>
+      <div class="tw"><table class="dense"><thead><tr><th>Document</th><th>§</th><th>Topic</th><th>Rule</th></tr></thead><tbody id="rl-body"></tbody></table></div>
+      <p class="sub">Condensed from the county PDFs (each row links to its source). Quote the PDF in formal comments. Historical staff interpretations predate the 2025 MCZO; confirm them first.</p>
+    </div></div>
   <div class="card" id="ref-dirs-card"><h2>Department Directives</h2><ul id="ref-dirs" class="cols"></ul></div>
   <div class="card"><h2>County Tools</h2><ul class="cols">
     <li><a href="parcel-lookup/">Parcel Lookup (original page)</a></li>
@@ -390,8 +392,8 @@
 <dialog id="saved-view" class="saved-view"><div class="cardhead"><h2 id="sv-title"></h2><button class="btn sm ghost" id="sv-close" type="button" aria-label="Close">✕</button></div><pre id="sv-text" class="sv-text"></pre><div class="actions"><button class="btn" id="sv-dl" type="button">Download</button><button class="btn danger" id="sv-del" type="button">Delete</button></div></dialog>
 </main>
 <footer class="foot">All information in this system is public and accessible to anyone; items saved here are stored in a public GitHub repository. Reference tool — verify findings against the adopted ordinance, recorded documents and case files before relying on them.
-<div class="build">Version <span id="build">10.23.26.041</span> · <span id="relay-ver" data-latest="21" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
+<div class="build">Version <span id="build">10.23.26.043</span> · <span id="relay-ver" data-latest="21" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
 <div id="toasts" aria-live="polite"></div>
-<script type="module" src="js/app.js?v=a0d4f6e1"></script>
+<script type="module" src="js/app.js?v=1e1a0c7b"></script>
 </body>
 </html>
