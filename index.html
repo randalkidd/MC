@@ -7,14 +7,14 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https://gis.maricopa.gov https://server.arcgisonline.com https://*.arcgisonline.com https://unpkg.com; connect-src 'self' https://gis.maricopa.gov https://publicapi.recorder.maricopa.gov https://edms.maricopa.gov https://recorder.maricopa.gov https://api.github.com https://*.workers.dev; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="preconnect" href="https://gis.maricopa.gov" crossorigin>
-<script src="js/theme.js?v=5c5dc74f"></script>
+<script src="js/theme.js?v=b0b12f7e"></script>
 <title>Unofficial Maricopa County Zoning Hub</title>
 <meta name="description" content="Maricopa County parcel lookup, MCZO/MCSR standards, subdivision plat database and plan-review deficiency builder.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23F26724'/><path d='M7 24V9l9 7 9-7v15' fill='none' stroke='%2304161a' stroke-width='3' stroke-linejoin='round'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=5c5dc74f">
-<link rel="modulepreload" href="js/app.js?v=5c5dc74f"><link rel="modulepreload" href="js/lookup.js?v=5c5dc74f"><link rel="modulepreload" href="js/report.js?v=5c5dc74f"><link rel="modulepreload" href="js/net.js?v=5c5dc74f"><link rel="modulepreload" href="js/github.js?v=5c5dc74f"><link rel="modulepreload" href="js/standards.js?v=5c5dc74f"><link rel="modulepreload" href="js/checklists.js?v=5c5dc74f"><link rel="modulepreload" href="js/review.js?v=5c5dc74f"><link rel="modulepreload" href="js/recorder.js?v=5c5dc74f"><link rel="modulepreload" href="js/subdivisions.js?v=5c5dc74f">
+<link rel="stylesheet" href="css/app.css?v=b0b12f7e">
+<link rel="modulepreload" href="js/app.js?v=b0b12f7e"><link rel="modulepreload" href="js/lookup.js?v=b0b12f7e"><link rel="modulepreload" href="js/report.js?v=b0b12f7e"><link rel="modulepreload" href="js/net.js?v=b0b12f7e"><link rel="modulepreload" href="js/github.js?v=b0b12f7e"><link rel="modulepreload" href="js/standards.js?v=b0b12f7e"><link rel="modulepreload" href="js/checklists.js?v=b0b12f7e"><link rel="modulepreload" href="js/review.js?v=b0b12f7e"><link rel="modulepreload" href="js/recorder.js?v=b0b12f7e"><link rel="modulepreload" href="js/subdivisions.js?v=b0b12f7e">
 </head>
 <body>
 <header class="top">
@@ -24,7 +24,6 @@
 <nav class="tabs" role="tablist">
   <button class="tab" role="tab" data-tab="p-lookup">Parcel lookup</button>
   <button class="tab gated" role="tab" data-tab="p-review" data-perm="review" hidden>Plan Review Hub</button>
-  <button class="tab gated" role="tab" data-tab="p-division" data-perm="review" hidden>Land division</button>
   <button class="tab gated" role="tab" data-tab="p-subs" hidden>SubdivisionDB</button>
   <button class="tab gated" role="tab" data-tab="p-saved" data-perm="review" hidden>Saved Parcels</button>
   <button class="tab" role="tab" data-tab="p-ref">Reference</button>
@@ -65,8 +64,8 @@
 <section class="panel" id="p-review" hidden>
   <div class="sp-grid">
   <div class="card sp-card" id="sp-card">
-    <div class="cardhead"><h2>Read a site plan PDF</h2></div>
-    <p class="sub">Pick the submittal type below, drop the applicant's site plan here, then choose a review. <b>Superficial Review</b> is free and instant: it reads the PDF's own text in your browser (CAD/Word exports, not scans). <b>Rapid Review</b>: Claude reads every sheet now (about a minute, billed to the API key in your relay). <b>Queued Review</b>: the plan goes to your private repo and Claude on LONDON reads it at 12:15 AM Sunday–Thursday (no API cost); results are listed under MC-queue files on the right. Every review fills this page and checks the APN, owner, address, lot area, zoning and subdivision/lot against the Assessor record and recorded deed; the data read from plans is kept in the private repo for 45 days. <b>Verify every value against the plan.</b></p>
+    <div class="cardhead"><h2>Read a site plan PDF <button class="collapse-btn" type="button" data-collapse="sp" aria-expanded="true" title="Collapse">▾</button></h2></div>
+    <p class="sub">Pick the submittal type below, drop the applicant's site plan here, then choose a review. <b>Superficial Review</b> is free and instant: it reads the PDF's own text in your browser (CAD/Word exports, not scans). <b>Rapid Review</b>: Claude reads every sheet now (about a minute, billed to the API key in your relay). <b>Queued Review</b>: the plan goes to your private repo and Claude on LONDON reads it at 12:15 AM Sunday–Thursday (no API cost); results are listed under Plan Queue on the right. Every review fills this page and checks the APN, owner, address, lot area, zoning and subdivision/lot against the Assessor record and recorded deed; the data read from plans is kept in the private repo for 45 days. <b>Verify every value against the plan.</b></p>
     <div class="sp-drop" id="sp-drop">
       <input type="file" id="sp-file" accept="application/pdf,.pdf">
       <span id="sp-name" class="sub">or drag a PDF here (max 30 MB)</span>
@@ -80,7 +79,7 @@
     <div id="sp-out"></div>
   </div>
   <aside class="card sp-qcard" id="sp-queued" data-perm="queue">
-    <div class="cardhead"><h2>MC-queue files</h2><button class="btn sm" id="sp-qrefresh" type="button">Refresh</button></div>
+    <div class="cardhead"><h2>Plan Queue <button class="collapse-btn" type="button" data-collapse="sp" aria-expanded="true" title="Collapse">▾</button></h2><button class="btn sm" id="sp-qrefresh" type="button">Refresh</button></div>
     <p class="sub">Plans sent with Queued Review (private repo). Read on LONDON at 12:15 AM Sun–Thu · plans kept 14 days, data 45 days.</p>
     <div id="sp-qlist"><p class="sub">Click Refresh to load.</p></div>
   </aside>
@@ -148,8 +147,30 @@
   </div>
 </section>
 
-<!-- LAND DIVISION -->
-<section class="panel" id="p-division" hidden>
+<!-- SUBDIVISIONS DB -->
+<section class="panel" id="p-subs" hidden>
+  <div class="card">
+    <div class="cardhead">
+      <div><h2>Subdivision plat database</h2><p class="sub"><span id="db-count"></span> · <span id="db-source"></span> <span id="db-dirty" class="pill warn-pill" hidden>Unsaved changes</span></p></div>
+      <div class="actions"><button class="btn" id="db-new" data-perm="write">+ Add</button><button class="btn primary" id="db-save" data-perm="write">Save to GitHub</button><button class="btn ghost" id="db-reload">Reload</button><button class="btn ghost" id="db-export">Export JSON</button></div>
+    </div>
+    <input id="db-q" class="filter" placeholder="Search SubdivisionDB: name, case, zoning, APN…">
+    <div class="tw db-scroll"><table><thead><tr><th>Subdivision</th><th>MCR</th><th>Plat</th><th>Lots</th><th>Recorded setbacks</th><th>Lot coverage</th><th>Last Updated</th><th></th></tr></thead><tbody id="db-body"></tbody></table></div>
+    <p class="sub">Stored as <code>data/subdivision-plats.json</code> in your GitHub repo. A parcel lookup inside a listed subdivision uses its recorded setbacks and checks for cases dated after the plat.</p>
+  </div>
+  <div class="card collapsible collapsed" id="allsubs">
+    <div class="cardhead">
+      <div><h2>All Subdivisions <small>(Maricopa County GIS)</small> <button class="collapse-btn" type="button" data-collapse="allsubs" aria-expanded="false" title="Expand">▸</button></h2><p class="sub" id="as-meta">Collapsed — click ▸ to load the countywide list.</p></div>
+      <div class="actions"><button class="btn ghost" id="as-refresh" type="button">Refresh from county GIS</button><button class="btn ghost" id="as-export" type="button">Export CSV</button></div>
+    </div>
+    <div class="rl-bar"><input id="as-q" class="filter" placeholder="Search name or MCR (e.g. sun city, 754-39)…" autocomplete="off"><select id="as-filter" aria-label="Filter"><option value="">All</option><option value="db">In SubdivisionDB</option><option value="queue">On waitlist</option><option value="none">Not reviewed yet</option></select></div>
+    <div class="tw"><table class="dense"><thead><tr><th><button class="link" data-sort="name" type="button">Subdivision ▴</button></th><th><button class="link" data-sort="mcr" type="button">MCR</button></th><th>Plat</th><th>Status</th><th></th></tr></thead><tbody id="as-body"></tbody></table></div>
+    <div class="pager"><button class="btn ghost sm" id="as-prev" type="button">‹ Prev</button><span id="as-page" class="sub"></span><button class="btn ghost sm" id="as-next" type="button">Next ›</button></div>
+    <p class="as-updated" id="as-updated"></p>
+    <p class="sub">Countywide, including subdivisions inside cities and towns. The county's MCR numbers are book–page in the Recorder's map books. Plats link to the Recorder; <b>Add to waitlist</b> queues one for <b>Process with Claude</b> in the Plat Automation Waitlist below.</p>
+  </div>
+  <div id="land-division" class="ld-block" data-perm="review">
+    <h2 class="ld-title">Land division</h2>
   <div class="card">
     <h2>Check an existing parcel — was the split lawful?</h2>
     <form id="ls-form" class="searchbar"><input id="ls-apn" placeholder="APN — e.g. 401-52-034C" autocomplete="off"><button class="btn primary">Check split</button></form>
@@ -173,29 +194,6 @@
     <div id="ld-out"></div>
   </div>
   <p class="sub">Built from the MCSR (Jan 9, 2026 revision) definitions and procedures (§105.24, §105.37, §202–207) and DD-2013-10.</p>
-</section>
-
-<!-- SUBDIVISIONS DB -->
-<section class="panel" id="p-subs" hidden>
-  <div class="card">
-    <div class="cardhead">
-      <div><h2>Subdivision plat database</h2><p class="sub"><span id="db-count"></span> · <span id="db-source"></span> <span id="db-dirty" class="pill warn-pill" hidden>Unsaved changes</span></p></div>
-      <div class="actions"><button class="btn" id="db-new" data-perm="write">+ Add</button><button class="btn primary" id="db-save" data-perm="write">Save to GitHub</button><button class="btn ghost" id="db-reload">Reload</button><button class="btn ghost" id="db-export">Export JSON</button></div>
-    </div>
-    <input id="db-q" class="filter" placeholder="Search SubdivisionDB: name, case, zoning, APN…">
-    <div class="tw db-scroll"><table><thead><tr><th>Subdivision</th><th>MCR</th><th>Plat</th><th>Lots</th><th>Recorded setbacks</th><th>Lot coverage</th><th>Last Updated</th><th></th></tr></thead><tbody id="db-body"></tbody></table></div>
-    <p class="sub">Stored as <code>data/subdivision-plats.json</code> in your GitHub repo. A parcel lookup inside a listed subdivision uses its recorded setbacks and checks for cases dated after the plat.</p>
-  </div>
-  <div class="card" id="allsubs">
-    <div class="cardhead">
-      <div><h2>All Subdivisions <small>(Maricopa County GIS)</small></h2><p class="sub" id="as-meta">Loading…</p></div>
-      <div class="actions"><button class="btn ghost" id="as-refresh" type="button">Refresh from county GIS</button><button class="btn ghost" id="as-export" type="button">Export CSV</button></div>
-    </div>
-    <div class="rl-bar"><input id="as-q" class="filter" placeholder="Search name or MCR (e.g. sun city, 754-39)…" autocomplete="off"><select id="as-filter" aria-label="Filter"><option value="">All</option><option value="db">In SubdivisionDB</option><option value="queue">On waitlist</option><option value="none">Not reviewed yet</option></select></div>
-    <div class="tw"><table class="dense"><thead><tr><th><button class="link" data-sort="name" type="button">Subdivision ▴</button></th><th><button class="link" data-sort="mcr" type="button">MCR</button></th><th>Plat</th><th>Status</th><th></th></tr></thead><tbody id="as-body"></tbody></table></div>
-    <div class="pager"><button class="btn ghost sm" id="as-prev" type="button">‹ Prev</button><span id="as-page" class="sub"></span><button class="btn ghost sm" id="as-next" type="button">Next ›</button></div>
-    <p class="as-updated" id="as-updated"></p>
-    <p class="sub">Countywide, including subdivisions inside cities and towns. The county's MCR numbers are book–page in the Recorder's map books. Plats link to the Recorder; <b>Add to waitlist</b> queues one for <b>Process with Claude</b> in the Plat Automation Waitlist below.</p>
   </div>
   <div id="queue" class="card queue">
     <div class="cardhead"><div><h2>Plat Automation Waitlist <span class="pill" id="queue-count">0</span></h2><p class="sub">Subdivisions found by a parcel lookup that aren't in SubdivisionDB yet. <b>Process with Claude</b> opens Claude with this list; Claude reads each plat in the Claude desktop app's browser on your computer, adds it to SubdivisionDB and clears it from this list.</p></div>
@@ -312,8 +310,8 @@
 </section>
 </main>
 <footer class="foot">All information in this system is public and accessible to anyone; items saved here are stored in a public GitHub repository. Reference tool — verify findings against the adopted ordinance, recorded documents and case files before relying on them.
-<div class="build">Version <span id="build">10.23.26.013</span> · <span id="relay-ver" data-latest="16" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
+<div class="build">Version <span id="build">10.23.26.014</span> · <span id="relay-ver" data-latest="16" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
 <div id="toasts" aria-live="polite"></div>
-<script type="module" src="js/app.js?v=5c5dc74f"></script>
+<script type="module" src="js/app.js?v=b0b12f7e"></script>
 </body>
 </html>

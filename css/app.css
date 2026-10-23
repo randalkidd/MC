@@ -221,9 +221,11 @@ table.check td { vertical-align: middle; }
 .sp-btns { display: inline-flex; flex-wrap: wrap; gap: .4rem; }
 .nowrap { white-space: nowrap; }
 /* Plan Review Hub: reader on the left, MC-queue files on the right */
-.sp-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: 1rem; align-items: start; margin-bottom: 1rem; }
+.sp-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: 1rem; align-items: stretch; margin-bottom: 1rem; }
 .sp-grid > .card { margin: 0; }
-.sp-qcard { position: sticky; top: 56px; max-height: calc(100vh - 80px); overflow: auto; }
+/* Plan Queue matches the reader's height (it never makes the row taller); its list scrolls inside */
+.sp-qcard { display: flex; flex-direction: column; height: 0; min-height: 100%; overflow: hidden; }
+.sp-qcard #sp-qlist { flex: 1; min-height: 0; overflow: auto; }
 .qfiles { list-style: none; margin: .4rem 0 0; padding: 0; display: grid; gap: .5rem; }
 .qfiles li { border: 1px solid var(--line); border-radius: 8px; padding: .5rem .6rem; background: var(--surface); font-size: .85rem; }
 .qfiles li.q-done { border-left: 3px solid var(--ok); } .qfiles li.q-failed { border-left: 3px solid var(--bad); } .qfiles li.q-queued, .qfiles li.q-processing { border-left: 3px solid var(--yellow); }
@@ -231,7 +233,7 @@ table.check td { vertical-align: middle; }
 .qf-top b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .qf-st { white-space: nowrap; font-size: .8rem; }
 .qf-act { display: flex; gap: .35rem; margin-top: .35rem; }
-@media (max-width: 900px) { .sp-grid { grid-template-columns: 1fr; } .sp-qcard { position: static; max-height: none; } }
+@media (max-width: 900px) { .sp-grid { grid-template-columns: 1fr; } .sp-qcard { height: auto; min-height: 0; max-height: 70vh; } }
 
 /* Access-key permissions: elements marked data-perm show only when this browser's key has that permission */
 html:not(.perm-review) [data-perm="review"], html:not(.perm-write) [data-perm="write"], html:not(.perm-queue) [data-perm="queue"],
@@ -248,3 +250,13 @@ html:not(.perm-rapid) [data-perm="rapid"], html:not(.perm-admin) [data-perm="adm
 .signin { max-width: 420px; margin: 2rem auto; }
 .signin label { display: block; margin-bottom: .6rem; }
 .signin .status:empty { display: none; }
+
+/* Collapse arrows */
+.collapse-btn { border: 0; background: transparent; color: var(--muted); font-size: .95em; line-height: 1; padding: .1rem .35rem; margin-left: .25rem; cursor: pointer; border-radius: 6px; vertical-align: middle; }
+.collapse-btn:hover, .collapse-btn:focus-visible { color: var(--accent); background: var(--soft); outline: none; }
+.sp-grid.collapsed > .card > :not(.cardhead) { display: none !important; }
+.sp-grid.collapsed > .card .cardhead { margin-bottom: 0; }
+.collapsible.collapsed > :not(.cardhead) { display: none !important; }
+.collapsible.collapsed .cardhead .actions { display: none; }
+.ld-block { margin: 1rem 0; }
+.ld-title { margin: 1.4rem 0 .6rem; }
