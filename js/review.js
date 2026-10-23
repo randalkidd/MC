@@ -1,6 +1,6 @@
 // Plan review: measurement checks (setbacks, coverage, height) + checklist → markup table (Markdown).
-import { DISTRICTS, normalizeDistrict, MCZO_URL } from './standards.js?v=e4e248ff';
-import { CHECKLISTS } from './checklists.js?v=e4e248ff';
+import { DISTRICTS, normalizeDistrict, MCZO_URL } from './standards.js?v=43930d32';
+import { CHECKLISTS } from './checklists.js?v=43930d32';
 
 const DD2021 = 'https://www.maricopa.gov/6459/Lot-Coverage-Calculations---DD-2021-01';
 const DD3012 = 'https://www.maricopa.gov/6353/Accessory-Structures-Equipment-and-Setba';
@@ -24,6 +24,7 @@ export function blankReview() {
     ],
     checks: {},
     extra: [],
+    verified: {},
   };
 }
 export function loadDraft() {
@@ -48,7 +49,7 @@ export function computeFindings(s) {
   const F = [];
   const cite = (sec) => `[MCZO §${sec}](${MCZO_URL})`;
   const push = (loc, item, shows, req, c, ok, fix) => F.push({ loc, item, shows, req, cite: c, status: ok === null ? 'verify' : ok ? 'ok' : 'deficient', fix: ok ? '—' : fix });
-  if (!d) { F.push({ loc: 'General', item: 'Zoning district', shows: s.district || 'not set', req: 'A district in MCZO Ch. 5', cite: cite('502'), status: 'verify', fix: 'Set the district (run a parcel lookup) so dimensional checks can run.' }); return { F, key, d }; }
+  if (!d) { F.push({ loc: 'General', item: 'Zoning district', shows: s.district || 'not set', req: 'A district in MCZO Ch. 5', cite: cite('502'), status: 'verify', fix: 'Set the district (run a parcel lookup) so dimensional checks can run.' }); return { F: applyVerified(s, F), key, d }; }
   const sec = d.section; const p = s.primary;
 
   // Lot area / width
@@ -101,7 +102,18 @@ export function computeFindings(s) {
 
   // Required-yard coverage (30%) — manual flag
   if (s.structures.some(x => x.kind !== 'primary' && x.inYard)) F.push({ loc: 'Site plan — rear/side yard', item: 'Accessory coverage of any required yard', shows: 'Structures in required yard', req: '≤ 30% of that required yard', cite: `${cite('806.2')}`, status: 'verify', fix: 'Compute accessory footprint ÷ required-yard area for each yard; reduce if over 30%.' });
-  return { F, key, d };
+  return { F: applyVerified(s, F), key, d };
+}
+// Reviewer decisions from Review Verification override the computed status of a measured check.
+function applyVerified(s, F) {
+  const V = s.verified || {};
+  for (const f of F) {
+    f.computed = f.status; const v = V[`f:${f.item}`]; if (!v) continue;
+    if (v.status) f.status = v.status;
+    if (f.status === 'ok') f.fix = '—'; else if (v.fix) f.fix = v.fix;
+    if (v.note) f.shows = `${f.shows} (reviewer: ${v.note})`;
+  }
+  return F;
 }
 
 export function checklistRows(s) {
@@ -119,7 +131,7 @@ export function markupRows(s) {
   const out = [];
   for (const r of checklistRows(s).filter(r => r.status && r.status !== 'na')) out.push({ group: 'Submittal Requirements (Completeness)', loc: 'Submittal', item: r.item, shows: r.note || (r.status === 'ok' ? 'Shown' : 'Not shown'), req: 'Per checklist', cite: r.cite, status: r.status === 'deficient' ? 'incomplete' : r.status, fix: r.fix });
   for (const f of F) out.push({ group: 'Zoning Standards (Setbacks, Height, Coverage)', loc: f.loc, item: f.item, shows: f.shows, req: f.req, cite: f.cite, status: f.status, fix: f.fix });
-  for (const e of s.extra || []) if (e.item) out.push({ group: /record/i.test(e.item) ? 'Ownership & Parcel Information' : 'Other Comments', loc: e.loc || '—', item: e.item, shows: e.shows || '—', req: e.req || '—', cite: e.cite || '—', status: e.status, fix: e.fix || '—' });
+  for (const e of s.extra || []) if (e.item) out.push({ group: /record/i.test(e.item) ? 'Ownership & Parcel Information' : 'Other Comments', loc: e.loc || '—', item: e.item, shows: e.shows || '—', req: e.req || '—', cite: e.cite || '—', status: e.status, fix: e.status === 'ok' ? '—' : (e.fix || '—') });
   return { rows: out, district: key, section: d ? d.section : null };
 }
 
@@ -132,7 +144,7 @@ export function buildMarkdown(s) {
   let n = 0;
   for (const r of cl) rows.push([++n, 'Submittal', r.item, r.note || (r.status === 'ok' ? 'Shown' : 'Not shown / not compliant'), 'Per checklist', r.cite, ICON[r.status === 'deficient' ? 'incomplete' : r.status] || r.status, r.status === 'ok' ? '—' : r.fix]);
   for (const f of F) rows.push([++n, f.loc, f.item, f.shows, f.req, f.cite, ICON[f.status], f.fix]);
-  for (const e of s.extra) if (e.item) rows.push([++n, e.loc || '—', e.item, e.shows || '—', e.req || '—', e.cite || '—', ICON[e.status] || e.status, e.fix || '—']);
+  for (const e of s.extra) if (e.item) rows.push([++n, e.loc || '—', e.item, e.shows || '—', e.req || '—', e.cite || '—', ICON[e.status] || e.status, e.status === 'ok' ? '—' : (e.fix || '—')]);
   const def = rows.filter(r => /Deficient|Incomplete/.test(r[6])).length;
   const inc = cl.filter(r => r.status === 'deficient').length;
   const ver = rows.filter(r => /Verify/.test(r[6])).length;
@@ -141,6 +153,8 @@ export function buildMarkdown(s) {
   md.push(`**Plan reviewed:** ${s.planTitle || '—'}  **Reviewer:** ${s.reviewer || '—'}`);
   if (s.ai && s.ai.result) md.push(`**Plan read:** ${s.ai.file} read ${s.ai.engine === 'free' ? 'by Superficial Review (in-browser text reader)' : s.ai.engine === 'queued' ? 'by Queued Review (Claude on LONDON)' : `by Rapid Review (Claude, ${s.ai.model || 'AI'})`} on ${String(s.ai.at).slice(0, 10)}; the reviewer verified the values before issuing these comments.`);
   md.push(`**Controlling standards:** ${key ? `${key} per [MCZO Ch. 5 §${d.section}](${MCZO_URL}) (Dec 10, 2025 edition — confirm per DD-3014-01)` : 'district not set'}${Object.values(s.platSetbacks).some(v => v) ? `; recorded plat BSL F/R/S/SS = ${['front', 'rear', 'side', 'street'].map(k => s.platSetbacks[k] || '—').join('/')} ft` : ''}`);
+  const vd = Object.values(s.verified || {}).filter(v => v && v.done);
+  if (vd.length) md.push(`**Review verification:** ${vd.length} item${vd.length === 1 ? '' : 's'} verified one by one by the reviewer (last ${vd.map(v => v.at || '').sort().pop().slice(0, 10)}).`);
   md.push(`**Completeness:** ${inc ? `**Incomplete** (${inc} item${inc > 1 ? 's' : ''})` : (cl.length ? 'Complete' : 'Not screened')}`, '');
   md.push('| # | Sheet / location | Item | Plan shows | Required | Citation | Status | Required correction |', '|---|---|---|---|---|---|---|---|');
   for (const r of rows) md.push(`| ${r.map(c => String(c ?? '').replace(/\|/g, '\\|')).join(' | ')} |`);

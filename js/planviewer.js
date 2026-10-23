@@ -1,6 +1,6 @@
 // Plan viewer: shows the site-plan PDF with Claude's issue/value locations drawn on top. Click an item in the list to
 // jump to it on the plan; click a box on the plan to find it in the list. Uses vendored pdf.js (same origin, lazy).
-import { CHECKLISTS } from './checklists.js?v=e4e248ff';
+import { CHECKLISTS } from './checklists.js?v=43930d32';
 
 const PDFJS = './js/vendor/pdfjs-3.2.146/';
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -261,7 +261,7 @@ async function select(n, fromList) {
   }
 }
 
-export async function openViewer(blob, ai, review, F, fileName) {
+export async function openViewer(blob, ai, review, F, fileName, focus = '') {
   const d = ensureDialog();
   V.engine = ai.engine || 'claude'; V.items = buildItems(ai, review, F); V.sel = null; V.page = 1; V.zoom = 1; V.fileName = fileName || '';
   d.querySelector('.pv-file').textContent = fileName ? ` · ${fileName}` : '';
@@ -288,7 +288,9 @@ export async function openViewer(blob, ai, review, F, fileName) {
     list();
     d.querySelector('.pv-msg').textContent = '';
     await render();
-    const first = (visible().find(i => i.boxes.length) || {}).n;
-    if (first) select(first, false);
+    // “Show on plan” from Review Verification lands on that item's box.
+    const hit = focus && V.items.find(i => i.title === focus || i.title.startsWith(focus) || focus.startsWith(i.title));
+    if (hit) select(hit.n, true);
+    else { const first = (visible().find(i => i.boxes.length) || {}).n; if (first) select(first, false); }
   } catch (e) { d.querySelector('.pv-msg').textContent = `Couldn't open the PDF: ${e.message}`; }
 }
