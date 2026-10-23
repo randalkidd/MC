@@ -219,6 +219,16 @@ html.pv-open, html.pv-open body { overflow: hidden !important; }
 .cell-ta:focus { overflow: auto; }
 table.check td { vertical-align: middle; }
 .sp-btns { display: inline-flex; flex-wrap: wrap; gap: .4rem; }
-.sp-queued { margin-top: .8rem; border-top: 1px solid var(--line); padding-top: .6rem; }
-.sp-queued summary { cursor: pointer; }
 .nowrap { white-space: nowrap; }
+/* Plan Review Hub: reader on the left, MC-queue files on the right */
+.sp-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: 1rem; align-items: start; margin-bottom: 1rem; }
+.sp-grid > .card { margin: 0; }
+.sp-qcard { position: sticky; top: 56px; max-height: calc(100vh - 80px); overflow: auto; }
+.qfiles { list-style: none; margin: .4rem 0 0; padding: 0; display: grid; gap: .5rem; }
+.qfiles li { border: 1px solid var(--line); border-radius: 8px; padding: .5rem .6rem; background: var(--surface); font-size: .85rem; }
+.qfiles li.q-done { border-left: 3px solid var(--ok); } .qfiles li.q-failed { border-left: 3px solid var(--bad); } .qfiles li.q-queued, .qfiles li.q-processing { border-left: 3px solid var(--yellow); }
+.qf-top { display: flex; justify-content: space-between; gap: .5rem; align-items: baseline; }
+.qf-top b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.qf-st { white-space: nowrap; font-size: .8rem; }
+.qf-act { display: flex; gap: .35rem; margin-top: .35rem; }
+@media (max-width: 900px) { .sp-grid { grid-template-columns: 1fr; } .sp-qcard { position: static; max-height: none; } }
