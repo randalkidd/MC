@@ -1,22 +1,7 @@
 {
   "schema": 1,
-  "updated": "2026-10-23T18:05:35.777Z",
+  "updated": "2026-10-23T18:17:25.511Z",
   "items": [
-    {
-      "name": "10 SKY HARBOR BUSINESS CENTER",
-      "displayName": "10 Sky Harbor Business Center",
-      "mcr": "1252-14",
-      "rec": "",
-      "recorded": "",
-      "totalLots": 1,
-      "baseZoning": "",
-      "controllingCases": "",
-      "apns": [],
-      "firstSeen": "2026-10-23",
-      "lastSeen": "2026-10-23",
-      "status": "pending",
-      "note": "Added from All Subdivisions (no parcel lookup yet)"
-    },
     {
       "name": "ANTHEM UNIT 15",
       "displayName": "Anthem Unit 15",
