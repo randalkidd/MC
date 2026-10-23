@@ -1,13 +1,13 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=79f837d1';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=79f837d1';
-import { settings, setSharedRelay } from './net.js?v=79f837d1';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=79f837d1';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=79f837d1';
-import { CHECKLISTS } from './checklists.js?v=79f837d1';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=79f837d1';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=667cf2dd';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=667cf2dd';
+import { settings, setSharedRelay } from './net.js?v=667cf2dd';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=667cf2dd';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=667cf2dd';
+import { CHECKLISTS } from './checklists.js?v=667cf2dd';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown, markupRows, rememberReviewer, rememberedReviewer } from './review.js?v=667cf2dd';
 let REF = null; // js/refdata.js (76 KB) loads the first time the Reference tab opens
-import { findPlatDoc } from './recorder.js?v=79f837d1';
-import { loadAllSubdivisions } from './subdivisions.js?v=79f837d1';
+import { findPlatDoc } from './recorder.js?v=667cf2dd';
+import { loadAllSubdivisions } from './subdivisions.js?v=667cf2dd';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -413,7 +413,7 @@ $('#rep-save').addEventListener('click', async () => {
 $('#rep-pdf').addEventListener('click', async (e) => {
   const b = e.currentTarget; if (b.disabled || !S.md) return;
   b.disabled = true; const label = b.textContent; b.textContent = 'Building PDF…';
-  try { const { reportPDF } = await import('./pdf.js?v=79f837d1'); await reportPDF(S.md, { apn: S.R.apn }); toast('PDF saved', 'ok'); }
+  try { const { reportPDF } = await import('./pdf.js?v=667cf2dd'); await reportPDF(S.md, { apn: S.R.apn }); toast('PDF saved', 'ok'); }
   catch (err) { toast(`PDF failed: ${err.message}`, 'error'); }
   finally { b.disabled = false; b.textContent = label; }
 });
@@ -612,7 +612,7 @@ function renderReview() {
   const s = S.review;
   $('#rv-type').innerHTML = Object.entries(CHECKLISTS).map(([k, v]) => `<option value="${k}" ${k === s.type ? 'selected' : ''}>${v.label}</option>`).join('');
   $('#rv-district').innerHTML = '<option value="">— select —</option>' + Object.keys(DISTRICTS).map(k => `<option ${k === s.district ? 'selected' : ''}>${k}</option>`).join('');
-  for (const k of ['apn', 'lotArea', 'planTitle', 'reviewer', 'date']) $(`#rv-${k}`).value = s[k] ?? '';
+  for (const k of ['apn', 'lotArea', 'planTitle', 'permit', 'reviewer', 'reviewerEmail', 'date']) $(`#rv-${k}`).value = s[k] ?? '';
   $('#rv-adjRes').checked = !!s.adjRes;
   for (const k of Object.keys(s.primary)) $(`#rv-p-${k}`).value = s.primary[k] ?? '';
   for (const k of Object.keys(s.platSetbacks)) $(`#rv-b-${k}`).value = s.platSetbacks[k] ?? '';
@@ -636,8 +636,8 @@ function renderChecklist() {
   $('#rv-check').innerHTML = rows.map(r => `<tr data-id="${r.id}">
     <td>${esc(r.item)}<div class="sub">${mdInline(r.cite)}</div></td>
     <td><select data-c="status">${[['', '—'], ['ok', 'OK'], ['deficient', 'Missing / deficient'], ['verify', 'Verify'], ['na', 'N/A']].map(([v, l]) => `<option value="${v}" ${r.status === v ? 'selected' : ''}>${l}</option>`).join('')}</select></td>
-    <td><input data-c="note" placeholder="What the plan shows" value="${esc(r.note)}"></td>
-    <td><input data-c="fix" value="${esc(r.fix)}"></td></tr>`).join('');
+    <td><textarea data-c="note" class="cell-ta" rows="2" placeholder="What the plan shows" title="${esc(r.note)}">${esc(r.note)}</textarea></td>
+    <td><textarea data-c="fix" class="cell-ta" rows="2" title="${esc(r.fix)}">${esc(r.fix)}</textarea></td></tr>`).join('');
 }
 function renderOutput() {
   const { F } = computeFindings(S.review);
@@ -648,16 +648,36 @@ function bindReview() {
   let tmr; const upd = () => { saveDraft(S.review); clearTimeout(tmr); tmr = setTimeout(renderOutput, 120); };
   $('#rv-type').addEventListener('change', (e) => { S.review.type = e.target.value; saveDraft(S.review); renderReview(); });
   $('#rv-district').addEventListener('change', (e) => { S.review.district = e.target.value; upd(); });
-  for (const k of ['apn', 'lotArea', 'planTitle', 'reviewer', 'date']) $(`#rv-${k}`).addEventListener('input', (e) => { S.review[k] = e.target.value; upd(); });
+  for (const k of ['apn', 'lotArea', 'planTitle', 'permit', 'reviewer', 'reviewerEmail', 'date']) $(`#rv-${k}`).addEventListener('input', (e) => { S.review[k] = e.target.value; if (k === 'reviewer' || k === 'reviewerEmail') rememberReviewer(S.review.reviewer, S.review.reviewerEmail); upd(); });
   $('#rv-adjRes').addEventListener('change', (e) => { S.review.adjRes = e.target.checked; upd(); });
   for (const k of Object.keys(S.review.primary)) $(`#rv-p-${k}`).addEventListener('input', (e) => { S.review.primary[k] = e.target.value; upd(); });
   for (const k of Object.keys(S.review.platSetbacks)) $(`#rv-b-${k}`).addEventListener('input', (e) => { S.review.platSetbacks[k] = e.target.value; upd(); });
   $('#rv-structs').addEventListener('input', (e) => { const tr = e.target.closest('tr'); const k = e.target.dataset.k; if (!tr || !k) return; S.review.structures[+tr.dataset.i][k] = e.target.type === 'checkbox' ? e.target.checked : e.target.value; if (k === 'kind') { saveDraft(S.review); renderStructures(); } upd(); });
   $('#rv-structs').addEventListener('click', (e) => { const i = e.target.dataset.del; if (i == null) return; S.review.structures.splice(+i, 1); saveDraft(S.review); renderStructures(); renderOutput(); });
   $('#rv-add').addEventListener('click', () => { S.review.structures.push({ name: 'Shed', kind: 'accessory', sf: '', cover: 'solid', height: '', front: '', rear: '', side: '', street: '', inYard: true }); saveDraft(S.review); renderStructures(); });
-  $('#rv-check').addEventListener('input', (e) => { const tr = e.target.closest('tr'); const k = e.target.dataset.c; if (!tr || !k) return; const id = tr.dataset.id; S.review.checks[id] = { ...(S.review.checks[id] || {}), [k]: e.target.value }; upd(); });
+  // Checklist cells show 3 small lines; while editing, the cell grows to fit its text.
+  const fit = (ta) => { ta.style.height = 'auto'; ta.style.height = `${Math.max(ta.scrollHeight + 2, 48)}px`; };
+  $('#rv-check').addEventListener('focusin', (e) => { if (e.target.classList.contains('cell-ta')) fit(e.target); });
+  $('#rv-check').addEventListener('focusout', (e) => { if (e.target.classList.contains('cell-ta')) { e.target.style.height = ''; e.target.title = e.target.value; } });
+  $('#rv-check').addEventListener('input', (e) => { if (e.target.classList.contains('cell-ta')) fit(e.target); const tr = e.target.closest('tr'); const k = e.target.dataset.c; if (!tr || !k) return; const id = tr.dataset.id; S.review.checks[id] = { ...(S.review.checks[id] || {}), [k]: e.target.value }; upd(); });
   $('#rv-allok').addEventListener('click', () => { for (const r of checklistRows(S.review)) if (!S.review.checks[r.id]?.status) S.review.checks[r.id] = { ...(S.review.checks[r.id] || {}), status: 'ok' }; saveDraft(S.review); renderChecklist(); renderOutput(); });
   $('#rv-reset').addEventListener('click', () => { if (!confirm('Clear this review?')) return; S.review = blankReview(); saveDraft(S.review); renderReview(); });
+  $('#rv-letter').addEventListener('click', async (e) => {
+    const b = e.currentTarget; if (b.disabled) return; b.disabled = true;
+    try {
+      const s = S.review; const P = (s.ai && s.ai.result && s.ai.result.parcel) || {};
+      const R = S.R && S.R.apn === normalizeApn(s.apn) ? S.R : (lookupCache.get(normalizeApn(s.apn)) || {}).R;
+      const p = (R && R.parcel) || {};
+      const who = rememberedReviewer();
+      const info = { apn: s.apn, permit: s.permit, date: s.date, plan: s.planTitle, type: CHECKLISTS[s.type]?.label || s.type,
+        address: [p.PropertyFullStreetAddress, p.PropertyCity].filter(Boolean).join(', ') || P.site_address || '', owner: p.OwnerName || P.owner_name || '',
+        district: s.district, reviewer: s.reviewer || who.name, email: s.reviewerEmail || who.email };
+      const { commentLetterPDF } = await import('./commentletter.js?v=667cf2dd');
+      const out = await commentLetterPDF({ rows: markupRows(s).rows, info });
+      toast(`Comment letter saved — ${out.count} comment${out.count === 1 ? '' : 's'}`, 'ok');
+    } catch (err) { toast(err.message, 'error'); }
+    finally { b.disabled = false; }
+  });
   $('#rv-copy').addEventListener('click', () => { renderOutput(); copy($('#rv-md').value); });
   $('#rv-dl').addEventListener('click', () => renderOutput() || download(`review-${S.review.apn || 'plan'}-${S.review.date}.md`, $('#rv-md').value));
   $('#rv-save').addEventListener('click', async () => {
@@ -752,7 +772,7 @@ async function renderSaved() {
 // ---------------- reference ----------------
 let refP = null;
 function renderReference() {
-  return (refP ||= import('./refdata.js?v=79f837d1').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
+  return (refP ||= import('./refdata.js?v=667cf2dd').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
 }
 function fillReference() {
   const { DIRECTIVES, MCSR_QUICK, REG_DOCS, REG_LOOKUP } = REF;
@@ -910,7 +930,7 @@ function renderSitePlan() {
 }
 // Shared by both readers: look up the parcel, check the deed, compare, fill the form.
 async function finishRead(res, meta, st) {
-  const sp = await import('./siteplan.js?v=79f837d1');
+  const sp = await import('./siteplan.js?v=667cf2dd');
   const planApn = normalizeApn(res.parcel && res.parcel.apn);
   let R = S.R && S.review.apn && S.R.apn === normalizeApn(S.review.apn) ? S.R : null, lookupError = '';
   const target = normalizeApn(S.review.apn) || planApn;
@@ -927,7 +947,7 @@ async function finishRead(res, meta, st) {
   sp.applyToReview(S.review, res, compare, { merge: meta.engine === 'free' });
   S.review.ai = { file: SP.file.name, at: new Date().toISOString(), ...meta, result: res, compare, deedNames: deed, apn: R ? R.apn : null, lookupError };
   saveDraft(S.review); renderReview();
-  import('./planviewer.js?v=79f837d1').then(m => m.savePdf(SP.file)).catch(() => {});
+  import('./planviewer.js?v=667cf2dd').then(m => m.savePdf(SP.file)).catch(() => {});
   return compare.filter(c => c[3] === 'deficient').length;
 }
 async function runFreeRead() {
@@ -936,7 +956,7 @@ async function runFreeRead() {
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'Reading the PDF text in your browser…';
   const claude = $('#sp-run');
   try {
-    const fr = await import('./freeread.js?v=79f837d1');
+    const fr = await import('./freeread.js?v=667cf2dd');
     const out = await fr.freeReadSitePlan(SP.file, S.review.type);
     if (out.quality === 'none') {
       st.className = 'status warn'; st.textContent = 'The free reader couldn\'t read this plan: the PDF has no selectable text (it\'s a scan or was flattened). Read it with Claude instead?';
@@ -959,7 +979,7 @@ async function runSitePlan() {
   SP.busy = true; $('#sp-run').disabled = true; $('#sp-free').disabled = true;
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'Sending the PDF to Claude — reading every sheet usually takes 30–90 seconds…';
   try {
-    const sp = await import('./siteplan.js?v=79f837d1');
+    const sp = await import('./siteplan.js?v=667cf2dd');
     const d = await sp.readSitePlan(SP.file, S.review.type);
     const bad = await finishRead(d.result || {}, { engine: 'claude', relay: d.relay || null, model: d.model, usage: d.usage, truncated: !!d.truncated }, st);
     st.className = `status ${bad ? 'warn' : 'ok'}`; st.textContent = `Done — the form is filled in from the plan.${bad ? ` ${bad} record mismatch${bad > 1 ? 'es' : ''} found (see below).` : ''} Verify every value before issuing comments.`;
@@ -968,7 +988,7 @@ async function runSitePlan() {
 }
 async function openPlanViewer() {
   const a = S.review.ai; if (!a || !a.result) return;
-  const pv = await import('./planviewer.js?v=79f837d1');
+  const pv = await import('./planviewer.js?v=667cf2dd');
   const blob = SP.file && SP.file.name === a.file ? SP.file : await pv.loadPdf(a.file);
   if (!blob) { toast(`Choose ${a.file} again above (it isn't stored in this browser), then open the viewer.`, 'error'); return; }
   pv.openViewer(blob, a, S.review, computeFindings(S.review).F, a.file);

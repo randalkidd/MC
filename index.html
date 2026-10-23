@@ -7,14 +7,14 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https://gis.maricopa.gov https://server.arcgisonline.com https://*.arcgisonline.com https://unpkg.com; connect-src 'self' https://gis.maricopa.gov https://publicapi.recorder.maricopa.gov https://edms.maricopa.gov https://recorder.maricopa.gov https://api.github.com https://*.workers.dev; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="preconnect" href="https://gis.maricopa.gov" crossorigin>
-<script src="js/theme.js?v=79f837d1"></script>
+<script src="js/theme.js?v=667cf2dd"></script>
 <title>Unofficial Maricopa County Zoning Hub</title>
 <meta name="description" content="Maricopa County parcel lookup, MCZO/MCSR standards, subdivision plat database and plan-review deficiency builder.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23F26724'/><path d='M7 24V9l9 7 9-7v15' fill='none' stroke='%2304161a' stroke-width='3' stroke-linejoin='round'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=79f837d1">
-<link rel="modulepreload" href="js/app.js?v=79f837d1"><link rel="modulepreload" href="js/lookup.js?v=79f837d1"><link rel="modulepreload" href="js/report.js?v=79f837d1"><link rel="modulepreload" href="js/net.js?v=79f837d1"><link rel="modulepreload" href="js/github.js?v=79f837d1"><link rel="modulepreload" href="js/standards.js?v=79f837d1"><link rel="modulepreload" href="js/checklists.js?v=79f837d1"><link rel="modulepreload" href="js/review.js?v=79f837d1"><link rel="modulepreload" href="js/recorder.js?v=79f837d1"><link rel="modulepreload" href="js/subdivisions.js?v=79f837d1">
+<link rel="stylesheet" href="css/app.css?v=667cf2dd">
+<link rel="modulepreload" href="js/app.js?v=667cf2dd"><link rel="modulepreload" href="js/lookup.js?v=667cf2dd"><link rel="modulepreload" href="js/report.js?v=667cf2dd"><link rel="modulepreload" href="js/net.js?v=667cf2dd"><link rel="modulepreload" href="js/github.js?v=667cf2dd"><link rel="modulepreload" href="js/standards.js?v=667cf2dd"><link rel="modulepreload" href="js/checklists.js?v=667cf2dd"><link rel="modulepreload" href="js/review.js?v=667cf2dd"><link rel="modulepreload" href="js/recorder.js?v=667cf2dd"><link rel="modulepreload" href="js/subdivisions.js?v=667cf2dd">
 </head>
 <body>
 <header class="top">
@@ -88,6 +88,11 @@
         <label>Reviewer<input id="rv-reviewer"></label>
         <label>Date<input id="rv-date" type="date"></label>
       </div>
+      <div class="row3">
+        <label>Permit / case #<input id="rv-permit" placeholder="e.g. BB2026-01234"></label>
+        <label>Reviewer email<input id="rv-reviewerEmail" type="email"></label>
+        <span></span>
+      </div>
       <label class="rowc"><input type="checkbox" id="rv-adjRes"> Adjacent to a Rural or Residential district (commercial/industrial side and rear setbacks)</label>
       <p class="sub">Run a parcel lookup first to fill the APN, district and lot area automatically. <span id="plat-hint"></span></p>
     </div>
@@ -127,7 +132,7 @@
 
   <div class="card">
     <div class="cardhead"><h2>Markup table</h2>
-      <div class="actions"><button class="btn" id="rv-copy">Copy</button><button class="btn" id="rv-dl">Download .md</button><button class="btn" id="rv-save">Save to GitHub</button><button class="btn ghost" id="rv-reset">New review</button></div></div>
+      <div class="actions"><button class="btn" id="rv-copy">Copy</button><button class="btn" id="rv-dl">Download .md</button><button class="btn primary" id="rv-letter" title="Zoning Plan Review Comments letter (Maricopa County template) listing only the items that do not meet requirements">Comment letter (PDF)</button><button class="btn" id="rv-save">Save to GitHub</button><button class="btn ghost" id="rv-reset">New review</button></div></div>
     <textarea id="rv-md" class="md" rows="16" spellcheck="false"></textarea>
   </div>
 </section>
@@ -259,8 +264,8 @@
 </section>
 </main>
 <footer class="foot">All information in this system is public and accessible to anyone; items saved here are stored in a public GitHub repository. Reference tool — verify findings against the adopted ordinance, recorded documents and case files before relying on them.
-<div class="build">Version <span id="build">10.22.26.058</span> · <span id="relay-ver" data-latest="13" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
+<div class="build">Version <span id="build">10.22.26.063</span> · <span id="relay-ver" data-latest="14" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
 <div id="toasts" aria-live="polite"></div>
-<script type="module" src="js/app.js?v=79f837d1"></script>
+<script type="module" src="js/app.js?v=667cf2dd"></script>
 </body>
 </html>

@@ -4,7 +4,7 @@
 
 const JSPDF_SRC = './js/vendor/jspdf-2.5.2.umd.min.js';
 let libP = null;
-function loadJsPDF() {
+export function loadJsPDF() {
   if (window.jspdf) return Promise.resolve(window.jspdf.jsPDF);
   if (!libP) libP = new Promise((res, rej) => {
     const s = Object.assign(document.createElement('script'), { src: JSPDF_SRC, async: true });
@@ -17,12 +17,12 @@ function loadJsPDF() {
 
 // The built-in PDF fonts only cover Latin-1; map the few other characters the report uses.
 const MAP = { '—': '-', '–': '-', '‘': "'", '’': "'", '“': '"', '”': '"', '…': '...', '•': '-', '≥': '>=', '≤': '<=', '≈': '~', '→': '->', '←': '<-', '✓': 'Y', '✔': 'Y', '✗': 'N', '✕': 'x', '⚠': '!', '★': '*', ' ': ' ', ' ': ' ' };
-const clean = (s) => String(s).replace(/[️​-‍]/g, '').replace(/[^\x00-\xFF]/g, (c) => MAP[c] ?? '?');
+export const clean = (s) => String(s).replace(/[️​-‍]/g, '').replace(/[^\x00-\xFF]/g, (c) => MAP[c] ?? '?');
 
 const C = { ink: [19, 29, 40], muted: [79, 93, 107], line: [216, 223, 225], head: [233, 238, 240], navy: [19, 32, 72], link: [0, 112, 185], accent: [242, 103, 36] };
 
 // Inline Markdown → runs of {t, b, u}
-function runs(src) {
+export function runs(src) {
   const out = []; const s = String(src).replace(/\\\|/g, '|').replace(/`/g, '').replace(/(^|[\s(])_([^_\n]+)_(?=$|[\s).,;:])/g, '$1$2');
   // Split on ** to toggle bold, then find [text](url) links inside each chunk.
   s.split('**').forEach((chunk, k) => {
@@ -37,7 +37,7 @@ function runs(src) {
 }
 
 // Word-wrap runs to a width; returns lines of positioned pieces.
-function wrap(doc, rs, width, size) {
+export function wrap(doc, rs, width, size) {
   const lines = [[]]; let x = 0;
   const w = (t, b) => { doc.setFont('helvetica', b ? 'bold' : 'normal'); doc.setFontSize(size); return doc.getTextWidth(t); };
   for (const r of rs) {

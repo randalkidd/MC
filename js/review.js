@@ -1,14 +1,20 @@
 // Plan review: measurement checks (setbacks, coverage, height) + checklist → markup table (Markdown).
-import { DISTRICTS, normalizeDistrict, MCZO_URL } from './standards.js?v=79f837d1';
-import { CHECKLISTS } from './checklists.js?v=79f837d1';
+import { DISTRICTS, normalizeDistrict, MCZO_URL } from './standards.js?v=667cf2dd';
+import { CHECKLISTS } from './checklists.js?v=667cf2dd';
 
 const DD2021 = 'https://www.maricopa.gov/6459/Lot-Coverage-Calculations---DD-2021-01';
 const DD3012 = 'https://www.maricopa.gov/6353/Accessory-Structures-Equipment-and-Setba';
 const KEY = 'mc.review.draft';
 
+// The reviewer's name/email carry over to new reviews (seeded from the comment-letter template).
+export function rememberedReviewer() {
+  try { const v = JSON.parse(localStorage.getItem('mc.reviewer') || 'null'); if (v && v.name) return v; } catch {}
+  return { name: 'Randal Kidd', email: 'randal.kidd@maricopa.gov' };
+}
+export function rememberReviewer(name, email) { try { localStorage.setItem('mc.reviewer', JSON.stringify({ name, email })); } catch {} }
 export function blankReview() {
   return {
-    type: 'residential', apn: '', district: '', adjRes: false, lotArea: '', planTitle: '', reviewer: '', date: new Date().toISOString().slice(0, 10),
+    type: 'residential', apn: '', district: '', adjRes: false, lotArea: '', planTitle: '', permit: '', reviewer: rememberedReviewer().name, reviewerEmail: rememberedReviewer().email, date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10),
     platSetbacks: { front: '', rear: '', side: '', street: '' },
     primary: { front: '', rear: '', sideA: '', sideB: '', street: '', height: '', garage: '' },
     structures: [
@@ -97,6 +103,17 @@ export function checklistRows(s) {
     const c = s.checks[id] || {};
     return { id, item, cite: url ? `[${citeLabel}](${url})` : citeLabel, status: c.status || '', note: c.note || '', fix: c.fix || fix };
   });
+}
+
+
+// Structured markup rows for the comment letter. status: 'incomplete' (checklist item missing), 'deficient', 'verify', 'ok'.
+export function markupRows(s) {
+  const { F, key, d } = computeFindings(s);
+  const out = [];
+  for (const r of checklistRows(s).filter(r => r.status && r.status !== 'na')) out.push({ group: 'Submittal requirements (completeness)', loc: 'Submittal', item: r.item, shows: r.note || (r.status === 'ok' ? 'Shown' : 'Not shown'), req: 'Per checklist', cite: r.cite, status: r.status === 'deficient' ? 'incomplete' : r.status, fix: r.fix });
+  for (const f of F) out.push({ group: 'Zoning standards (setbacks, height, coverage)', loc: f.loc, item: f.item, shows: f.shows, req: f.req, cite: f.cite, status: f.status, fix: f.fix });
+  for (const e of s.extra || []) if (e.item) out.push({ group: /record/i.test(e.item) ? 'Ownership & parcel information' : 'Other comments', loc: e.loc || '—', item: e.item, shows: e.shows || '—', req: e.req || '—', cite: e.cite || '—', status: e.status, fix: e.fix || '—' });
+  return { rows: out, district: key, section: d ? d.section : null };
 }
 
 const ICON = { ok: '✅ OK', deficient: '❌ Deficient', verify: '⚠️ Verify', na: 'N/A', incomplete: '❌ Incomplete' };

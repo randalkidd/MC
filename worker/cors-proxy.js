@@ -13,7 +13,7 @@
 //   ANTHROPIC_API_KEY = sk-ant-...  (optional; enables Plan review → "Read a site plan PDF" via POST /ai/siteplan)
 //   ANTHROPIC_MODEL   = optional Text variable to override the model (default below)
 
-const RELAY_VERSION = '13';
+const RELAY_VERSION = '14';
 // Settings. Defaults below; each can be overridden by a Cloudflare variable (Worker → Settings → Variables and
 // Secrets, Type: Text) or, for local `wrangler dev`, by worker/.dev.vars (never committed — see .dev.vars.example).
 //   ALLOWED_ORIGIN = https://randalkidd.github.io   (comma-separate to add e.g. http://localhost:8000 for local testing)
@@ -150,7 +150,7 @@ Rules:
 - Setbacks: the shortest dimension from the structure (wall, post or edge of covered area) to the property line. If the plan measures to an easement line or road centerline instead, still report the number but say so in "uncertain". Front = the street-facing lot line the address is on; side_a/side_b = the two interior sides; side_street = the second street side on a corner lot.
 - Structures: list every building or covered structure, new and existing (residence/livable, attached garage, covered patio/porch, carport, detached garage, shed, ADU, shade structure, barn). kind = "primary" for the residence and anything attached to it, "accessory" for detached structures, "adu" for a detached accessory dwelling. Take sq ft from the plan's area table when there is one (sqft_source "table"); otherwise compute it from the dimensions shown (sqft_source "computed"); else null. cover = "open" only for lattice/shade covers ≤ 50% opaque. For detached structures give their own setbacks and whether they sit inside a required rear/side yard.
 - Owner name, APN and address: copy them exactly as printed on the plan (APN format like 304-88-146 or 30488146A).
-- Checklist: return one entry for EVERY item id below. status "ok" = clearly shown and compliant; "deficient" = missing, not shown, or non-compliant (give a specific one-sentence correction); "verify" = partly shown or can't be determined from the plan; "na" = does not apply to this project. "shows" = a short note on what the plan actually shows.
+- Checklist: return one entry for EVERY item id below. status "ok" = clearly shown and compliant; "deficient" = missing, not shown, or non-compliant (give a specific one-sentence correction); "verify" = partly shown or can't be determined from the plan; "na" = does not apply to this project. "shows" = a short summary of what the plan actually shows (at most about 12 words). Keep each correction to one short sentence (at most about 20 words).
 - other_findings: anything else a zoning plan reviewer would red-line (e.g. structures in easements, "future"/"not for construction" notes, inconsistent dimensions, missing dimensions to a property line).
 - annotations: mark WHERE on the plan things are, so the reviewer can click each one. box = [x0, y0, x1, y1] as fractions (0–1) of the page width and height, measured from the top-left corner of the page as it is displayed; draw it tightly around the text or feature. Add one annotation for:
   • every checklist item with status "deficient" or "verify" → ref "checklist:<id>" (box where the item is, or where it should be — e.g. the title block for a missing owner name);
