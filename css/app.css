@@ -233,6 +233,8 @@ table.check td { vertical-align: middle; }
 .sp-mi:hover:not(:disabled), .sp-mi:focus-visible { background: var(--soft); outline: none; }
 .sp-mi:hover:not(:disabled) b { color: var(--accent); }
 .sp-mi:disabled { opacity: .5; cursor: not-allowed; }
+.sp-need { border: 0; border-radius: 7px; background: var(--warn-bg); color: var(--ink); font: inherit; font-size: .85rem; text-align: left; padding: .45rem .6rem; margin-bottom: .2rem; cursor: pointer; }
+.sp-need[hidden] { display: none; }
 .nowrap { white-space: nowrap; }
 /* Plan Review Hub: reader on the left, MC-queue files on the right */
 .sp-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: 1rem; align-items: stretch; margin-bottom: 1rem; }
