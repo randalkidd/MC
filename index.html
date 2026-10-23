@@ -7,14 +7,14 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https://gis.maricopa.gov https://server.arcgisonline.com https://*.arcgisonline.com https://unpkg.com; connect-src 'self' https://gis.maricopa.gov https://publicapi.recorder.maricopa.gov https://edms.maricopa.gov https://recorder.maricopa.gov https://api.github.com https://*.workers.dev; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="preconnect" href="https://gis.maricopa.gov" crossorigin>
-<script src="js/theme.js?v=715d40f3"></script>
+<script src="js/theme.js?v=530da457"></script>
 <title>Unofficial Maricopa County Zoning Hub</title>
 <meta name="description" content="Maricopa County parcel lookup, MCZO/MCSR standards, subdivision plat database and plan-review deficiency builder.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23F26724'/><path d='M7 24V9l9 7 9-7v15' fill='none' stroke='%2304161a' stroke-width='3' stroke-linejoin='round'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=715d40f3">
-<link rel="modulepreload" href="js/app.js?v=715d40f3"><link rel="modulepreload" href="js/lookup.js?v=715d40f3"><link rel="modulepreload" href="js/report.js?v=715d40f3"><link rel="modulepreload" href="js/net.js?v=715d40f3"><link rel="modulepreload" href="js/github.js?v=715d40f3"><link rel="modulepreload" href="js/standards.js?v=715d40f3"><link rel="modulepreload" href="js/checklists.js?v=715d40f3"><link rel="modulepreload" href="js/review.js?v=715d40f3"><link rel="modulepreload" href="js/recorder.js?v=715d40f3"><link rel="modulepreload" href="js/subdivisions.js?v=715d40f3">
+<link rel="stylesheet" href="css/app.css?v=530da457">
+<link rel="modulepreload" href="js/app.js?v=530da457"><link rel="modulepreload" href="js/lookup.js?v=530da457"><link rel="modulepreload" href="js/report.js?v=530da457"><link rel="modulepreload" href="js/net.js?v=530da457"><link rel="modulepreload" href="js/github.js?v=530da457"><link rel="modulepreload" href="js/standards.js?v=530da457"><link rel="modulepreload" href="js/checklists.js?v=530da457"><link rel="modulepreload" href="js/review.js?v=530da457"><link rel="modulepreload" href="js/recorder.js?v=530da457"><link rel="modulepreload" href="js/subdivisions.js?v=530da457">
 </head>
 <body>
 <header class="top">
@@ -254,8 +254,9 @@
       <p class="sub">Saving to the subdivision database, parcel reports and reviews commits files to your repo through GitHub's API. Simplest: store the token once in the Cloudflare relay (secrets <code>GITHUB_TOKEN</code> + <code>SITE_KEY</code>) and type only the passphrase in each browser.</p>
       <div class="row3"><label>Owner<input id="st-owner"></label><label>Repository<input id="st-repo"></label><label>Branch<input id="st-branch" placeholder="main"></label></div>
       <label>Passphrase <span class="sub">(the only thing each browser needs once the relay is shared)</span><input id="st-pass" type="password" autocomplete="current-password" placeholder="Your SITE_KEY passphrase"></label>
-      <details><summary class="sub">Or paste a GitHub token directly in this browser instead</summary>
-      <label>Token<input id="st-token" type="password" autocomplete="off" placeholder="github_pat_…"></label></details>
+      <details id="st-tokbox"><summary class="sub">Or paste a GitHub token directly in this browser instead</summary>
+      <label>Token<input id="st-token" type="password" autocomplete="off" placeholder="github_pat_…"></label>
+      <p class="sub" id="st-tokwarn" hidden>A token is saved in this browser. With a passphrase and relay it is ignored; if it has expired, remove it. <button class="btn sm ghost" type="button" id="st-cleartok">Remove saved token</button></p></details>
       <div class="actions"><button class="btn primary" id="st-save">Save settings</button><button class="btn ghost" id="st-test-gh">Test GitHub</button><button class="btn ghost" id="st-forget">Forget on this browser</button></div>
     </div>
     <div class="card">
@@ -272,8 +273,8 @@
 </section>
 </main>
 <footer class="foot">All information in this system is public and accessible to anyone; items saved here are stored in a public GitHub repository. Reference tool — verify findings against the adopted ordinance, recorded documents and case files before relying on them.
-<div class="build">Version <span id="build">10.23.26.003</span> · <span id="relay-ver" data-latest="15" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
+<div class="build">Version <span id="build">10.23.26.004</span> · <span id="relay-ver" data-latest="15" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
 <div id="toasts" aria-live="polite"></div>
-<script type="module" src="js/app.js?v=715d40f3"></script>
+<script type="module" src="js/app.js?v=530da457"></script>
 </body>
 </html>

@@ -31,7 +31,7 @@ export const gh = {
   get canWrite() { return !!(this.owner && this.repo && (this.token || this.viaRelay)); },
 };
 
-import { settings } from './net.js?v=715d40f3';
+import { settings } from './net.js?v=530da457';
 const relayUrl = () => settings.proxy;
 
 export async function relayFetch(route, init = {}) { return relay(route, init); }
@@ -60,12 +60,14 @@ const b64dec = (b64) => new TextDecoder().decode(Uint8Array.from(atob(b64.replac
 async function ghFetch(url, init = {}) {
   const headers = { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', ...(init.headers || {}) };
   if (gh.token && !gh.viaRelay) headers.Authorization = `Bearer ${gh.token}`;
-  const r = await fetch(url, { ...init, headers, cache: 'no-store' });
+  let r = await fetch(url, { ...init, headers, cache: 'no-store' });
+  // A dead token saved in this browser shouldn't block reading the public repo: retry reads without it.
+  if (r.status === 401 && headers.Authorization && (!init.method || init.method === 'GET')) { delete headers.Authorization; r = await fetch(url, { ...init, headers, cache: 'no-store' }); }
   if (r.status === 404) return null;
   if (!r.ok) {
     let detail = ''; try { detail = (await r.json()).message || ''; } catch {}
     const why = {
-      401: 'GitHub rejected the token (expired, mistyped, or revoked). Create a new token and paste it in Settings.',
+      401: gh.passphrase ? 'The GitHub token saved in this browser no longer works. In ⚙ Settings, clear the Token box and click Save settings — this browser will then use the relay with your passphrase.' : 'The GitHub token saved in this browser no longer works (expired or regenerated). You don\'t need one: in ⚙ Settings, clear the Token box, enter the relay passphrase, click Save settings, then Test GitHub.',
       403: /rate limit/i.test(detail) ? 'GitHub rate limit reached — wait a few minutes.' : 'The token does not have write permission. Edit the token on GitHub: Repository permissions → Contents → Read and write.',
       404: 'The token cannot see this repository. Edit the token on GitHub: Repository access → Only select repositories → add randalkidd/MC.',
       409: 'GitHub reported a conflict (file changed elsewhere). Reload and try again.',
