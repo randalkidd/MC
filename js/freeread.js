@@ -3,8 +3,8 @@
 // scale, area table, coverage, legal description) plus the residence setbacks from the dimension text drawn around
 // the house. It returns the same shape as the Claude reader, so the rest of the page treats both the same. It never
 // marks an item deficient just because it couldn't find it.
-import { loadPdfjs } from './planviewer.js?v=2f06fd4d';
-import { CHECKLISTS } from './checklists.js?v=2f06fd4d';
+import { loadPdfjs } from './planviewer.js?v=5c5dc74f';
+import { CHECKLISTS } from './checklists.js?v=5c5dc74f';
 
 const PDFJS = './js/vendor/pdfjs-3.2.146/';
 const U = (s) => String(s ?? '').toUpperCase().replace(/\s+/g, ' ').trim();

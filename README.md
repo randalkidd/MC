@@ -102,10 +102,14 @@ The relay only forwards to an allow-list of `*.maricopa.gov` hosts, and (from re
 - GIS layer IDs follow the county's current PlanNet service. If the county republishes it and results look wrong, re-check the layer IDs in `js/lookup.js`.
 - This is a review aid. Verify findings against the adopted ordinance, recorded documents and case files.
 
+## Sign in
+
+Everyone signs in on the **Sign in** tab: name, passphrase (or the access key they were given), **Save**, then **Test GitHub**. The name is shown in the badge tooltip and pre-fills the reviewer name. **⚙ Settings** (relay URL, county relay test, GitHub owner/repo, access keys) is shown only to administrators.
+
 ## Access keys (super account + limited keys)
 
 - **Super account:** the relay passphrase (`SITE_KEY` in Cloudflare). It has every permission and manages the other keys. Rotate it by changing `SITE_KEY` in Cloudflare.
-- **More keys with less access:** ⚙ Settings → **Access keys** (shown only to admins). Pick who it's for, a role and an optional expiry; the key is shown once — the person pastes it as the **Passphrase** in their own browser, then Test GitHub. **Revoke** removes it (effective within a minute).
+- **More keys with less access:** ⚙ Settings → **Access keys** (shown only to admins). Pick who it's for, a role and an optional expiry; the key is shown once — the person opens **Sign in**, enters their name and pastes the key as the **Passphrase**, Save, then Test GitHub. **Revoke** removes it (effective within a minute).
 - **Permissions:** `review` (Plan Review Hub, Land division, Saved Parcels), `write` (save to the public repo: SubdivisionDB, waitlist, parcel reports, reviews), `queue` (Queued Review / MC-queue), `rapid` (Rapid Review — uses the Anthropic API key), `admin` (manage keys). Roles: Read-only = review · Reviewer = review, write, queue · Senior reviewer = + rapid · Administrator = all.
 - **Enforced by the relay (v16)** on every request; the site also hides tools the key can't use. Keys are stored only as SHA-256 hashes in the private repo (`MC-queue/access/keys.json`). Parcel lookup and the Reference tab stay open to everyone.
 
