@@ -7,14 +7,14 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https://gis.maricopa.gov https://server.arcgisonline.com https://*.arcgisonline.com https://unpkg.com; connect-src 'self' https://gis.maricopa.gov https://publicapi.recorder.maricopa.gov https://edms.maricopa.gov https://recorder.maricopa.gov https://api.github.com https://*.workers.dev; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="preconnect" href="https://gis.maricopa.gov" crossorigin>
-<script src="js/theme.js?v=cae01958"></script>
+<script src="js/theme.js?v=8d5d8abe"></script>
 <title>Unofficial Maricopa County Zoning Hub</title>
 <meta name="description" content="Maricopa County parcel lookup, MCZO/MCSR standards, subdivision plat database and plan-review deficiency builder.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%232ec4b6'/><path d='M7 24V9l9 7 9-7v15' fill='none' stroke='%2304161a' stroke-width='3' stroke-linejoin='round'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=cae01958">
-<link rel="modulepreload" href="js/app.js?v=cae01958"><link rel="modulepreload" href="js/lookup.js?v=cae01958"><link rel="modulepreload" href="js/report.js?v=cae01958"><link rel="modulepreload" href="js/net.js?v=cae01958"><link rel="modulepreload" href="js/github.js?v=cae01958"><link rel="modulepreload" href="js/standards.js?v=cae01958"><link rel="modulepreload" href="js/checklists.js?v=cae01958"><link rel="modulepreload" href="js/review.js?v=cae01958"><link rel="modulepreload" href="js/recorder.js?v=cae01958"><link rel="modulepreload" href="js/subdivisions.js?v=cae01958">
+<link rel="stylesheet" href="css/app.css?v=8d5d8abe">
+<link rel="modulepreload" href="js/app.js?v=8d5d8abe"><link rel="modulepreload" href="js/lookup.js?v=8d5d8abe"><link rel="modulepreload" href="js/report.js?v=8d5d8abe"><link rel="modulepreload" href="js/net.js?v=8d5d8abe"><link rel="modulepreload" href="js/github.js?v=8d5d8abe"><link rel="modulepreload" href="js/standards.js?v=8d5d8abe"><link rel="modulepreload" href="js/checklists.js?v=8d5d8abe"><link rel="modulepreload" href="js/review.js?v=8d5d8abe"><link rel="modulepreload" href="js/recorder.js?v=8d5d8abe"><link rel="modulepreload" href="js/subdivisions.js?v=8d5d8abe">
 </head>
 <body>
 <header class="top">
@@ -105,56 +105,55 @@
       </div>
     </div>
   </div>
-  <div class="grid2">
-    <div class="card">
-      <h2>Submittal</h2>
-      <label>Type<select id="rv-type"></select></label>
-      <div class="row3">
-        <label>APN<input id="rv-apn"></label>
-        <label>District<select id="rv-district"></select></label>
-        <label>Lot area (sf)<input id="rv-lotArea" inputmode="decimal"></label>
-      </div>
-      <div class="row3">
-        <label>Plan title / rev.<input id="rv-planTitle"></label>
-        <label>Reviewer<input id="rv-reviewer"></label>
-        <label>Date<input id="rv-date" type="date"></label>
-      </div>
-      <div class="row3">
-        <label>Permit / case #<input id="rv-permit" placeholder="e.g. BB2026-01234"></label>
-        <label>Reviewer email<input id="rv-reviewerEmail" type="email"></label>
-        <span></span>
-      </div>
-      <div class="row3">
-        <label title="Frontage width of the lot — sizes the required rear yard">Lot width (ft)<input id="rv-lotW" inputmode="decimal"></label>
-        <label title="Depth of the lot — sizes the required side yards">Lot depth (ft)<input id="rv-lotD" inputmode="decimal"></label>
-        <p class="sub" id="rv-lotdims-note">Sizes the required rear/side yards (MCZO §806.2).</p>
-      </div>
-      <label class="rowc"><input type="checkbox" id="rv-adjRes"> Adjacent to a Rural or Residential district (commercial/industrial side and rear setbacks)</label>
-      <p class="sub">Run a parcel lookup first to fill the APN, district, lot area and lot width × depth automatically. <span id="plat-hint"></span></p>
+  <div class="card" id="rv-submittal">
+    <h2>Submittal Information</h2>
+    <div class="row4">
+      <label class="span2">Type<select id="rv-type"></select></label>
+      <label>APN<input id="rv-apn"></label>
+      <label>District<select id="rv-district"></select></label>
     </div>
-    <div class="card site-only">
-      <h2>Residence / Primary Building (ft)</h2>
-      <div class="row4">
-        <label>Front<input id="rv-p-front" inputmode="decimal"></label>
-        <label>Rear<input id="rv-p-rear" inputmode="decimal"></label>
-        <label>Side A<input id="rv-p-sideA" inputmode="decimal"></label>
-        <label>Side B<input id="rv-p-sideB" inputmode="decimal"></label>
-        <label>Side-street<input id="rv-p-street" inputmode="decimal" placeholder="corner lots"></label>
-        <label>Height<input id="rv-p-height" inputmode="decimal"></label>
-        <label>Garage plane<input id="rv-p-garage" inputmode="decimal" placeholder="front-facing"></label>
-      </div>
-      <h3>Recorded Plat Setbacks (Control When Entered)</h3>
-      <div class="row4">
-        <label>Front<input id="rv-b-front" inputmode="decimal"></label>
-        <label>Rear<input id="rv-b-rear" inputmode="decimal"></label>
-        <label>Side<input id="rv-b-side" inputmode="decimal"></label>
-        <label>Street-side<input id="rv-b-street" inputmode="decimal"></label>
-      </div>
+    <div class="row4">
+      <label>Lot area (sf)<input id="rv-lotArea" inputmode="decimal"></label>
+      <label title="Frontage width of the lot — sizes the required rear yard (MCZO §806.2)">Lot width (ft)<input id="rv-lotW" inputmode="decimal"></label>
+      <label title="Depth of the lot — sizes the required side yards (MCZO §806.2)">Lot depth (ft)<input id="rv-lotD" inputmode="decimal"></label>
+      <label>Permit / case #<input id="rv-permit" placeholder="e.g. BB2026-01234"></label>
     </div>
+    <div class="row4">
+      <label>Plan title / rev.<input id="rv-planTitle"></label>
+      <label>Reviewer<input id="rv-reviewer"></label>
+      <label>Reviewer email<input id="rv-reviewerEmail" type="email"></label>
+      <label>Date<input id="rv-date" type="date"></label>
+    </div>
+    <label class="rowc"><input type="checkbox" id="rv-adjRes"> Adjacent to a Rural or Residential district (commercial/industrial side and rear setbacks)</label>
+    <p class="sub">Run a parcel lookup first to fill the APN, district, lot area and lot width × depth automatically (width × depth size the required rear/side yards). <span id="plat-hint"></span></p>
   </div>
 
-  <div class="card site-only">
-    <h2>Structures — Coverage &amp; Accessory Setbacks</h2>
+  <div class="card site-only" id="rv-coverage">
+    <h2>Coverage &amp; Setbacks</h2>
+    <div class="cs-top">
+      <div>
+        <h3>Residence / Primary Building (ft)</h3>
+        <div class="row4">
+          <label>Front<input id="rv-p-front" inputmode="decimal"></label>
+          <label>Rear<input id="rv-p-rear" inputmode="decimal"></label>
+          <label>Side A<input id="rv-p-sideA" inputmode="decimal"></label>
+          <label>Side B<input id="rv-p-sideB" inputmode="decimal"></label>
+          <label>Side-street<input id="rv-p-street" inputmode="decimal" placeholder="corner lots"></label>
+          <label>Height<input id="rv-p-height" inputmode="decimal"></label>
+          <label>Garage plane<input id="rv-p-garage" inputmode="decimal" placeholder="front-facing"></label>
+        </div>
+      </div>
+      <div>
+        <h3>Recorded Plat Setbacks (Control When Entered)</h3>
+        <div class="row4">
+          <label>Front<input id="rv-b-front" inputmode="decimal"></label>
+          <label>Rear<input id="rv-b-rear" inputmode="decimal"></label>
+          <label>Side<input id="rv-b-side" inputmode="decimal"></label>
+          <label>Street-side<input id="rv-b-street" inputmode="decimal"></label>
+        </div>
+      </div>
+    </div>
+    <h3>Structures</h3>
     <p class="sub">List every new <b>and</b> existing building. Square footage is the covered footprint, less 2 ft of overhang (primary) or 1 ft (accessory). Lattice or shade covers ≤ 50% opaque count 50% (DD-2021-01).</p>
     <div class="tw"><table class="edit"><thead><tr><th>Name</th><th>Kind</th><th>Sq ft</th><th>Cover</th><th>Height</th><th>Front</th><th>Rear</th><th>Side</th><th>Street</th><th title="In a required rear/side yard">Yard</th><th></th></tr></thead><tbody id="rv-structs"></tbody></table></div>
     <button class="btn sm" id="rv-add" type="button">+ Add structure</button>
@@ -398,8 +397,8 @@
 <dialog id="saved-view" class="saved-view"><div class="cardhead"><h2 id="sv-title"></h2><button class="btn sm ghost" id="sv-close" type="button" aria-label="Close">✕</button></div><pre id="sv-text" class="sv-text"></pre><div class="actions"><button class="btn" id="sv-dl" type="button">Download</button><button class="btn danger" id="sv-del" type="button">Delete</button></div></dialog>
 </main>
 <footer class="foot">All information in this system is public and accessible to anyone; items saved here are stored in a public GitHub repository. Reference tool — verify findings against the adopted ordinance, recorded documents and case files before relying on them.
-<div class="build">Version <span id="build">10.23.26.057</span> · <span id="relay-ver" data-latest="21" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
+<div class="build">Version <span id="build">10.23.26.058</span> · <span id="relay-ver" data-latest="21" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
 <div id="toasts" aria-live="polite"></div>
-<script type="module" src="js/app.js?v=cae01958"></script>
+<script type="module" src="js/app.js?v=8d5d8abe"></script>
 </body>
 </html>
