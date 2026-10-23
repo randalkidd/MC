@@ -1,6 +1,6 @@
 // Plan review: measurement checks (setbacks, coverage, height) + checklist → markup table (Markdown).
-import { DISTRICTS, normalizeDistrict, MCZO_URL } from './standards.js?v=9544dac1';
-import { CHECKLISTS } from './checklists.js?v=9544dac1';
+import { DISTRICTS, normalizeDistrict, MCZO_URL } from './standards.js?v=9bac9315';
+import { CHECKLISTS } from './checklists.js?v=9bac9315';
 
 const DD2021 = 'https://www.maricopa.gov/6459/Lot-Coverage-Calculations---DD-2021-01';
 const DD3012 = 'https://www.maricopa.gov/6353/Accessory-Structures-Equipment-and-Setba';

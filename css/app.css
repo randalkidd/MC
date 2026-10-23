@@ -278,7 +278,7 @@ html:not(.perm-rapid) [data-perm="rapid"], html:not(.perm-admin) [data-perm="adm
 .sp-grid.collapsed > .card > :not(.cardhead) { display: none !important; }
 .sp-grid.collapsed > .card .cardhead { margin-bottom: 0; }
 .sp-grid.collapsed .sp-qcard { height: auto; min-height: 0; }
-.collapsible.collapsed > :not(.cardhead) { display: none !important; }
+.collapsible.collapsed > :not(.cardhead):not(.keep-open) { display: none !important; }
 .collapsible.collapsed .cardhead .actions { display: none; }
 .ld-block { display: flex; flex-direction: column; gap: 1rem; margin: 0; }
 .ld-block > .grid2, .ld-block > .card, .ld-block > p { margin: 0; }

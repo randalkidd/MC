@@ -7,14 +7,14 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https://gis.maricopa.gov https://server.arcgisonline.com https://*.arcgisonline.com https://unpkg.com; connect-src 'self' https://gis.maricopa.gov https://publicapi.recorder.maricopa.gov https://edms.maricopa.gov https://recorder.maricopa.gov https://api.github.com https://*.workers.dev; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="preconnect" href="https://gis.maricopa.gov" crossorigin>
-<script src="js/theme.js?v=9544dac1"></script>
+<script src="js/theme.js?v=9bac9315"></script>
 <title>Unofficial Maricopa County Zoning Hub</title>
 <meta name="description" content="Maricopa County parcel lookup, MCZO/MCSR standards, subdivision plat database and plan-review deficiency builder.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%232ec4b6'/><path d='M7 24V9l9 7 9-7v15' fill='none' stroke='%2304161a' stroke-width='3' stroke-linejoin='round'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=9544dac1">
-<link rel="modulepreload" href="js/app.js?v=9544dac1"><link rel="modulepreload" href="js/lookup.js?v=9544dac1"><link rel="modulepreload" href="js/report.js?v=9544dac1"><link rel="modulepreload" href="js/net.js?v=9544dac1"><link rel="modulepreload" href="js/github.js?v=9544dac1"><link rel="modulepreload" href="js/standards.js?v=9544dac1"><link rel="modulepreload" href="js/checklists.js?v=9544dac1"><link rel="modulepreload" href="js/review.js?v=9544dac1"><link rel="modulepreload" href="js/recorder.js?v=9544dac1"><link rel="modulepreload" href="js/subdivisions.js?v=9544dac1">
+<link rel="stylesheet" href="css/app.css?v=9bac9315">
+<link rel="modulepreload" href="js/app.js?v=9bac9315"><link rel="modulepreload" href="js/lookup.js?v=9bac9315"><link rel="modulepreload" href="js/report.js?v=9bac9315"><link rel="modulepreload" href="js/net.js?v=9bac9315"><link rel="modulepreload" href="js/github.js?v=9bac9315"><link rel="modulepreload" href="js/standards.js?v=9bac9315"><link rel="modulepreload" href="js/checklists.js?v=9bac9315"><link rel="modulepreload" href="js/review.js?v=9bac9315"><link rel="modulepreload" href="js/recorder.js?v=9bac9315"><link rel="modulepreload" href="js/subdivisions.js?v=9bac9315">
 </head>
 <body>
 <header class="top">
@@ -180,10 +180,10 @@
   </div>
   <div class="card collapsible collapsed" id="allsubs">
     <div class="cardhead">
-      <div><h2>All Subdivisions <small>(Maricopa County GIS)</small> <button class="collapse-btn" type="button" data-collapse="allsubs" aria-expanded="false" title="Expand">▸</button></h2><p class="sub" id="as-meta">Collapsed — click ▸ to load the countywide list.</p><p class="sub as-scope">ⓘ Search covers <b>every recorded subdivision countywide</b> — including those within incorporated cities and towns (their jurisdiction, not the County's). Check the parcel's jurisdiction before applying county standards.</p></div>
+      <div><h2>All Subdivisions <small>(Maricopa County GIS)</small> <button class="collapse-btn" type="button" data-collapse="allsubs" aria-expanded="false" title="Expand">▸</button></h2><p class="sub" id="as-meta">Collapsed — type in the search below, or click ▸ to browse the countywide list.</p><p class="sub as-scope">ⓘ Search covers <b>every recorded subdivision countywide</b> — including those within incorporated cities and towns (their jurisdiction, not the County's). Check the parcel's jurisdiction before applying county standards.</p></div>
       <div class="actions"><button class="btn ghost" id="as-refresh" type="button">Refresh from county GIS</button><button class="btn ghost" id="as-export" type="button">Export CSV</button></div>
     </div>
-    <div class="rl-bar"><input id="as-q" class="filter" placeholder="Search name or MCR (e.g. sun city, 754-39)…" autocomplete="off"><select id="as-filter" aria-label="Filter"><option value="">All</option><option value="db">In SubdivisionDB</option><option value="queue">On waitlist</option><option value="none">Not reviewed yet</option></select></div>
+    <div class="rl-bar keep-open"><input id="as-q" class="filter" placeholder="Search name or MCR (e.g. sun city, 754-39)…" autocomplete="off"><select id="as-filter" aria-label="Filter"><option value="">All</option><option value="db">In SubdivisionDB</option><option value="queue">On waitlist</option><option value="none">Not reviewed yet</option></select></div>
     <div class="tw"><table class="dense"><thead><tr><th><button class="link" data-sort="name" type="button">Subdivision ▴</button></th><th><button class="link" data-sort="mcr" type="button">MCR</button></th><th>Plat</th><th>Status</th><th></th></tr></thead><tbody id="as-body"></tbody></table></div>
     <div class="pager"><button class="btn ghost sm" id="as-prev" type="button">‹ Prev</button><span id="as-page" class="sub"></span><button class="btn ghost sm" id="as-next" type="button">Next ›</button></div>
     <p class="as-updated" id="as-updated"></p>
@@ -392,8 +392,8 @@
 <dialog id="saved-view" class="saved-view"><div class="cardhead"><h2 id="sv-title"></h2><button class="btn sm ghost" id="sv-close" type="button" aria-label="Close">✕</button></div><pre id="sv-text" class="sv-text"></pre><div class="actions"><button class="btn" id="sv-dl" type="button">Download</button><button class="btn danger" id="sv-del" type="button">Delete</button></div></dialog>
 </main>
 <footer class="foot">All information in this system is public and accessible to anyone; items saved here are stored in a public GitHub repository. Reference tool — verify findings against the adopted ordinance, recorded documents and case files before relying on them.
-<div class="build">Version <span id="build">10.23.26.044</span> · <span id="relay-ver" data-latest="21" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
+<div class="build">Version <span id="build">10.23.26.046</span> · <span id="relay-ver" data-latest="21" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
 <div id="toasts" aria-live="polite"></div>
-<script type="module" src="js/app.js?v=9544dac1"></script>
+<script type="module" src="js/app.js?v=9bac9315"></script>
 </body>
 </html>
