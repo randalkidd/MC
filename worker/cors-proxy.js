@@ -13,7 +13,7 @@
 //   ANTHROPIC_API_KEY = sk-ant-...  (optional; enables Plan review → "Read a site plan PDF" via POST /ai/siteplan)
 //   ANTHROPIC_MODEL   = optional Text variable to override the model (default below)
 
-const RELAY_VERSION = '20';
+const RELAY_VERSION = '21';
 // Settings. Defaults below; each can be overridden by a Cloudflare variable (Worker → Settings → Variables and
 // Secrets, Type: Text) or, for local `wrangler dev`, by worker/.dev.vars (never committed — see .dev.vars.example).
 //   ALLOWED_ORIGIN = https://randalkidd.github.io   (comma-separate to add e.g. http://localhost:8000 for local testing)
@@ -84,6 +84,7 @@ async function tokenProblem(env, status) {
 //   admin  — manage access keys
 const PERMS = ['review', 'write', 'queue', 'rapid', 'admin'];
 const KEYS_PATH = 'access/keys.json';
+/** @type {{ t: number, list: any[] | null, sha: string | null, superName: string }} */
 let keyCache = { t: 0, list: null, sha: null, superName: '' };
 const sha256hex = async (s) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
 async function loadKeys(env, fresh = false) {
@@ -175,7 +176,7 @@ async function handleAdmin(req, env, origin, route, who) {
     const body = JSON.stringify({ schema: 1, updated: new Date().toISOString(), superName, keys: list }, null, 2) + '\n';
     const put = await ghq(env, `contents/${KEYS_PATH}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message, content: b64(body), ...(sha ? { sha } : {}) }) });
     if (!put.ok) throw new Error(`GitHub ${put.status} saving access keys${put.status === 404 ? ` — check that ${QUEUE_REPO} exists and the token can write to it` : ''}`);
-    keyCache = { t: 0, list: null, sha: null };
+    keyCache = { t: 0, list: null, sha: null, superName: '' };
   };
   const pub = (x) => ({ id: x.id, label: x.label, perms: x.perms, created: x.created, createdBy: x.createdBy, expires: x.expires || null, disabled: !!x.disabled });
   if (route === '/admin/keys' && req.method === 'GET') { const { list, superName } = await loadKeys(env, true); return json({ ok: true, superName: superName || '', keys: list.map(pub) }, 200, origin); }
@@ -338,6 +339,7 @@ async function handleAI(req, env, origin, route, ctxW, who) {
   try {
     const model = /^claude-[a-z0-9.-]+$/.test(env.ANTHROPIC_MODEL || '') ? env.ANTHROPIC_MODEL : AI_MODEL;
     // Newer models reject a forced tool_choice, so ask with "auto" and nudge once if Claude answers in text.
+    /** @type {any[]} */
     const msgs = [{ role: 'user', content: [{ type: 'document', source: { type: 'file', file_id: upd.id } }, { type: 'text', text: sitePlanPrompt(ctx) + '\n\nYou must finish by calling the site_plan_review tool exactly once.' }] }];
     const ask = async () => {
       const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { ...H, 'content-type': 'application/json' }, body: JSON.stringify({
@@ -348,7 +350,7 @@ async function handleAI(req, env, origin, route, ctxW, who) {
     if (!r.ok) return json({ error: `Claude API error ${r.status}: ${(d.error && d.error.message) || 'request failed'}` }, 502, origin);
     let tool = (d.content || []).find(c => c.type === 'tool_use' && c.name === 'site_plan_review');
     if (!tool && d.stop_reason !== 'max_tokens') {
-      msgs.push({ role: 'assistant', content: d.content }, { role: 'user', content: 'Now call the site_plan_review tool with your findings.' });
+      msgs.push({ role: 'assistant', content: d.content }, { role: 'user', content: [{ type: 'text', text: 'Now call the site_plan_review tool with your findings.' }] });
       ({ r, d } = await ask());
       if (!r.ok) return json({ error: `Claude API error ${r.status}: ${(d.error && d.error.message) || 'request failed'}` }, 502, origin);
       tool = (d.content || []).find(c => c.type === 'tool_use' && c.name === 'site_plan_review');
