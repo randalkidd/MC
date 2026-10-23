@@ -1,13 +1,13 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=40b75a80';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=40b75a80';
-import { settings, setSharedRelay } from './net.js?v=40b75a80';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=40b75a80';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=40b75a80';
-import { CHECKLISTS } from './checklists.js?v=40b75a80';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=40b75a80';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=79f837d1';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=79f837d1';
+import { settings, setSharedRelay } from './net.js?v=79f837d1';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache } from './github.js?v=79f837d1';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=79f837d1';
+import { CHECKLISTS } from './checklists.js?v=79f837d1';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown } from './review.js?v=79f837d1';
 let REF = null; // js/refdata.js (76 KB) loads the first time the Reference tab opens
-import { findPlatDoc } from './recorder.js?v=40b75a80';
-import { loadAllSubdivisions } from './subdivisions.js?v=40b75a80';
+import { findPlatDoc } from './recorder.js?v=79f837d1';
+import { loadAllSubdivisions } from './subdivisions.js?v=79f837d1';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -22,6 +22,7 @@ async function copy(text) { try { await navigator.clipboard.writeText(text); toa
 function download(name, text) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/markdown' })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); }
 
 // ---------------- state ----------------
+const SITE_TITLE = 'Unofficial Maricopa County Zoning Hub';
 const S = { R: null, md: '', extras: {}, db: null, dbSha: null, dbDirty: false, map: null, layer: null, review: loadDraft() };
 
 // ---------------- tabs ----------------
@@ -352,6 +353,7 @@ async function runLookup(apn, { force = false } = {}) {
     drawMap(S.R);
     $('#lookup-apn').value = S.R.apn;
     history.replaceState(null, '', `?apn=${S.R.apn}#lookup`);
+    document.title = `${S.R.apn} - ${SITE_TITLE}`;
     carryToReview(S.R);
   } catch (e) { st.className = 'status err'; st.textContent = e.message; }
 }
@@ -411,7 +413,7 @@ $('#rep-save').addEventListener('click', async () => {
 $('#rep-pdf').addEventListener('click', async (e) => {
   const b = e.currentTarget; if (b.disabled || !S.md) return;
   b.disabled = true; const label = b.textContent; b.textContent = 'Building PDF…';
-  try { const { reportPDF } = await import('./pdf.js?v=40b75a80'); await reportPDF(S.md, { apn: S.R.apn }); toast('PDF saved', 'ok'); }
+  try { const { reportPDF } = await import('./pdf.js?v=79f837d1'); await reportPDF(S.md, { apn: S.R.apn }); toast('PDF saved', 'ok'); }
   catch (err) { toast(`PDF failed: ${err.message}`, 'error'); }
   finally { b.disabled = false; b.textContent = label; }
 });
@@ -750,7 +752,7 @@ async function renderSaved() {
 // ---------------- reference ----------------
 let refP = null;
 function renderReference() {
-  return (refP ||= import('./refdata.js?v=40b75a80').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
+  return (refP ||= import('./refdata.js?v=79f837d1').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
 }
 function fillReference() {
   const { DIRECTIVES, MCSR_QUICK, REG_DOCS, REG_LOOKUP } = REF;
@@ -893,7 +895,7 @@ function renderSitePlan() {
   ];
   const u = a.usage || {};
   const nIss = (a.compare || []).filter(c => c[3] !== 'ok').length + computeFindings(S.review).F.filter(f => f.status !== 'ok').length + Object.values(S.review.checks || {}).filter(c => c.status === 'deficient' || c.status === 'verify').length + (r.other_findings || []).length + (r.uncertain || []).length;
-  el.innerHTML = `<div class="actions"><button class="btn primary" type="button" id="sp-view">🔍 Open plan viewer — ${nIss} issue${nIss === 1 ? '' : 's'} marked on the PDF</button></div>
+  el.innerHTML = `<div class="actions"><button class="btn primary" type="button" id="sp-view">🔍 Open Plan Viewer — ${nIss} issue${nIss === 1 ? '' : 's'} marked on the PDF</button></div>
     <p class="meta">Read <b>${esc(a.file)}</b> with ${esc(a.engine === 'free' ? 'the free in-browser text reader' : (a.model || 'Claude'))} on ${esc(new Date(a.at).toLocaleString())}${u.input_tokens ? ` · ${u.input_tokens.toLocaleString()} in / ${(u.output_tokens || 0).toLocaleString()} out tokens` : ''}. The form below has been filled in — check each value against the plan.</p>
     ${a.truncated ? '<div class="warn">The answer was cut off (very large plan). Some items may be missing — verify the checklist.</div>' : ''}
     ${a.lookupError ? `<div class="warn">Couldn't look up the parcel for the record checks: ${esc(a.lookupError)}</div>` : ''}
@@ -908,7 +910,7 @@ function renderSitePlan() {
 }
 // Shared by both readers: look up the parcel, check the deed, compare, fill the form.
 async function finishRead(res, meta, st) {
-  const sp = await import('./siteplan.js?v=40b75a80');
+  const sp = await import('./siteplan.js?v=79f837d1');
   const planApn = normalizeApn(res.parcel && res.parcel.apn);
   let R = S.R && S.review.apn && S.R.apn === normalizeApn(S.review.apn) ? S.R : null, lookupError = '';
   const target = normalizeApn(S.review.apn) || planApn;
@@ -925,7 +927,7 @@ async function finishRead(res, meta, st) {
   sp.applyToReview(S.review, res, compare, { merge: meta.engine === 'free' });
   S.review.ai = { file: SP.file.name, at: new Date().toISOString(), ...meta, result: res, compare, deedNames: deed, apn: R ? R.apn : null, lookupError };
   saveDraft(S.review); renderReview();
-  import('./planviewer.js?v=40b75a80').then(m => m.savePdf(SP.file)).catch(() => {});
+  import('./planviewer.js?v=79f837d1').then(m => m.savePdf(SP.file)).catch(() => {});
   return compare.filter(c => c[3] === 'deficient').length;
 }
 async function runFreeRead() {
@@ -934,7 +936,7 @@ async function runFreeRead() {
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'Reading the PDF text in your browser…';
   const claude = $('#sp-run');
   try {
-    const fr = await import('./freeread.js?v=40b75a80');
+    const fr = await import('./freeread.js?v=79f837d1');
     const out = await fr.freeReadSitePlan(SP.file, S.review.type);
     if (out.quality === 'none') {
       st.className = 'status warn'; st.textContent = 'The free reader couldn\'t read this plan: the PDF has no selectable text (it\'s a scan or was flattened). Read it with Claude instead?';
@@ -957,7 +959,7 @@ async function runSitePlan() {
   SP.busy = true; $('#sp-run').disabled = true; $('#sp-free').disabled = true;
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'Sending the PDF to Claude — reading every sheet usually takes 30–90 seconds…';
   try {
-    const sp = await import('./siteplan.js?v=40b75a80');
+    const sp = await import('./siteplan.js?v=79f837d1');
     const d = await sp.readSitePlan(SP.file, S.review.type);
     const bad = await finishRead(d.result || {}, { engine: 'claude', relay: d.relay || null, model: d.model, usage: d.usage, truncated: !!d.truncated }, st);
     st.className = `status ${bad ? 'warn' : 'ok'}`; st.textContent = `Done — the form is filled in from the plan.${bad ? ` ${bad} record mismatch${bad > 1 ? 'es' : ''} found (see below).` : ''} Verify every value before issuing comments.`;
@@ -966,7 +968,7 @@ async function runSitePlan() {
 }
 async function openPlanViewer() {
   const a = S.review.ai; if (!a || !a.result) return;
-  const pv = await import('./planviewer.js?v=40b75a80');
+  const pv = await import('./planviewer.js?v=79f837d1');
   const blob = SP.file && SP.file.name === a.file ? SP.file : await pv.loadPdf(a.file);
   if (!blob) { toast(`Choose ${a.file} again above (it isn't stored in this browser), then open the viewer.`, 'error'); return; }
   pv.openViewer(blob, a, S.review, computeFindings(S.review).F, a.file);

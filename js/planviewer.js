@@ -1,6 +1,6 @@
 // Plan viewer: shows the site-plan PDF with Claude's issue/value locations drawn on top. Click an item in the list to
 // jump to it on the plan; click a box on the plan to find it in the list. Uses vendored pdf.js (same origin, lazy).
-import { CHECKLISTS } from './checklists.js?v=40b75a80';
+import { CHECKLISTS } from './checklists.js?v=79f837d1';
 
 const PDFJS = './js/vendor/pdfjs-3.2.146/';
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -153,7 +153,7 @@ function ensureDialog() {
   if (V.dlg) return V.dlg;
   const d = document.createElement('dialog'); d.className = 'pv'; d.id = 'pv';
   d.innerHTML = `<div class="pv-head">
-      <b class="pv-title">Plan viewer</b><span class="sub pv-file"></span>
+      <b class="pv-title">Plan Viewer</b><span class="sub pv-file"></span>
       <span class="pv-tools">
         <button class="btn sm" data-pv="prev" aria-label="Previous page">‹</button><span class="pv-pg">1 / 1</span><button class="btn sm" data-pv="next" aria-label="Next page">›</button>
         <button class="btn sm" data-pv="out" aria-label="Zoom out">−</button><button class="btn sm" data-pv="fit">Fit</button><button class="btn sm" data-pv="in" aria-label="Zoom in">+</button>
