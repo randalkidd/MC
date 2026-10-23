@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated": "2026-10-23T18:17:25.511Z",
+  "updated": "2026-10-23T18:40:26.724Z",
   "items": [
     {
       "name": "ANTHEM UNIT 15",
@@ -13,6 +13,22 @@
       "controllingCases": "CPA1994002 (12:00:00 AM, Remove); CPA2019010 (8/28/2019, Approved); DMP1994006 (12:00:00 AM, Approved); DMP2005011 (8/29/2005, Approved); DMP2000008 (8/22/2000, Approved); Z01-134 (10/29/2001, APPROVED); Z95-53 (12/11/1995, APPROVED); Z00-98 (8/22/2000, APPROVED); Z95-53i (8/7/1998, APPROVED); Z95-53T (9/30/1999, APPROVED); Z95-53B (3/25/1998, APPROVED); Z95-53C (4/9/1998, APPROVED)",
       "apns": [
         "203-01-865"
+      ],
+      "firstSeen": "2026-10-23",
+      "lastSeen": "2026-10-23",
+      "status": "pending"
+    },
+    {
+      "name": "BEAUTIFUL ARIZONA ESTATES SUB",
+      "displayName": "Beautiful Arizona Estates Sub",
+      "mcr": "99-38",
+      "rec": "",
+      "recorded": "",
+      "totalLots": 287,
+      "baseZoning": "R1-35",
+      "controllingCases": "CPA1989003 (12:00:00 AM, Remove); CPA2023014 (9/13/2023, Approved); CPA2004003 (6/24/2004, Remove)",
+      "apns": [
+        "502-70-145A"
       ],
       "firstSeen": "2026-10-23",
       "lastSeen": "2026-10-23",
