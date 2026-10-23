@@ -1,6 +1,6 @@
 // Plan viewer: shows the site-plan PDF with Claude's issue/value locations drawn on top. Click an item in the list to
 // jump to it on the plan; click a box on the plan to find it in the list. Uses vendored pdf.js (same origin, lazy).
-import { CHECKLISTS } from './checklists.js?v=94f0e532';
+import { CHECKLISTS } from './checklists.js?v=16c6e229';
 
 const PDFJS = './js/vendor/pdfjs-3.2.146/';
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -255,7 +255,7 @@ async function select(n, fromList) {
   if (box) note.hidden = true;
   else {
     // Nothing on the plan to point at (missing item, or one that covers the whole submittal): say so and flash the sheet.
-    note.innerHTML = `<button type="button" class="pv-note-x" aria-label="Dismiss">✕</button><b>${n}. ${esc(it.title)}</b> — not tied to one spot on this plan${it.sev === 'info' ? '' : ' (it is either missing from the plan or covers the whole submittal)'}. Check it on the sheets yourself${V.engine === 'free' ? ', or use <b>Read with Claude</b> to have it located' : ''}.`;
+    note.innerHTML = `<button type="button" class="pv-note-x" aria-label="Dismiss">✕</button><b>${n}. ${esc(it.title)}</b> — not tied to one spot on this plan${it.sev === 'info' ? '' : ' (it is either missing from the plan or covers the whole submittal)'}. Check it on the sheets yourself${V.engine === 'free' ? ', or use <b>In-Depth Review</b> to have it located' : ''}.`;
     note.hidden = false; const pgEl = V.dlg.querySelector('.pv-page'); pgEl.classList.remove('flash'); void pgEl.offsetWidth; pgEl.classList.add('flash');
     V.dlg.querySelector('.pv-scroll').scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -279,8 +279,8 @@ export async function openViewer(blob, ai, review, F, fileName, focus = '') {
     V.items = buildItems({ ...ai, result: { ...r, annotations: [...(r.annotations || []), ...extra] } }, review, F);
     const old = ai.engine === 'claude' && (!ai.relay || +ai.relay < 12);
     const msgs = [];
-    if (ai.engine === 'free') msgs.push(`Free text reader: ${claudeAnn.length} location${claudeAnn.length === 1 ? '' : 's'} marked on the plan (exact text positions; tick “Show values read”). Items it couldn't find show “location not marked” — use <b>Read with Claude</b> for those.`);
-    else if (!claudeAnn.length) msgs.push(old ? `This plan was read before the relay could return locations (relay ${ai.relay ? `v${ai.relay}` : 'v11 or older'}). Deploy the latest relay (v13) in Cloudflare and click <b>Read with Claude</b> again to get Claude's boxes.` : 'Claude did not return any locations for this plan — try <b>Read with Claude</b> again.');
+    if (ai.engine === 'free') msgs.push(`Free text reader: ${claudeAnn.length} location${claudeAnn.length === 1 ? '' : 's'} marked on the plan (exact text positions; tick “Show values read”). Items it couldn't find show “location not marked” — use <b>In-Depth Review</b> for those.`);
+    else if (!claudeAnn.length) msgs.push(old ? `This plan was read before the relay could return locations (relay ${ai.relay ? `v${ai.relay}` : 'v11 or older'}). Deploy the latest relay (v13) in Cloudflare and click <b>In-Depth Review</b> again to get Claude's boxes.` : 'Claude did not return any locations for this plan — try <b>In-Depth Review</b> again.');
     else if (ai.engine !== 'free') msgs.push(`Claude marked ${claudeAnn.length} location${claudeAnn.length === 1 ? '' : 's'}.`);
     if (extra.length) msgs.push(`${extra.length} ${claudeAnn.length ? 'more ' : ''}value${extra.length === 1 ? '' : 's'} located by matching the plan's own text (exact positions; tick “Show values read”).`);
     else if (!runs) msgs.push('This PDF has no selectable text (scanned or flattened), so values can only be located by Claude.');

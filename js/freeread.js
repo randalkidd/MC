@@ -3,8 +3,8 @@
 // scale, area table, coverage, legal description) plus the residence setbacks from the dimension text drawn around
 // the house. It returns the same shape as the Claude reader, so the rest of the page treats both the same. It never
 // marks an item deficient just because it couldn't find it.
-import { loadPdfjs } from './planviewer.js?v=94f0e532';
-import { CHECKLISTS } from './checklists.js?v=94f0e532';
+import { loadPdfjs } from './planviewer.js?v=16c6e229';
+import { CHECKLISTS } from './checklists.js?v=16c6e229';
 
 const PDFJS = './js/vendor/pdfjs-3.2.146/';
 const U = (s) => String(s ?? '').toUpperCase().replace(/\s+/g, ' ').trim();
@@ -236,7 +236,7 @@ export async function freeReadSitePlan(file, type) {
     const found = Object.entries(keys).filter(([, v]) => v).map(([k]) => k);
     const missing = Object.entries(keys).filter(([, v]) => !v).map(([k]) => k);
     const quality = !runs ? 'none' : found.length >= 4 ? 'good' : found.length >= 2 ? 'partial' : 'poor';
-    if (missing.includes('setbacks')) uncertain.push('Setback dimensions to the property lines were not found as text near the residence. Measure them on the plan or use Read with Claude.');
+    if (missing.includes('setbacks')) uncertain.push('Setback dimensions to the property lines were not found as text near the residence. Measure them on the plan or use In-Depth Review.');
     const summary = !runs ? 'This PDF has no selectable text (scanned or flattened). The free reader can\'t read it.'
       : `Free text reader: found ${found.join(', ') || 'nothing useful'}${missing.length ? `; not found: ${missing.join(', ')}` : ''}.`;
     return { result: { plan, parcel, primary, structures, coverage, easements, streets, adjacent_uses, checklist, other_findings: [], uncertain, annotations: ann, summary }, quality, found, missing, textRuns: runs, pages: doc.numPages };

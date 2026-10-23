@@ -3,8 +3,8 @@
 //   queue/<id>.pdf   the queued plan            — deleted after 14 days
 //   queue/<id>.json  { id, file, size, apn, type, reviewer, submitted, status, note?, processedAt?, db? }
 //   db/<id>.json     data read from a plan       — deleted 45 days after `inserted`
-import { gh } from './github.js?v=94f0e532';
-import { settings } from './net.js?v=94f0e532';
+import { gh } from './github.js?v=16c6e229';
+import { settings } from './net.js?v=16c6e229';
 
 export const PDF_DAYS = 14, DATA_DAYS = 45;
 const DAY = 86400000;
@@ -62,7 +62,7 @@ export async function getRecord(path) {
 export async function removeQueued(m) {
   for (const p of [`queue/${m.id}.pdf`, `queue/${m.id}.json`, m.db || `db/${m.id}.json`]) await q(`/q/del?path=${encodeURIComponent(p)}`, { method: 'POST' }).catch(() => {});
 }
-// Every plan read (Superficial, Rapid, Queued) is stored in the private database for 45 days.
+// Every plan read (Superficial, Queued, In-Depth) is stored in the private database for 45 days.
 export async function saveRecord({ id, source, file, apn, type, model, result, compare }) {
   const rid = id || newId(apn);
   await putJson(`db/${rid}.json`, { id: rid, inserted: new Date().toISOString(), expires: new Date(Date.now() + DATA_DAYS * DAY).toISOString(), source, file, apn: apn || '', type, model: model || '', result, compare: compare || [] }, `Plan data ${rid} (${source})`);
