@@ -1,6 +1,6 @@
 // Renders a lookup result in the project's parcel-report-template structure (HTML + Markdown).
-import { LINKS } from './lookup.js?v=1afc8f62';
-import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=1afc8f62';
+import { LINKS } from './lookup.js?v=74a299e3';
+import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=74a299e3';
 
 // Only allow http(s) URLs into href attributes; everything else becomes "#".
 const safeUrl = (u) => { try { const x = new URL(String(u), location.href); return /^https?:$/.test(x.protocol) ? x.href : '#'; } catch { return '#'; } };
@@ -200,6 +200,9 @@ export function renderReportHTML(R, db) {
 
   if (R.outsideCounty) {
     out.push(`<div class="note">Zoning, setbacks, overlays and cases: <b>N/A — outside Maricopa County jurisdiction (${esc(R.city || 'incorporated city')})</b>. The city's own ordinance governs; MCZO does not apply.</div>`);
+    // Section lines come from the County's PLSS layer and apply regardless of jurisdiction (§805.1.2 is County-only, so omit it).
+    const sr = sectionRows(R).filter(([k]) => !/805\.1\.2/.test(k));
+    if (sr.length) { out.push('<h4>Section Lines</h4>'); table(sr.map(([k, v]) => [esc(k), esc(v)]), ['Section line', 'Distance / note']); }
     return out.join('');
   }
 
@@ -322,7 +325,7 @@ export function renderReportMD(R, db, extras = {}) {
     ['Lot size (sq ft / acres)', `${p.areaSqFt.toLocaleString()} / ${p.areaAcres}`],
     ['Property use description', dash([p.LandLegalClassDescription, p.ImprovementLegalClassDescription].filter(Boolean).join(' / '))],
   ]);
-  if (R.outsideCounty) { L.push(`Sections 2–6: N/A — outside Maricopa County jurisdiction (${R.city || 'incorporated city'}).`, ''); return L.join('\n'); }
+  if (R.outsideCounty) { L.push(`Sections 2–7: N/A — outside Maricopa County jurisdiction (${R.city || 'incorporated city'}).`, ''); const sr = sectionRows(R).filter(([k]) => !/805\.1\.2/.test(k)); if (sr.length) { L.push('**Section lines** (County PLSS — independent of jurisdiction)', ''); t(sr, ['Section line', 'Distance / note']); } return L.join('\n'); }
   const zones = R.zoning.map(z => z.zone);
   const ps = platSetbacks(plat, p.Lot);
   H('Setbacks & Development Standards');
