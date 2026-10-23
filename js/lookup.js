@@ -1,5 +1,5 @@
 // Parcel lookup — ports reference/workflow-standards.md to in-browser REST calls.
-import { arcgis, request } from './net.js?v=c5e54942';
+import { arcgis, request } from './net.js?v=1ae46fc1';
 
 const GIS = 'https://gis.maricopa.gov/arcgis/rest/services';
 export const EP = {
@@ -124,6 +124,30 @@ function nearestLines(features, rings, c, count = 2) {
   }
   return out;
 }
+// For each side of the parcel, the closest section line running past it: N–S segments beside the parcel are east/west,
+// E–W segments above/below it are north/south. Distance is from the nearest point of the parcel (State Plane feet).
+// Each result also carries that line in lat/long (when the county returned it) so the map can mark it.
+export function sectionByDirection(features, rings, c, wById = new Map()) {
+  const bb = ringsBBox(rings); const T = 50; const best = {};
+  for (const f of features) {
+    const paths = (f.geometry && f.geometry.paths) || [];
+    paths.forEach((path, pi) => { for (let si = 1; si < path.length; si++) {
+      const a = path[si - 1], b = path[si]; const dx = b[0] - a[0], dy = b[1] - a[1]; if (!dx && !dy) continue;
+      let dir;
+      if (Math.abs(dx) < Math.abs(dy)) { if (Math.max(a[1], b[1]) < bb.ymin - T || Math.min(a[1], b[1]) > bb.ymax + T) continue; dir = (a[0] + b[0]) / 2 > c[0] ? 'east' : 'west'; }
+      else { if (Math.max(a[0], b[0]) < bb.xmin - T || Math.min(a[0], b[0]) > bb.xmax + T) continue; dir = (a[1] + b[1]) / 2 > c[1] ? 'north' : 'south'; }
+      const d = polyToLineDist(rings, [[a, b]]);
+      if (!best[dir] || d < best[dir].d) best[dir] = { d, f, pi, si };
+    } });
+  }
+  const out = {};
+  for (const dir of ['north', 'south', 'east', 'west']) {
+    const k = best[dir]; if (!k) { out[dir] = null; continue; }
+    const g = wById.get(k.f.attributes._key); const wp = g && g.paths && g.paths[k.pi];
+    out[dir] = { distance: Math.round(k.d), type: k.f.attributes.PLSSType, orient: dir === 'east' || dir === 'west' ? 'N–S' : 'E–W', path: wp || null };
+  }
+  return out;
+}
 function nearestLine(features, rings, c) {
   let best = null;
   for (const f of features) {
@@ -153,10 +177,13 @@ export async function lookupParcel(apnInput, { onStep = () => {} } = {}) {
   const settle = (p) => p.then(v => ({ ok: true, v }), e => ({ ok: false, e: String(e.message || e) }));
   const insetQ = { ...polyQ, geometry: JSON.stringify({ rings: insetRings(rings), spatialReference: { wkid: 2223 } }) };
   const recP = settle(lookupRecorder({ parcel: { ...a, DeedDate: fmtDate(a.DeedDate) } }));
+  const trsQ = settle(arcgis(`${EP.trs}/query`, { geometry: env(2700), geometryType: 'esriGeometryEnvelope', inSR: '2223', outSR: '2223', spatialRel: 'esriSpatialRelIntersects', where: "PLSSType = 'Quarter Section'", outFields: 'PLSSType', returnGeometry: 'true', maxAllowableOffset: '2' }));
+  const trsW = settle(arcgis(`${EP.trs}/query`, { geometry: env(5800), geometryType: 'esriGeometryEnvelope', inSR: '2223', outSR: '4326', spatialRel: 'esriSpatialRelIntersects', where: "PLSSType <> 'Quarter Section'", outFields: '*', returnGeometry: 'true', maxAllowableOffset: '0.00001' }));
   const [idf, trs, fe, fp, ec, wgs, fcd, row] = await Promise.all([
     settle(arcgis(`${EP.plannet}/identify`, { geometry: gjson, geometryType: 'esriGeometryPolygon', sr: '2223', layers: 'all', tolerance: '0',
       mapExtent: `${bb.xmin},${bb.ymin},${bb.xmax},${bb.ymax}`, imageDisplay: '400,400,96', returnGeometry: 'false' })),
-    settle(arcgis(`${EP.trs}/query`, { geometry: env(2700), geometryType: 'esriGeometryEnvelope', inSR: '2223', outSR: '2223', spatialRel: 'esriSpatialRelIntersects', outFields: 'PLSSType', returnGeometry: 'true', maxAllowableOffset: '2' })),
+    // Sections are a mile apart: search ~5,800 ft around the parcel so there is a line on every side.
+    settle(arcgis(`${EP.trs}/query`, { geometry: env(5800), geometryType: 'esriGeometryEnvelope', inSR: '2223', outSR: '2223', spatialRel: 'esriSpatialRelIntersects', where: "PLSSType <> 'Quarter Section'", outFields: '*', returnGeometry: 'true', maxAllowableOffset: '2' })),
     settle(arcgis(`${EP.floodEff}/query`, { ...polyQ, outFields: 'FloodZoneCode,FloodZoneDescription,StaticElevation_Feet,FIRMPanelNumber' })),
     settle(arcgis(`${EP.floodPre}/query`, { ...polyQ, outFields: 'FloodZoneCode,FloodZoneDescription' })),
     settle(arcgis(`${EP.elevCert}/query`, { where: `ParcelNumber='${apn}'`, outFields: 'ElevCertNumber,Address', returnGeometry: 'false' })),
@@ -180,7 +207,7 @@ export async function lookupParcel(apnInput, { onStep = () => {} } = {}) {
 
   // Section / midsection lines
   if (trs.ok) {
-    const feats = trs.v.features || [];
+    const qs = await trsQ; const feats = [...(trs.v.features || []), ...(qs.ok ? qs.v.features || [] : [])];
     const sec = nearestLine(feats.filter(f => f.attributes.PLSSType === 'Section'), rings, c);
     const any = sec || nearestLine(feats.filter(f => f.attributes.PLSSType !== 'Quarter Section'), rings, c);
     R.sectionLine = any ? { distance: Math.round(any.d), dir: any.dir, orient: any.orient, type: any.type, fallback: !sec } : null;
@@ -188,6 +215,12 @@ export async function lookupParcel(apnInput, { onStep = () => {} } = {}) {
     R.sectionLines = nearestLines(pool, rings, c, 2).map(k => ({ distance: Math.round(k.d), dir: k.dir, orient: k.orient, type: k.type, fallback: !sec }));
     const q = nearestLine(feats.filter(f => f.attributes.PLSSType === 'Quarter Section'), rings, c);
     R.midsectionLine = q ? { distance: Math.round(q.d), dir: q.dir, orient: q.orient, type: q.type } : null;
+    // Closest section line north, south, east and west of the parcel (township lines count: they are on the section grid).
+    // Match each line to its lat/long copy by the layer's ID field, or by position (the two queries are identical).
+    const w = await trsW; const wf = (w.ok && w.v.features) || []; const main = trs.v.features || [];
+    const idOf = (f, i) => { const a = f.attributes || {}; const v = a.OBJECTID ?? a.OBJECTID_1 ?? a.FID ?? a.objectid; return v != null ? `id${v}` : `i${i}`; };
+    const wById = new Map(wf.map((f, i) => [idOf(f, i), f.geometry])); main.forEach((f, i) => { f.attributes = { ...f.attributes, _key: idOf(f, i) }; });
+    R.sectionDirs = sectionByDirection(main.filter(f => f.attributes.PLSSType !== 'Quarter Section'), rings, c, wById);
   }
 
   // PlanNet buckets

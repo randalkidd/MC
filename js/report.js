@@ -1,12 +1,15 @@
 // Renders a lookup result in the project's parcel-report-template structure (HTML + Markdown).
-import { LINKS } from './lookup.js?v=c5e54942';
-import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=c5e54942';
+import { LINKS } from './lookup.js?v=1ae46fc1';
+import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=1ae46fc1';
 
 // Only allow http(s) URLs into href attributes; everything else becomes "#".
 const safeUrl = (u) => { try { const x = new URL(String(u), location.href); return /^https?:$/.test(x.protocol) ? x.href : '#'; } catch { return '#'; } };
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const dash = (v) => (v == null || v === '' ? '—' : v);
 const mdLink = (t, u) => `[${t}](${u})`;
+// "N ≈ 1,234 ft · S ≈ 4,046 ft · E … · W …" — closest section line on each side of the parcel.
+const DIR4 = [['north', 'N'], ['south', 'S'], ['east', 'E'], ['west', 'W']];
+const sectionDirsText = (sd) => sd ? DIR4.map(([k, s]) => `${s} ${sd[k] ? `≈ ${sd[k].distance.toLocaleString()} ft${sd[k].type && sd[k].type !== 'Section' ? ` (${sd[k].type} line)` : ''}` : 'none within ~1 mi'}`).join(' · ') : null;
 const ftDir = (l) => l ? `≈ ${l.distance.toLocaleString()} ft ${l.dir} (${l.type} line, ${l.orient})${l.fallback ? ' — no plain "Section" feature in range; nearest higher-order PLSS line (likely coincident with the section grid)' : ''}` : null;
 
 // ---------- recorded-plat setbacks ----------
@@ -161,6 +164,7 @@ export function renderReportHTML(R, db) {
     ['Deed (# / date)', p.DeedNumber ? a(`#${p.DeedNumber}, recorded ${p.DeedDate || '—'}`, LINKS.recDoc(p.DeedNumber)) : '—'],
     ['Township / Range / Section / Quarter', esc([p.Township, p.Range, p.Section, p.QuarterSection].map(dash).join(' / '))],
     [`Nearest section line${(R.sectionLines || []).length > 1 ? 's' : ''}`, (R.sectionLines && R.sectionLines.length ? R.sectionLines.map(l => esc(ftDir(l))).join('<br>') : esc(dash(ftDir(R.sectionLine))))],
+    ...(R.sectionDirs ? [['Section lines — north / south / east / west', esc(sectionDirsText(R.sectionDirs))]] : []),
     ...(R.midsectionLine ? [['Nearest midsection line', esc(ftDir(R.midsectionLine))]] : []),
     ['Lot size (GIS polygon)', `${p.areaSqFt.toLocaleString()} sq ft (${p.areaAcres} ac)`],
     ['Property use / legal class', esc(dash([p.LandLegalClassDescription, p.ImprovementLegalClassDescription].filter(Boolean).join(' / ')))],
@@ -294,6 +298,7 @@ export function renderReportMD(R, db, extras = {}) {
     ['Deed (# / date)', p.DeedNumber ? mdLink(`#${p.DeedNumber}, recorded ${p.DeedDate}`, LINKS.recDoc(p.DeedNumber)) : '—'],
     ['Township / Range / Section / Quarter Section', [p.Township, p.Range, p.Section, p.QuarterSection].map(dash).join(' / ')],
     ['Nearest section lines (direction & distance)', R.sectionLines && R.sectionLines.length ? R.sectionLines.map(ftDir).join('; ') : dash(ftDir(R.sectionLine))],
+    ...(R.sectionDirs ? [['Section lines — north / south / east / west (distance from parcel)', sectionDirsText(R.sectionDirs)]] : []),
     ...(R.midsectionLine ? [['Nearest midsection line (direction & distance)', ftDir(R.midsectionLine)]] : []),
     ['Lot size (sq ft / acres)', `${p.areaSqFt.toLocaleString()} / ${p.areaAcres}`],
     ['Property use description', dash([p.LandLegalClassDescription, p.ImprovementLegalClassDescription].filter(Boolean).join(' / '))],

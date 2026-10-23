@@ -447,3 +447,5 @@ html.vf-open { overflow: hidden; }
 .ro-grid > label > span { min-width: 0; }
 .map-key { grid-column: 1 / -1; margin: 0; display: flex; align-items: center; gap: .4rem; }
 .sec-swatch { display: inline-block; width: 28px; height: 0; border-top: 3px dashed #e03131; }
+.leaflet-tooltip.sec-label { background: #e03131; color: #fff; border: 0; font-weight: 600; font-size: .72rem; padding: 1px 6px; box-shadow: 0 1px 4px rgb(0 0 0 / .35); }
+.leaflet-tooltip.sec-label::before { display: none; }
