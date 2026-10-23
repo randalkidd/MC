@@ -1,0 +1,33 @@
+# Weekly snapshot of MCDOT's Patent Easement Abandonment Tracker (PDF) → data/patent-abandonments.json
+# (checked on every parcel lookup, Easements section). Mondays; "Run workflow" on the Actions tab runs it now.
+name: Refresh Patent Easement Abandonments
+on:
+  schedule:
+    - cron: '23 10 * * 1'   # Mondays 10:23 UTC (3:23 a.m. Arizona)
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['tools/refresh_patent_abandonments.py', '.github/workflows/refresh-patent-abandonments.yml']
+permissions:
+  contents: write
+concurrency: refresh-patent-abandonments
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install pdfplumber==0.11.10
+      - name: Download and parse the tracker
+        run: python3 tools/refresh_patent_abandonments.py
+      - name: Commit snapshot if it changed
+        run: |
+          git add -N data/patent-abandonments.json data/source/patent-easement-tracker.pdf data/source/patent-easement-tracker.txt
+          if git diff --quiet -- data/patent-abandonments.json; then echo "No change"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/patent-abandonments.json data/source/patent-easement-tracker.pdf data/source/patent-easement-tracker.txt
+          git commit -m "Patent easement abandonments: weekly refresh from MCDOT tracker ($(date -u +%Y-%m-%d))"
+          git pull --rebase && git push
