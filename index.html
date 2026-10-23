@@ -7,14 +7,14 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https://gis.maricopa.gov https://server.arcgisonline.com https://*.arcgisonline.com https://unpkg.com; connect-src 'self' https://gis.maricopa.gov https://publicapi.recorder.maricopa.gov https://edms.maricopa.gov https://recorder.maricopa.gov https://api.github.com https://*.workers.dev; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="preconnect" href="https://gis.maricopa.gov" crossorigin>
-<script src="js/theme.js?v=1a5e8ca6"></script>
+<script src="js/theme.js?v=69c81ac9"></script>
 <title>Unofficial Maricopa County Zoning Hub</title>
 <meta name="description" content="Maricopa County parcel lookup, MCZO/MCSR standards, subdivision plat database and plan-review deficiency builder.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23F26724'/><path d='M7 24V9l9 7 9-7v15' fill='none' stroke='%2304161a' stroke-width='3' stroke-linejoin='round'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=1a5e8ca6">
-<link rel="modulepreload" href="js/app.js?v=1a5e8ca6"><link rel="modulepreload" href="js/lookup.js?v=1a5e8ca6"><link rel="modulepreload" href="js/report.js?v=1a5e8ca6"><link rel="modulepreload" href="js/net.js?v=1a5e8ca6"><link rel="modulepreload" href="js/github.js?v=1a5e8ca6"><link rel="modulepreload" href="js/standards.js?v=1a5e8ca6"><link rel="modulepreload" href="js/checklists.js?v=1a5e8ca6"><link rel="modulepreload" href="js/review.js?v=1a5e8ca6"><link rel="modulepreload" href="js/recorder.js?v=1a5e8ca6"><link rel="modulepreload" href="js/subdivisions.js?v=1a5e8ca6">
+<link rel="stylesheet" href="css/app.css?v=69c81ac9">
+<link rel="modulepreload" href="js/app.js?v=69c81ac9"><link rel="modulepreload" href="js/lookup.js?v=69c81ac9"><link rel="modulepreload" href="js/report.js?v=69c81ac9"><link rel="modulepreload" href="js/net.js?v=69c81ac9"><link rel="modulepreload" href="js/github.js?v=69c81ac9"><link rel="modulepreload" href="js/standards.js?v=69c81ac9"><link rel="modulepreload" href="js/checklists.js?v=69c81ac9"><link rel="modulepreload" href="js/review.js?v=69c81ac9"><link rel="modulepreload" href="js/recorder.js?v=69c81ac9"><link rel="modulepreload" href="js/subdivisions.js?v=69c81ac9">
 </head>
 <body>
 <header class="top">
@@ -25,7 +25,7 @@
   <button class="tab" role="tab" data-tab="p-lookup">Parcel Lookup</button>
   <button class="tab gated" role="tab" data-tab="p-review" data-perm="review" hidden>Plan Review Hub</button>
   <button class="tab gated" role="tab" data-tab="p-subs" hidden>SubdivisionDB</button>
-  <button class="tab gated" role="tab" data-tab="p-saved" data-perm="review" hidden>Saved Parcels</button>
+  <button class="tab gated" role="tab" data-tab="p-saved" data-perm="review" hidden>Saved Items</button>
   <button class="tab" role="tab" data-tab="p-ref">Reference</button>
   <button class="tab" role="tab" data-tab="p-signin">Sign In</button>
   <button class="tab" role="tab" data-tab="p-settings" data-perm="settings">⚙ Settings</button>
@@ -37,7 +37,7 @@
   <div id="landing" class="card landing">
     <h2>Unofficial Maricopa County Zoning Hub</h2>
     <p>Look up any parcel in unincorporated Maricopa County. Each lookup shows its zoning, overlays, current and historic cases, plat setbacks, easements, floodplain, and section lines, all pulled live from public county records. The <b>Reference</b> tab has the Zoning Ordinance and Subdivision Regulation standards, all Planning &amp; Development directives, and a searchable lookup of county codes and ordinances.</p>
-    <p class="sub">Staff tools (Plan Review Hub, SubdivisionDB with Land Division, and Saved Parcels) unlock after you sign in: open <b>Sign In</b>, enter your name and passphrase, click <b>Save</b>, then <b>Test GitHub</b>.</p>
+    <p class="sub">Staff tools (Plan Review Hub, SubdivisionDB with Land Division, and Saved Items) unlock after you sign in: open <b>Sign In</b>, enter your name and passphrase, click <b>Save</b>, then <b>Test GitHub</b>.</p>
     <div class="actions"><button class="btn primary" type="button" data-goto="p-signin">Sign In</button><button class="btn ghost" type="button" data-goto="p-ref">Browse the reference</button></div>
   </div>
   <form id="lookup-form" class="searchbar">
@@ -53,7 +53,7 @@
   <div id="report-actions" class="actions" hidden>
     <button class="btn" id="rep-copy">Copy as Markdown</button>
     <button class="btn" id="rep-dl">Download .md</button>
-    <button class="btn" id="rep-save" data-perm="review" title="Save this report to your own Saved Parcels (private — only you can see it)">Save to My Parcels</button>
+    <button class="btn" id="rep-save" data-perm="review" title="Save this report to your own Saved Items (private — only you can see it)">Save to Saved Items</button>
     <button class="btn" id="rep-pdf">Save PDF</button>
     <button class="btn ghost" id="rep-print">Print</button>
   </div>
@@ -142,7 +142,7 @@
 
   <div class="card">
     <div class="cardhead"><h2>Markup Table</h2>
-      <div class="actions"><button class="btn" id="rv-copy">Copy</button><button class="btn" id="rv-dl">Download .md</button><button class="btn primary" id="rv-letter" title="Zoning Plan Review Comments letter (Maricopa County template) listing only the items that do not meet requirements">Comment letter (PDF)</button><button class="btn" id="rv-save" data-perm="review" title="Save this review to your own Saved Parcels (private — only you can see it)">Save to My Parcels</button><button class="btn ghost" id="rv-reset">New review</button></div></div>
+      <div class="actions"><button class="btn" id="rv-copy">Copy</button><button class="btn" id="rv-dl">Download .md</button><button class="btn primary" id="rv-letter" title="Zoning Plan Review Comments letter (Maricopa County template) listing only the items that do not meet requirements">Comment letter (PDF)</button><button class="btn" id="rv-save" data-perm="review" title="Save this review to your own Saved Items (private — only you can see it)">Save to Saved Items</button><button class="btn ghost" id="rv-reset">New review</button></div></div>
     <textarea id="rv-md" class="md" rows="16" spellcheck="false"></textarea>
   </div>
 </section>
@@ -170,14 +170,15 @@
     <p class="sub">Countywide, including subdivisions inside cities and towns. The county's MCR numbers are book–page in the Recorder's map books. Plats link to the Recorder; <b>Add to waitlist</b> queues one for <b>Process with Claude</b> in the Plat Automation Waitlist below.</p>
   </div>
   <div id="land-division" class="ld-block" data-perm="review">
-  <div class="card">
-    <h2>Check an Existing Parcel — Was the Split Lawful?</h2>
+  <div class="card collapsible" id="ls-card">
+    <div class="cardhead"><h2>Check an Existing Parcel — Was the Split Lawful? <button class="collapse-btn" type="button" data-collapse="ls-card" aria-expanded="true" title="Collapse">▾</button></h2></div>
     <form id="ls-form" class="searchbar"><input id="ls-apn" placeholder="APN — e.g. 401-52-034C" autocomplete="off"><button class="btn primary">Check split</button></form>
+    <div id="ld-out" class="ld-out-inline"></div>
     <p class="sub">Finds every Assessor parcel split from the same parent (same book-map-item, suffix letters A, B, C…), then checks the count against the 6-lot subdivision threshold, each lot's size against the zoning minimum, and street access. Screening only — confirm with deeds and recording history.</p>
     <div id="ls-status" class="status" hidden></div>
     <div id="ls-out"></div>
   </div>
-  <div class="grid2">
+  <div>
     <form id="ld-form" class="card">
       <h2>Classify a Land Division</h2>
       <label>Number of resulting lots/parcels (including the remainder)<input name="lots" type="number" min="1" value="2"></label>
@@ -190,7 +191,6 @@
       <label class="rowc"><input type="checkbox" name="ag"> Agricultural sale or lease (A.R.S. 11-830)</label>
       <label class="rowc"><input type="checkbox" name="septic"> Lots under 1 net acre on individual septic</label>
     </form>
-    <div id="ld-out"></div>
   </div>
   <p class="sub">Built from the MCSR (Jan 9, 2026 revision) definitions and procedures (§105.24, §105.37, §202–207) and DD-2013-10.</p>
   </div>
@@ -208,10 +208,9 @@
 
 <!-- SAVED -->
 <section class="panel" id="p-saved" hidden>
-  <div class="card"><div class="cardhead"><h2>My Saved Parcels</h2><button class="btn sm" id="saved-refresh" type="button">Refresh</button></div>
+  <div class="card"><div class="cardhead"><h2>Saved Items</h2><button class="btn sm" id="saved-refresh" type="button">Refresh</button></div>
   <p class="sub">Parcel reports and plan reviews you saved. They are private to your sign-in — other users can't see them.</p>
   <div id="saved-list"><p class="sub">Loading…</p></div></div>
-  <dialog id="saved-view" class="saved-view"><div class="cardhead"><h2 id="sv-title"></h2><button class="btn sm ghost" id="sv-close" type="button" aria-label="Close">✕</button></div><pre id="sv-text" class="sv-text"></pre><div class="actions"><button class="btn" id="sv-dl" type="button">Download</button><button class="btn danger" id="sv-del" type="button">Delete</button></div></dialog>
 </section>
 
 <!-- REFERENCE -->
@@ -250,10 +249,26 @@
   </ul></div>
 </section>
 
+<!-- PROFILE -->
+<section class="panel" id="p-profile" hidden>
+  <div class="card profile">
+    <div class="cardhead"><h2>Profile</h2></div>
+    <p id="pf-account" class="sub"></p>
+    <label>Profile name<input id="pf-name" maxlength="60" autocomplete="name"></label>
+    <div class="actions"><button class="btn primary" id="pf-save-name" type="button">Save name</button></div>
+    <h3>My Data</h3>
+    <p class="sub" id="pf-data">Loading…</p>
+    <div class="actions">
+      <button class="btn" id="pf-signout" type="button" title="Forget your key on this browser. Your saved items stay.">Sign out (forget key on this browser)</button>
+      <button class="btn danger" id="pf-clear" type="button" title="Delete your saved items and the plans you submitted. Cannot be undone.">Clear all my data</button>
+    </div>
+    <p class="sub">“Clear all my data” deletes only your Saved Items and the plans (and plan data) you submitted to the Plan Queue. Nothing else is touched. It can't be undone.</p>
+  </div>
+</section>
+
 <!-- SIGN IN -->
 <section class="panel" id="p-signin" hidden>
   <div class="card signin">
-    <h2>Sign In</h2>
     <label>Name<input id="si-name" autocomplete="name" maxlength="60"></label>
     <label>Passphrase<input id="si-pass" type="password" autocomplete="current-password"></label>
     <div class="actions"><button class="btn primary" id="si-save" type="button">Save</button><button class="btn ghost" id="si-test" type="button">Test GitHub</button></div>
@@ -299,7 +314,7 @@
         <option value="custom">Custom…</option>
       </select></label>
       <fieldset class="perm-boxes"><legend class="sub">Permissions</legend>
-        <label class="rowc"><input type="checkbox" name="p" value="review" checked> review — Plan Review Hub, Land division, Saved Parcels</label>
+        <label class="rowc"><input type="checkbox" name="p" value="review" checked> review — Plan Review Hub, Land Division, Saved Items</label>
         <label class="rowc"><input type="checkbox" name="p" value="write" checked> write — save to GitHub (SubdivisionDB, waitlist, reports, reviews)</label>
         <label class="rowc"><input type="checkbox" name="p" value="queue" checked> queue — Queued Review (private MC-queue)</label>
         <label class="rowc"><input type="checkbox" name="p" value="rapid"> rapid — Rapid Review (Anthropic API, costs money)</label>
@@ -311,11 +326,18 @@
     <div id="st-newkey" class="warn" hidden></div>
     <div id="st-keys-list"><p class="sub">Click Refresh to load.</p></div>
   </div>
+  <div class="card" id="st-folders" data-perm="admin">
+    <div class="cardhead"><h2>User Folders</h2><button class="btn sm" id="sf-refresh" type="button">Refresh</button></div>
+    <p class="sub">Open any user's Saved Items and the plans they submitted to the Plan Queue; download or remove files as needed.</p>
+    <label>User<select id="sf-user"><option value="">— pick a user —</option></select></label>
+    <div id="sf-list"></div>
+  </div>
 </section>
+<dialog id="saved-view" class="saved-view"><div class="cardhead"><h2 id="sv-title"></h2><button class="btn sm ghost" id="sv-close" type="button" aria-label="Close">✕</button></div><pre id="sv-text" class="sv-text"></pre><div class="actions"><button class="btn" id="sv-dl" type="button">Download</button><button class="btn danger" id="sv-del" type="button">Delete</button></div></dialog>
 </main>
 <footer class="foot">All information in this system is public and accessible to anyone; items saved here are stored in a public GitHub repository. Reference tool — verify findings against the adopted ordinance, recorded documents and case files before relying on them.
-<div class="build">Version <span id="build">10.23.26.020</span> · <span id="relay-ver" data-latest="18" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
+<div class="build">Version <span id="build">10.23.26.024</span> · <span id="relay-ver" data-latest="19" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
 <div id="toasts" aria-live="polite"></div>
-<script type="module" src="js/app.js?v=1a5e8ca6"></script>
+<script type="module" src="js/app.js?v=69c81ac9"></script>
 </body>
 </html>

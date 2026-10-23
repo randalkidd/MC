@@ -13,7 +13,7 @@
 //   ANTHROPIC_API_KEY = sk-ant-...  (optional; enables Plan review → "Read a site plan PDF" via POST /ai/siteplan)
 //   ANTHROPIC_MODEL   = optional Text variable to override the model (default below)
 
-const RELAY_VERSION = '18';
+const RELAY_VERSION = '19';
 // Settings. Defaults below; each can be overridden by a Cloudflare variable (Worker → Settings → Variables and
 // Secrets, Type: Text) or, for local `wrangler dev`, by worker/.dev.vars (never committed — see .dev.vars.example).
 //   ALLOWED_ORIGIN = https://randalkidd.github.io   (comma-separate to add e.g. http://localhost:8000 for local testing)
@@ -119,6 +119,55 @@ async function authenticateKey(k, env) {
 }
 const can = (who, perm) => !!who && who.perms.includes(perm);
 const denied = (origin, perm) => json({ error: `Your access key doesn't allow this (needs "${perm}"). Ask the site administrator.` }, 403, origin);
+// ---------------- a user's data (Profile + admin folders) ----------------
+const ADMIN_PATH = /^(users\/[A-Za-z0-9_-]{1,40}\/(parcels|reviews)\/[A-Za-z0-9._-]{1,120}\.(md|json)|(queue|db)\/[A-Za-z0-9._-]{1,120}\.(pdf|json))$/;
+const META_CACHE = new Map();
+const safeId = (id) => String(id || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40);
+async function readJsonPath(env, path) { const r = await ghq(env, `contents/${path}`, { headers: { Accept: 'application/vnd.github.raw' } }); return r.ok ? r.json().catch(() => null) : null; }
+// Every file belonging to user `id`: their saved items, the plans they queued (PDF + metadata) and plan data they saved.
+async function userFiles(env, id) {
+  const r = await ghq(env, 'git/trees/main?recursive=1');
+  if (r.status === 409) return { saved: [], plans: [] };
+  if (!r.ok) throw new Error(`GitHub ${r.status} on ${QUEUE_REPO}`);
+  const tree = ((await r.json()).tree || []).filter(t => t.type === 'blob');
+  const base = `users/${safeId(id)}/`;
+  const saved = tree.filter(t => t.path.startsWith(base) && ADMIN_PATH.test(t.path)).map(t => ({ path: t.path, size: t.size }));
+  const metas = tree.filter(t => /^(queue|db)\/.+\.json$/.test(t.path)).slice(0, 400);
+  // Blob SHAs change only when a file changes, so each queue/db file is read once per Worker instance, not on every request.
+  const owned = (await Promise.all(metas.map(async t => { let j = META_CACHE.get(t.sha); if (j === undefined) { const full = await readJsonPath(env, t.path); j = full ? { by: full.by || '', file: full.file || '', apn: full.apn || '', when: full.submitted || full.inserted || '', status: full.status || full.source || '' } : null; if (full) { if (META_CACHE.size > 3000) META_CACHE.clear(); META_CACHE.set(t.sha, j); } } return j && j.by === id ? { path: t.path, size: t.size, file: j.file, apn: j.apn, when: j.when, status: j.status } : null; }))).filter(Boolean);
+  const pdfs = new Set(tree.filter(t => t.path.endsWith('.pdf')).map(t => t.path));
+  const plans = owned.flatMap(x => { const pdf = x.path.startsWith('queue/') ? x.path.replace(/\.json$/, '.pdf') : null; return pdf && pdfs.has(pdf) ? [x, { ...x, path: pdf }] : [x]; });
+  return { saved, plans };
+}
+async function delPath(env, path, message) {
+  const cur = await ghq(env, `contents/${path}`); if (cur.status === 404) return true; if (!cur.ok) return false;
+  const sha = (await cur.json()).sha;
+  const del = await ghq(env, `contents/${path}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message, sha }) });
+  return del.ok;
+}
+async function handleMe(req, env, origin, route, who) {
+  if (!env.GITHUB_TOKEN) return json({ error: 'Relay is missing GITHUB_TOKEN.' }, 500, origin);
+  if (!who) return json({ error: 'Wrong passphrase.' }, 401, origin);
+  let body = {}; if (req.method === 'POST') { try { body = await req.json(); } catch {} }
+  if (route === '/me/rename' && req.method === 'POST') {
+    const label = String(body.label || '').trim().slice(0, 60); if (!label) return json({ error: 'Enter a name.' }, 400, origin);
+    const { list, sha, superName } = await loadKeys(env, true);
+    const save = async (l, nm, msg) => { const out = JSON.stringify({ schema: 1, updated: new Date().toISOString(), superName: nm, keys: l }, null, 2) + '\n'; const put = await ghq(env, `contents/${KEYS_PATH}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg, content: b64(out), ...(sha ? { sha } : {}) }) }); keyCache = { t: 0, list: null, sha: null, superName: '' }; if (!put.ok) throw new Error(`GitHub ${put.status} saving the name`); };
+    if (who.super) await save(list, label, 'Super account renamed itself');
+    else { const k = list.find(x => x.id === who.id); if (!k) return json({ error: 'Key not found.' }, 404, origin); k.label = label; await save(list, superName, 'User renamed themself'); }
+    return json({ ok: true, label }, 200, origin);
+  }
+  if (route === '/me/files' && req.method === 'GET') return json({ ok: true, ...(await userFiles(env, who.id)) }, 200, origin);
+  if (route === '/me/clear' && req.method === 'POST') {
+    // Only this user's saved items and the plans / plan data they submitted. Nothing else.
+    const { saved, plans } = await userFiles(env, who.id);
+    let n = 0, failed = 0;
+    for (const f of [...saved, ...plans]) { if (await delPath(env, f.path, `Cleared by ${who.label}`)) n++; else failed++; }
+    return json({ ok: true, removed: n, failed }, 200, origin);
+  }
+  return json({ error: 'Not found' }, 404, origin);
+}
+
 async function handleAdmin(req, env, origin, route, who) {
   if (!can(who, 'admin')) return denied(origin, 'admin');
   if (!env.GITHUB_TOKEN) return json({ error: 'Relay is missing GITHUB_TOKEN.' }, 500, origin);
@@ -143,6 +192,20 @@ async function handleAdmin(req, env, origin, route, who) {
     const rec = { id: `k${Date.now().toString(36)}${[...crypto.getRandomValues(new Uint8Array(3))].map(b => b.toString(36)).join('')}`, label, perms, hash: await sha256hex(key), created: new Date().toISOString(), createdBy: who.label, ...(days ? { expires: new Date(Date.now() + days * 86400000).toISOString() } : {}) };
     await save([...list, rec], sha, `Access key added: ${label}`);
     return json({ ok: true, key, record: pub(rec) }, 200, origin);
+  }
+  if (route === '/admin/files' && req.method === 'GET') {
+    const id = safeId(new URL(req.url).searchParams.get('user')); if (!id) return json({ error: 'Pick a user.' }, 400, origin);
+    return json({ ok: true, user: id, ...(await userFiles(env, id)) }, 200, origin);
+  }
+  if (route === '/admin/raw' && req.method === 'GET') {
+    const path = new URL(req.url).searchParams.get('path') || ''; if (!ADMIN_PATH.test(path) || path.includes('..')) return json({ error: 'Bad path.' }, 400, origin);
+    const r = await ghq(env, `contents/${path}`, { headers: { Accept: 'application/vnd.github.raw' } });
+    if (!r.ok) return json({ error: r.status === 404 ? 'Not found.' : `GitHub ${r.status}` }, r.status === 404 ? 404 : 502, origin);
+    return new Response(r.body, { status: 200, headers: { ...cors(origin), 'Content-Type': path.endsWith('.pdf') ? 'application/pdf' : path.endsWith('.json') ? 'application/json' : 'text/markdown; charset=utf-8', 'Content-Disposition': `attachment; filename="${path.split('/').pop()}"`, 'Cache-Control': 'no-store' } });
+  }
+  if (route === '/admin/del' && req.method === 'POST') {
+    const path = String(body.path || ''); if (!ADMIN_PATH.test(path) || path.includes('..')) return json({ error: 'Bad path.' }, 400, origin);
+    return (await delPath(env, path, `Removed by administrator ${who.label}`)) ? json({ ok: true }, 200, origin) : json({ error: 'Delete failed.' }, 502, origin);
   }
   if (route === '/admin/keys/rename' && req.method === 'POST') {
     // Edit a user's name (an access key's label), or the super account's name (id "super").
@@ -340,6 +403,8 @@ async function handleQueue(req, env, origin, route, url, who) {
     if (path.endsWith('.json')) {
       let body; try { body = await req.json(); } catch { return json({ error: 'Bad JSON' }, 400, origin); }
       if (typeof body.content !== 'string' || body.content.length > 3000000) return json({ error: 'Missing or oversized content.' }, 400, origin);
+      // Record who queued / saved it, so their data can be found and cleared later (Profile → Clear my data).
+      try { const obj = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(body.content), c => c.charCodeAt(0)))); if (obj && typeof obj === 'object' && !obj.by) { obj.by = who.id; obj.byName = who.label; body.content = b64(JSON.stringify(obj, null, 2) + '\n'); } } catch {}
       let put, out = {};
       for (let attempt = 0; attempt < 4; attempt++) {
         const cur = await ghq(env, `contents/${path}`); const sha = cur.ok ? (await cur.json()).sha : undefined;
@@ -423,7 +488,7 @@ export default {
     if (origin && !allowed(origin)) return new Response('Forbidden origin', { status: 403, headers: cors(origin) });
     if (!['GET', 'POST'].includes(req.method)) return new Response('Method not allowed', { status: 405, headers: cors(origin) });
     const u0 = new URL(req.url);
-    if (/^\/(gh|q|ai|admin|u)\//.test(u0.pathname) && throttled(req)) return json({ error: 'Too many wrong passphrases from this network — wait 10 minutes and try again.' }, 429, origin);
+    if (/^\/(gh|q|ai|admin|u|me)\//.test(u0.pathname) && throttled(req)) return json({ error: 'Too many wrong passphrases from this network — wait 10 minutes and try again.' }, 429, origin);
     if (u0.pathname.startsWith('/gh/')) {
       if (!allowed(origin)) return json({ error: 'Saving is only allowed from the site.' }, 403, origin);
       return handleGitHub(req, env, origin, u0.pathname, await authenticate(req, env));
@@ -432,6 +497,10 @@ export default {
       if (!allowed(origin)) return json({ error: 'Only the site may use this.' }, 403, origin);
       const who = await authenticate(req, env); if (!who) return json({ error: 'Wrong passphrase.' }, 401, origin);
       try { return await handleAdmin(req, env, origin, u0.pathname, who); } catch (e) { return json({ error: e.message }, 502, origin); }
+    }
+    if (u0.pathname.startsWith('/me/')) {
+      if (!allowed(origin)) return json({ error: 'Only the site may use this.' }, 403, origin);
+      try { return await handleMe(req, env, origin, u0.pathname, await authenticate(req, env)); } catch (e) { return json({ error: e.message }, 502, origin); }
     }
     if (u0.pathname.startsWith('/u/')) {
       if (!allowed(origin)) return json({ error: 'Only the site may use this.' }, 403, origin);

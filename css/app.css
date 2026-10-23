@@ -252,7 +252,7 @@ html:not(.perm-rapid) [data-perm="rapid"], html:not(.perm-admin) [data-perm="adm
 .signin .status:empty { display: none; }
 
 /* Collapse arrows */
-.collapse-btn { border: 0; background: transparent; color: var(--muted); font-size: .95em; line-height: 1; padding: .1rem .35rem; margin-left: .25rem; cursor: pointer; border-radius: 6px; vertical-align: middle; }
+.collapse-btn { border: 0; background: transparent; color: var(--muted); font-size: 1.14em; line-height: 1; padding: .1rem .35rem; margin-left: .25rem; cursor: pointer; border-radius: 6px; vertical-align: middle; }
 .collapse-btn:hover, .collapse-btn:focus-visible { color: var(--accent); background: var(--soft); outline: none; }
 .sp-grid.collapsed > .card > :not(.cardhead) { display: none !important; }
 .sp-grid.collapsed > .card .cardhead { margin-bottom: 0; }
@@ -265,3 +265,11 @@ html:not(.perm-rapid) [data-perm="rapid"], html:not(.perm-admin) [data-perm="adm
 .sv-text { white-space: pre-wrap; font: .82rem/1.45 var(--mono); max-height: 60vh; overflow: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: .7rem; }
 .saved-files { list-style: none; padding: 0; margin: .3rem 0 1rem; display: grid; gap: .3rem; }
 .saved-files li { display: flex; justify-content: space-between; align-items: center; gap: .5rem; border: 1px solid var(--line); border-radius: 8px; padding: .4rem .6rem; background: var(--surface); }
+
+/* Sign In is hidden once this browser is connected (the badge opens the Profile instead) */
+html:not(.locked) .tab[data-tab="p-signin"] { display: none !important; }
+.profile { max-width: 620px; }
+.profile label { display: block; margin-bottom: .5rem; }
+.ld-out-inline { margin: .6rem 0; }
+.ld-out-inline:empty { display: none; }
+.folder h3 { margin: 1rem 0 .3rem; }
