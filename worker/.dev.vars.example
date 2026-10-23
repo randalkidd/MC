@@ -10,3 +10,4 @@ ANTHROPIC_API_KEY=REPLACE_ME
 # ALLOWED_ORIGIN=https://randalkidd.github.io,http://localhost:8000
 # REPO=randalkidd/MC
 # BRANCH=main
+# QUEUE_REPO=randalkidd/MC-queue

@@ -1,6 +1,6 @@
 // Plan viewer: shows the site-plan PDF with Claude's issue/value locations drawn on top. Click an item in the list to
 // jump to it on the plan; click a box on the plan to find it in the list. Uses vendored pdf.js (same origin, lazy).
-import { CHECKLISTS } from './checklists.js?v=667cf2dd';
+import { CHECKLISTS } from './checklists.js?v=2fba8b25';
 
 const PDFJS = './js/vendor/pdfjs-3.2.146/';
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -9,10 +9,15 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<':
 const DB = 'mc-siteplan';
 const idb = () => new Promise((res, rej) => { const r = indexedDB.open(DB, 1); r.onupgradeneeded = () => r.result.createObjectStore('pdf'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
 export async function savePdf(file) {
-  try { const db = await idb(); await new Promise((res, rej) => { const t = db.transaction('pdf', 'readwrite'); t.objectStore('pdf').put({ name: file.name, size: file.size, blob: file }, 'last'); t.oncomplete = res; t.onerror = () => rej(t.error); }); } catch {}
+  try { const db = await idb(); await new Promise((res, rej) => { const t = db.transaction('pdf', 'readwrite'); t.objectStore('pdf').put({ name: file.name, size: file.size, blob: file, saved: Date.now() }, 'last'); t.oncomplete = res; t.onerror = () => rej(t.error); }); } catch {}
 }
 export async function loadPdf(name) {
-  try { const db = await idb(); const v = await new Promise((res) => { const q = db.transaction('pdf').objectStore('pdf').get('last'); q.onsuccess = () => res(q.result); q.onerror = () => res(null); }); return v && (!name || v.name === name) ? v.blob : null; } catch { return null; }
+  try {
+    const db = await idb(); const v = await new Promise((res) => { const q = db.transaction('pdf').objectStore('pdf').get('last'); q.onsuccess = () => res(q.result); q.onerror = () => res(null); });
+    // Plans are kept at most 14 days, in this browser too.
+    if (v && v.saved && Date.now() - v.saved > 14 * 86400000) { db.transaction('pdf', 'readwrite').objectStore('pdf').delete('last'); return null; }
+    return v && (!name || v.name === name) ? v.blob : null;
+  } catch { return null; }
 }
 
 let libP = null;
@@ -272,7 +277,7 @@ export async function openViewer(blob, ai, review, F, fileName) {
     let extra = [], runs = 0;
     try { const t = await textLocate(V.doc, r, new Set(claudeAnn.map(a => a.ref))); extra = t.ann; runs = t.textRuns; } catch {}
     V.items = buildItems({ ...ai, result: { ...r, annotations: [...(r.annotations || []), ...extra] } }, review, F);
-    const old = ai.engine !== 'free' && (!ai.relay || +ai.relay < 12);
+    const old = ai.engine === 'claude' && (!ai.relay || +ai.relay < 12);
     const msgs = [];
     if (ai.engine === 'free') msgs.push(`Free text reader: ${claudeAnn.length} location${claudeAnn.length === 1 ? '' : 's'} marked on the plan (exact text positions; tick “Show values read”). Items it couldn't find show “location not marked” — use <b>Read with Claude</b> for those.`);
     else if (!claudeAnn.length) msgs.push(old ? `This plan was read before the relay could return locations (relay ${ai.relay ? `v${ai.relay}` : 'v11 or older'}). Deploy the latest relay (v13) in Cloudflare and click <b>Read with Claude</b> again to get Claude's boxes.` : 'Claude did not return any locations for this plan — try <b>Read with Claude</b> again.');

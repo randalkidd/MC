@@ -7,14 +7,14 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https://gis.maricopa.gov https://server.arcgisonline.com https://*.arcgisonline.com https://unpkg.com; connect-src 'self' https://gis.maricopa.gov https://publicapi.recorder.maricopa.gov https://edms.maricopa.gov https://recorder.maricopa.gov https://api.github.com https://*.workers.dev; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="preconnect" href="https://gis.maricopa.gov" crossorigin>
-<script src="js/theme.js?v=667cf2dd"></script>
+<script src="js/theme.js?v=2fba8b25"></script>
 <title>Unofficial Maricopa County Zoning Hub</title>
 <meta name="description" content="Maricopa County parcel lookup, MCZO/MCSR standards, subdivision plat database and plan-review deficiency builder.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23F26724'/><path d='M7 24V9l9 7 9-7v15' fill='none' stroke='%2304161a' stroke-width='3' stroke-linejoin='round'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=667cf2dd">
-<link rel="modulepreload" href="js/app.js?v=667cf2dd"><link rel="modulepreload" href="js/lookup.js?v=667cf2dd"><link rel="modulepreload" href="js/report.js?v=667cf2dd"><link rel="modulepreload" href="js/net.js?v=667cf2dd"><link rel="modulepreload" href="js/github.js?v=667cf2dd"><link rel="modulepreload" href="js/standards.js?v=667cf2dd"><link rel="modulepreload" href="js/checklists.js?v=667cf2dd"><link rel="modulepreload" href="js/review.js?v=667cf2dd"><link rel="modulepreload" href="js/recorder.js?v=667cf2dd"><link rel="modulepreload" href="js/subdivisions.js?v=667cf2dd">
+<link rel="stylesheet" href="css/app.css?v=2fba8b25">
+<link rel="modulepreload" href="js/app.js?v=2fba8b25"><link rel="modulepreload" href="js/lookup.js?v=2fba8b25"><link rel="modulepreload" href="js/report.js?v=2fba8b25"><link rel="modulepreload" href="js/net.js?v=2fba8b25"><link rel="modulepreload" href="js/github.js?v=2fba8b25"><link rel="modulepreload" href="js/standards.js?v=2fba8b25"><link rel="modulepreload" href="js/checklists.js?v=2fba8b25"><link rel="modulepreload" href="js/review.js?v=2fba8b25"><link rel="modulepreload" href="js/recorder.js?v=2fba8b25"><link rel="modulepreload" href="js/subdivisions.js?v=2fba8b25">
 </head>
 <body>
 <header class="top">
@@ -64,15 +64,23 @@
 <section class="panel" id="p-review" hidden>
   <div class="card sp-card" id="sp-card">
     <div class="cardhead"><h2>Read a site plan PDF</h2></div>
-    <p class="sub">Pick the submittal type below, then drop the applicant's site plan here. <b>Read plan (free)</b> reads the PDF's own text in your browser (nothing is uploaded, no cost): APN, owner, address, lot area, zoning, scale, area table, coverage and labeled setbacks. It works on plans exported from CAD/Word, not on scans or hand drawings. If it can't read the plan, <b>Read with Claude</b> is offered: Claude reads every sheet, including scans and drawn dimensions, and fills the setbacks, structures and checklist (sent through your relay to Anthropic, read once and deleted; billed to your API key). Either way, the APN, owner, address, lot area, zoning and subdivision/lot are checked against the Assessor record and the recorded deed. <b>Verify every value against the plan.</b></p>
+    <p class="sub">Pick the submittal type below, drop the applicant's site plan here, then choose a review. <b>Superficial Review</b> is free and instant: it reads the PDF's own text in your browser (CAD/Word exports, not scans). <b>Rapid Review</b>: Claude reads every sheet now (about a minute, billed to the API key in your relay). <b>Queued Review</b>: the plan goes to your private repo and Claude on LONDON reads it at 12:15 AM Sunday–Thursday (no API cost); results are listed under Queued reviews. Every review fills this page and checks the APN, owner, address, lot area, zoning and subdivision/lot against the Assessor record and recorded deed; the data read from plans is kept in the private repo for 45 days. <b>Verify every value against the plan.</b></p>
     <div class="sp-drop" id="sp-drop">
       <input type="file" id="sp-file" accept="application/pdf,.pdf">
       <span id="sp-name" class="sub">or drag a PDF here (max 30 MB)</span>
-      <button class="btn primary" id="sp-free" type="button" disabled>Read plan (free)</button>
-      <button class="btn ghost" id="sp-run" type="button" hidden>Read with Claude</button>
+      <span class="sp-btns">
+        <button class="btn" id="sp-free" type="button" disabled title="Free, instant, in this browser: reads the PDF's own text (CAD/Word exports). Not for scans.">Superficial Review</button>
+        <button class="btn primary" id="sp-run" type="button" disabled title="Claude reads every sheet now (about a minute). Uses the Anthropic API key in your relay — billed per plan.">Rapid Review</button>
+        <button class="btn" id="sp-queue-btn" type="button" disabled title="Stored in your private repo and read by Claude on LONDON at 12:15 AM Sunday–Thursday. No API cost.">Queued Review</button>
+      </span>
     </div>
     <div id="sp-status" class="status" hidden></div>
     <div id="sp-out"></div>
+    <details class="sp-queued" id="sp-queued" open>
+      <summary><b>Queued reviews</b> <span class="sub">— read on LONDON at 12:15 AM Sun–Thu · plans kept 14 days, data 45 days (private repo)</span></summary>
+      <div class="actions"><button class="btn sm" id="sp-qrefresh" type="button">Refresh</button></div>
+      <div id="sp-qlist"><p class="sub">Click Refresh to load.</p></div>
+    </details>
   </div>
   <div class="grid2">
     <div class="card">
@@ -264,8 +272,8 @@
 </section>
 </main>
 <footer class="foot">All information in this system is public and accessible to anyone; items saved here are stored in a public GitHub repository. Reference tool — verify findings against the adopted ordinance, recorded documents and case files before relying on them.
-<div class="build">Version <span id="build">10.22.26.063</span> · <span id="relay-ver" data-latest="14" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
+<div class="build">Version <span id="build">10.23.26.002</span> · <span id="relay-ver" data-latest="15" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
 <div id="toasts" aria-live="polite"></div>
-<script type="module" src="js/app.js?v=667cf2dd"></script>
+<script type="module" src="js/app.js?v=2fba8b25"></script>
 </body>
 </html>

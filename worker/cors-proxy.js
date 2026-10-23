@@ -13,21 +13,23 @@
 //   ANTHROPIC_API_KEY = sk-ant-...  (optional; enables Plan review → "Read a site plan PDF" via POST /ai/siteplan)
 //   ANTHROPIC_MODEL   = optional Text variable to override the model (default below)
 
-const RELAY_VERSION = '14';
+const RELAY_VERSION = '15';
 // Settings. Defaults below; each can be overridden by a Cloudflare variable (Worker → Settings → Variables and
 // Secrets, Type: Text) or, for local `wrangler dev`, by worker/.dev.vars (never committed — see .dev.vars.example).
 //   ALLOWED_ORIGIN = https://randalkidd.github.io   (comma-separate to add e.g. http://localhost:8000 for local testing)
-//   REPO = randalkidd/MC     BRANCH = main
-const DEFAULTS = { ALLOWED_ORIGIN: 'https://randalkidd.github.io', REPO: 'randalkidd/MC', BRANCH: 'main' };
+//   REPO = randalkidd/MC     BRANCH = main     QUEUE_REPO = randalkidd/MC-queue (private: queued plans + plan-review data)
+const DEFAULTS = { ALLOWED_ORIGIN: 'https://randalkidd.github.io', REPO: 'randalkidd/MC', BRANCH: 'main', QUEUE_REPO: 'randalkidd/MC-queue' };
 let ORIGINS = new Set([DEFAULTS.ALLOWED_ORIGIN]); // only your site may use this relay
 let ALLOWED_ORIGIN = DEFAULTS.ALLOWED_ORIGIN;
 let REPO = DEFAULTS.REPO;
 let BRANCH = DEFAULTS.BRANCH;
+let QUEUE_REPO = DEFAULTS.QUEUE_REPO;
 function configure(env) {
   const list = String(env.ALLOWED_ORIGIN || DEFAULTS.ALLOWED_ORIGIN).split(',').map(s => s.trim().replace(/\/$/, '')).filter(o => /^https:\/\/[a-z0-9.-]+$|^http:\/\/localhost(:\d+)?$/i.test(o));
   ORIGINS = new Set(list.length ? list : [DEFAULTS.ALLOWED_ORIGIN]); ALLOWED_ORIGIN = [...ORIGINS][0];
   REPO = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(env.REPO || '') ? env.REPO : DEFAULTS.REPO;
   BRANCH = /^[A-Za-z0-9_.\/-]{1,100}$/.test(env.BRANCH || '') ? env.BRANCH : DEFAULTS.BRANCH;
+  QUEUE_REPO = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(env.QUEUE_REPO || '') ? env.QUEUE_REPO : DEFAULTS.QUEUE_REPO;
 }
 const allowed = (origin) => ORIGINS.has(origin);
 const ALLOWED_HOSTS = new Set([
@@ -206,6 +208,65 @@ async function handleAI(req, env, origin, route, ctxW) {
   }
 }
 
+// ---------------- private plan queue + plan-review data (Plan review → Queued Review) ----------------
+// Private repo QUEUE_REPO holds queue/<id>.pdf + queue/<id>.json (queued plans, kept ≤ 14 days) and db/<id>.json
+// (data read from plans, kept ≤ 45 days). Only the site (passphrase) and the scheduled routine on LONDON use it;
+// its own GitHub Action deletes expired files and squashes history daily. Large PDFs are passed straight through
+// (the browser sends the GitHub request body), so the Worker does no base64 work.
+const QPATH = /^(queue|db)\/[A-Za-z0-9._-]{1,120}\.(pdf|json)$/;
+const ghq = (env, path, init = {}) => fetch(`https://api.github.com/repos/${QUEUE_REPO}${path ? `/${path}` : ''}`, {
+  ...init, headers: { Authorization: `Bearer ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'mc-relay', ...(init.headers || {}) } });
+async function handleQueue(req, env, origin, route, url) {
+  if (!env.GITHUB_TOKEN || !env.SITE_KEY) return json({ error: 'Relay is missing the GITHUB_TOKEN and/or SITE_KEY secrets.' }, 500, origin);
+  if (!sameKey(req.headers.get('X-MC-Key') || '', env.SITE_KEY)) return json({ error: 'Wrong passphrase.' }, 401, origin);
+  const noRepo = async (r) => json({ error: r.status === 404 ? `The private repo ${QUEUE_REPO} doesn't exist yet or the relay's GITHUB_TOKEN can't see it. Create it (private) on GitHub and add it to the token's Repository access with Contents: Read and write.` : `GitHub ${r.status} on ${QUEUE_REPO}` }, 502, origin);
+  if (route === '/q/tree') {
+    const r = await ghq(env, 'git/trees/main?recursive=1');
+    if (r.status === 409) return json({ ok: true, files: [] }, 200, origin); // empty repo
+    if (!r.ok) return noRepo(r);
+    const d = await r.json();
+    return json({ ok: true, files: (d.tree || []).filter(t => t.type === 'blob' && QPATH.test(t.path)).map(t => ({ path: t.path, size: t.size, sha: t.sha })) }, 200, origin);
+  }
+  const path = url.searchParams.get('path') || '';
+  if (!QPATH.test(path) || path.includes('..')) return json({ error: 'Bad path.' }, 400, origin);
+  if (route === '/q/raw' && req.method === 'GET') {
+    const r = await ghq(env, `contents/${path}`, { headers: { Accept: 'application/vnd.github.raw' } });
+    if (r.status === 404) return json({ error: 'Not found (it may have expired).' }, 404, origin);
+    if (!r.ok) return noRepo(r);
+    return new Response(r.body, { status: 200, headers: { ...cors(origin), 'Content-Type': path.endsWith('.pdf') ? 'application/pdf' : 'application/json', 'Cache-Control': 'no-store' } });
+  }
+  if (route === '/q/put' && req.method === 'POST') {
+    // JSON files: small — add the current sha so updates work. PDFs: create-only, body streamed through unchanged.
+    if (path.endsWith('.json')) {
+      let body; try { body = await req.json(); } catch { return json({ error: 'Bad JSON' }, 400, origin); }
+      if (typeof body.content !== 'string' || body.content.length > 3000000) return json({ error: 'Missing or oversized content.' }, 400, origin);
+      let put, out = {};
+      for (let attempt = 0; attempt < 4; attempt++) {
+        const cur = await ghq(env, `contents/${path}`); const sha = cur.ok ? (await cur.json()).sha : undefined;
+        put = await ghq(env, `contents/${path}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: String(body.message || `Update ${path}`).slice(0, 200), content: body.content, ...(sha ? { sha } : {}) }) });
+        out = await put.json().catch(() => ({}));
+        if (put.status !== 409 && put.status !== 422) break;
+        await new Promise(r => setTimeout(r, 400 * (attempt + 1)));
+      }
+      if (put.status === 404) return noRepo(put);
+      return put.ok ? json({ ok: true }, 200, origin) : json({ error: `GitHub ${put.status}: ${out.message || 'save failed'}` }, 502, origin);
+    }
+    if (+(req.headers.get('Content-Length') || 0) > 45 * 1024 * 1024) return json({ error: 'PDF too large for the queue (30 MB max).' }, 413, origin);
+    const put = await ghq(env, `contents/${path}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: req.body });
+    const out = await put.json().catch(() => ({}));
+    if (put.status === 404) return noRepo(put);
+    return put.ok ? json({ ok: true }, 200, origin) : json({ error: `GitHub ${put.status}: ${out.message || 'upload failed'}` }, 502, origin);
+  }
+  if (route === '/q/del' && req.method === 'POST') {
+    const cur = await ghq(env, `contents/${path}`); if (cur.status === 404) return json({ ok: true }, 200, origin);
+    if (!cur.ok) return noRepo(cur);
+    const sha = (await cur.json()).sha;
+    const del = await ghq(env, `contents/${path}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: `Remove ${path}`, sha }) });
+    return del.ok ? json({ ok: true }, 200, origin) : json({ error: `GitHub ${del.status}` }, 502, origin);
+  }
+  return json({ error: 'Not found' }, 404, origin);
+}
+
 export default {
   async fetch(req, env, ctxW) {
     configure(env);
@@ -218,6 +279,10 @@ export default {
     if (u0.pathname.startsWith('/gh/')) {
       if (!allowed(origin)) return json({ error: 'Saving is only allowed from the site.' }, 403, origin);
       return handleGitHub(req, env, origin, u0.pathname);
+    }
+    if (u0.pathname.startsWith('/q/')) {
+      if (!allowed(origin)) return json({ error: 'Only the site may use this.' }, 403, origin);
+      return handleQueue(req, env, origin, u0.pathname, u0);
     }
     if (u0.pathname.startsWith('/ai/')) {
       if (!allowed(origin)) return json({ error: 'Only the site may use this.' }, 403, origin);
