@@ -3,6 +3,7 @@
 // 1) CORS relay:  GET/POST /?url=<https://*.maricopa.gov/...>
 //    Forwards to an allow-listed set of Maricopa County hosts and adds CORS headers.
 // 2) GitHub save: POST /gh/write  { path, content, message }   (header X-MC-Key: <your passphrase>)
+//                 GET/POST /admin/roles[/save|/delete], POST /admin/keys/role   (admin) roles
 //                 GET/POST /admin/scores[/edit|/remove|/clear]   (admin) Behind the Curtains scoreboard
 //                 GET  /gh/ping                                  (header X-MC-Key) → checks passphrase + token
 //    Commits files under data/ in your repo using a token stored ONCE here as a secret,
@@ -14,7 +15,7 @@
 //   ANTHROPIC_API_KEY = sk-ant-...  (optional; enables Plan review → "Read a site plan PDF" via POST /ai/siteplan)
 //   ANTHROPIC_MODEL   = optional Text variable to override the model (default below)
 
-const RELAY_VERSION = '22';
+const RELAY_VERSION = '23';
 // Settings. Defaults below; each can be overridden by a Cloudflare variable (Worker → Settings → Variables and
 // Secrets, Type: Text) or, for local `wrangler dev`, by worker/.dev.vars (never committed — see .dev.vars.example).
 //   ALLOWED_ORIGIN = https://randalkidd.github.io   (comma-separate to add e.g. http://localhost:8000 for local testing)
@@ -83,7 +84,24 @@ async function tokenProblem(env, status) {
 //   review — Plan Review Hub, Land division, Saved Parcels (read)      write — save to GitHub (SubdivisionDB, waitlist,
 //   queue  — Queued Review (private queue)                             rapid — Rapid Review (Anthropic API, costs money)
 //   admin  — manage access keys
-const PERMS = ['review', 'write', 'queue', 'rapid', 'admin'];
+const PERMS = ['review', 'write', 'queue', 'rapid', 'admin', 'saved', 'play'];
+// Roles (access/roles.json): { id, name, description, perms: [enforced here], caps: [page features], hidden: [box ids] }.
+// A key with a role gets the role's perms; a key without one keeps its own perms (plus saved/play when it can review,
+// which is how keys behaved before roles existed).
+const ROLES_PATH = 'access/roles.json';
+let roleCache = { t: 0, list: null, sha: null };
+async function loadRoles(env, fresh = false) {
+  if (!fresh && roleCache.list && Date.now() - roleCache.t < 60000) return roleCache;
+  const r = await ghq(env, `contents/${ROLES_PATH}`);
+  if (r.status === 404) { roleCache = { t: Date.now(), list: [], sha: null }; return roleCache; }
+  if (!r.ok) { if (roleCache.list) return roleCache; throw new Error(`GitHub ${r.status} reading roles`); }
+  const d = await r.json(); let list = [];
+  try { list = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(String(d.content).replace(/\n/g, '')), c => c.charCodeAt(0)))).roles || []; } catch {}
+  roleCache = { t: Date.now(), list, sha: d.sha }; return roleCache;
+}
+const TOKEN_RX = /^[a-z0-9][a-z0-9._-]{0,59}$/i;
+const cleanList = (a, max = 400) => [...new Set((Array.isArray(a) ? a : []).map(String).filter(x => TOKEN_RX.test(x)))].slice(0, max);
+function legacyPerms(perms) { const p = perms.filter(x => PERMS.includes(x)); if (p.includes('review') && !p.includes('saved')) p.push('saved'); if (!p.includes('play')) p.push('play'); return p; }
 const KEYS_PATH = 'access/keys.json';
 /** @type {{ t: number, list: any[] | null, sha: string | null, superName: string }} */
 let keyCache = { t: 0, list: null, sha: null, superName: '' };
@@ -117,7 +135,10 @@ async function authenticateKey(k, env) {
   let keys; try { keys = (await loadKeys(env)).list; } catch { return null; }
   const h = await sha256hex(k); const now = Date.now();
   const hit = keys.find(x => sameKey(x.hash || '', h) && !x.disabled && !(x.expires && Date.parse(x.expires) < now));
-  return hit ? { id: hit.id, label: hit.label, perms: (hit.perms || []).filter(p => PERMS.includes(p)), super: false } : null;
+  if (!hit) return null;
+  if (hit.role) { let role = null; try { role = (await loadRoles(env)).list.find(r => r.id === hit.role) || null; } catch {}
+    if (role) return { id: hit.id, label: hit.label, perms: (role.perms || []).filter(p => PERMS.includes(p)), super: false, role: { id: role.id, name: role.name, caps: role.caps || [], hidden: role.hidden || [] } }; }
+  return { id: hit.id, label: hit.label, perms: legacyPerms(hit.perms || []), super: false, role: null };
 }
 const can = (who, perm) => !!who && who.perms.includes(perm);
 const denied = (origin, perm) => json({ error: `Your access key doesn't allow this (needs "${perm}"). Ask the site administrator.` }, 403, origin);
@@ -179,19 +200,20 @@ async function handleAdmin(req, env, origin, route, who) {
     if (!put.ok) throw new Error(`GitHub ${put.status} saving access keys${put.status === 404 ? ` — check that ${QUEUE_REPO} exists and the token can write to it` : ''}`);
     keyCache = { t: 0, list: null, sha: null, superName: '' };
   };
-  const pub = (x) => ({ id: x.id, label: x.label, perms: x.perms, created: x.created, createdBy: x.createdBy, expires: x.expires || null, disabled: !!x.disabled });
+  const pub = (x) => ({ id: x.id, label: x.label, perms: x.perms, role: x.role || null, created: x.created, createdBy: x.createdBy, expires: x.expires || null, disabled: !!x.disabled });
   if (route === '/admin/keys' && req.method === 'GET') { const { list, superName } = await loadKeys(env, true); return json({ ok: true, superName: superName || '', keys: list.map(pub) }, 200, origin); }
   let body = {}; try { body = await req.json(); } catch {}
   if (route === '/admin/keys/create' && req.method === 'POST') {
     const label = String(body.label || '').trim().slice(0, 60); if (!label) return json({ error: 'Give the key a name (who it is for).' }, 400, origin);
-    const perms = [...new Set((Array.isArray(body.perms) ? body.perms : []).filter(p => PERMS.includes(p)))];
-    if (!perms.length) return json({ error: 'Pick at least one permission.' }, 400, origin);
+    let perms = [...new Set((Array.isArray(body.perms) ? body.perms : []).filter(p => PERMS.includes(p)))];
+    let roleRec = null; if (body.role) { roleRec = (await loadRoles(env, true)).list.find(x => x.id === body.role) || null; if (!roleRec) return json({ error: 'No such role.' }, 400, origin); perms = roleRec.perms.slice(); }
+    if (!perms.length) return json({ error: 'Pick a role or at least one permission.' }, 400, origin);
     const days = Math.max(0, Math.min(3650, parseInt(body.days, 10) || 0));
     const raw = crypto.getRandomValues(new Uint8Array(15)); const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789';
     const key = 'mc-' + [...raw].map(b => alphabet[b % alphabet.length]).join('').replace(/(.{5})(?=.)/g, '$1-');
     const { list, sha } = await loadKeys(env, true);
     if (list.length >= 200) return json({ error: 'Too many keys — revoke unused ones first.' }, 400, origin);
-    const rec = { id: `k${Date.now().toString(36)}${[...crypto.getRandomValues(new Uint8Array(3))].map(b => b.toString(36)).join('')}`, label, perms, hash: await sha256hex(key), created: new Date().toISOString(), createdBy: who.label, ...(days ? { expires: new Date(Date.now() + days * 86400000).toISOString() } : {}) };
+    const rec = { id: `k${Date.now().toString(36)}${[...crypto.getRandomValues(new Uint8Array(3))].map(b => b.toString(36)).join('')}`, label, perms, ...(roleRec ? { role: roleRec.id } : {}), hash: await sha256hex(key), created: new Date().toISOString(), createdBy: who.label, ...(days ? { expires: new Date(Date.now() + days * 86400000).toISOString() } : {}) };
     await save([...list, rec], sha, `Access key added: ${label}`);
     return json({ ok: true, key, record: pub(rec) }, 200, origin);
   }
@@ -216,6 +238,42 @@ async function handleAdmin(req, env, origin, route, who) {
     if (body.id === 'super') { await save(list, sha, 'Super account name changed', label); return json({ ok: true }, 200, origin); }
     const k = list.find(x => x.id === body.id); if (!k) return json({ error: 'No such key.' }, 404, origin);
     k.label = label; await save(list, sha, `Access key renamed: ${label}`, superName);
+    return json({ ok: true }, 200, origin);
+  }
+  // Roles: list, create/update, delete, and assign a role to a key.
+  const saveRoles = async (list, sha, message) => {
+    const out = JSON.stringify({ schema: 1, updated: new Date().toISOString(), roles: list }, null, 2) + '\n';
+    const put = await ghq(env, `contents/${ROLES_PATH}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message, content: b64(out), ...(sha ? { sha } : {}) }) });
+    roleCache = { t: 0, list: null, sha: null };
+    if (!put.ok) throw new Error(`GitHub ${put.status} saving roles`);
+  };
+  if (route === '/admin/roles' && req.method === 'GET') {
+    const { list } = await loadRoles(env, true); const keys = (await loadKeys(env, true)).list;
+    return json({ ok: true, perms: PERMS, roles: list.map(r => ({ ...r, keys: keys.filter(k => k.role === r.id).length })) }, 200, origin);
+  }
+  if (route === '/admin/roles/save' && req.method === 'POST') {
+    const r0 = body.role || {}; const name = String(r0.name || '').trim().slice(0, 40); if (!name) return json({ error: 'Give the role a name.' }, 400, origin);
+    const { list, sha } = await loadRoles(env, true);
+    if (list.some(x => x.name.toLowerCase() === name.toLowerCase() && x.id !== r0.id)) return json({ error: 'Another role already has that name.' }, 400, origin);
+    const rec = { id: r0.id && list.some(x => x.id === r0.id) ? r0.id : `r${Date.now().toString(36)}`, name, description: String(r0.description || '').trim().slice(0, 300),
+      perms: [...new Set((Array.isArray(r0.perms) ? r0.perms : []).filter(p => PERMS.includes(p)))], caps: cleanList(r0.caps), hidden: cleanList(r0.hidden), updated: new Date().toISOString(), updatedBy: who.label };
+    if (list.length >= 50 && !list.some(x => x.id === rec.id)) return json({ error: 'Too many roles.' }, 400, origin);
+    await saveRoles([...list.filter(x => x.id !== rec.id), rec], sha, `Role saved: ${name}`);
+    return json({ ok: true, role: rec }, 200, origin);
+  }
+  if (route === '/admin/roles/delete' && req.method === 'POST') {
+    const { list, sha } = await loadRoles(env, true); const r1 = list.find(x => x.id === body.id); if (!r1) return json({ error: 'No such role.' }, 404, origin);
+    const used = (await loadKeys(env, true)).list.filter(k => k.role === r1.id).length;
+    if (used) return json({ error: `${used} key${used === 1 ? '' : 's'} still use${used === 1 ? 's' : ''} “${r1.name}” — assign them another role first.` }, 400, origin);
+    await saveRoles(list.filter(x => x.id !== r1.id), sha, `Role deleted: ${r1.name}`);
+    return json({ ok: true }, 200, origin);
+  }
+  if (route === '/admin/keys/role' && req.method === 'POST') {
+    const { list, sha, superName } = await loadKeys(env, true); const k = list.find(x => x.id === body.id); if (!k) return json({ error: 'No such key.' }, 404, origin);
+    const roleId = String(body.role || '');
+    if (roleId) { const r2 = (await loadRoles(env, true)).list.find(x => x.id === roleId); if (!r2) return json({ error: 'No such role.' }, 404, origin); k.role = r2.id; k.perms = r2.perms.slice(); }
+    else delete k.role;
+    await save(list, sha, `Access key role changed: ${k.label}`, superName);
     return json({ ok: true }, 200, origin);
   }
   // Behind the Curtains scoreboard (games/scores.json): list every player, edit or remove one, or clear the board.
@@ -257,7 +315,7 @@ async function handleGitHub(req, env, origin, route, who) {
     const r = await gh(env, '');
     if (!r.ok) return json({ error: await tokenProblem(env, r.status) }, 502, origin);
     const d = await r.json();
-    return json({ ok: true, repo: d.full_name, canPush: !!(d.permissions && d.permissions.push), ai: !!env.ANTHROPIC_API_KEY, perms: who.perms, label: who.label, super: !!who.super }, 200, origin);
+    return json({ ok: true, repo: d.full_name, canPush: !!(d.permissions && d.permissions.push), ai: !!env.ANTHROPIC_API_KEY, perms: who.perms, label: who.label, super: !!who.super, role: who.role || null, roles: 1 }, 200, origin);
   }
   if (route === '/gh/write' && req.method === 'POST') {
     if (!can(who, 'write')) return denied(origin, 'write');
@@ -465,7 +523,7 @@ const UPATH = /^(parcels|reviews)\/[A-Za-z0-9._-]{1,120}\.(md|json)$/;
 async function handleUser(req, env, origin, route, url, who) {
   if (!env.GITHUB_TOKEN) return json({ error: 'Relay is missing GITHUB_TOKEN.' }, 500, origin);
   if (!who) return json({ error: 'Wrong passphrase.' }, 401, origin);
-  if (!can(who, 'review')) return denied(origin, 'review');
+  if (!can(who, 'saved')) return denied(origin, 'saved');
   const base = `users/${String(who.id).replace(/[^A-Za-z0-9_-]/g, '')}/`;
   if (route === '/u/list') {
     const r = await ghq(env, 'git/trees/main?recursive=1');
@@ -551,6 +609,7 @@ async function handleGames(req, env, origin, route) {
   }
   const who = await authenticate(req, env);
   if (!who) return json({ error: 'Sign in with a key to play.' }, 401, origin);
+  if (!can(who, 'play')) return json({ error: 'Your role doesn\'t include playing games.' }, 403, origin);
   if (route === '/g/start' && req.method === 'POST') {
     const nonce = [...crypto.getRandomValues(new Uint8Array(12))].map(b => b.toString(16).padStart(2, '0')).join('');
     const ts = Date.now(); const sig = await hmac(env, `${who.id}.${nonce}.${ts}`);

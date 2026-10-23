@@ -133,6 +133,15 @@ Click the **●** button next to the light/dark switch (top right) to pick one o
 - **⚙ Settings** (relay URL, county relay test, GitHub owner/repo, Access Keys, **User Folders**) is shown only to administrators. **User Folders**: pick any user to open, download or remove their Saved Items and the plans they submitted.
 - Queue items and plan data record who submitted them (`by`, set by the relay), which is how Clear all my data and User Folders find them.
 
+## Roles & Permissions (admin)
+
+⚙ Settings → **Roles & Permissions** (relay **v23**). A role bundles, for every key assigned to it:
+1. **Permissions** — enforced by the relay on every request: `review`, `write`, `queue`, `rapid` (In-Depth Review), `saved` (Saved Items), `play` (games), `admin`.
+2. **Capabilities** — finer features shown per page (e.g. Save PDF, comment letter, Review Verification, Plan Viewer, SubdivisionDB edit/export, waitlist, play). A capability whose permission is off is marked "needs …".
+3. **Box visibility** — tick which boxes each page shows for the role (every card on Parcel Lookup, Plan Review Hub, SubdivisionDB, Saved Items, Reference and Behind the Curtains; Settings, Profile and Sign In are never hidden).
+
+**+ New role**, edit the name and definition, **Save role**, **Delete role** (only when no key uses it), and **Preview as this role** (see the site as that role on your browser until you stop the preview). With no roles yet, **Add the starting roles** creates Viewer, Reviewer, Senior Reviewer and Administrator. Under Access Keys, pick a role when creating a key, or change any key's role from its dropdown; changes reach that user within a minute. Keys without a role keep their own permissions and see everything; the super account always sees everything. Roles live in `access/roles.json` in the private repo. Hiding a box or feature tidies the page; anything that reads or writes data is still checked by the relay against the role's permissions.
+
 ## Access keys (super account + limited keys)
 
 - **Super account:** the relay passphrase (`SITE_KEY` in Cloudflare). It has every permission and manages the other keys. Rotate it by changing `SITE_KEY` in Cloudflare.

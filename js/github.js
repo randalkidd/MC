@@ -31,7 +31,7 @@ export const gh = {
   get canWrite() { return !!(this.owner && this.repo && (this.token || this.viaRelay)); },
 };
 
-import { settings } from './net.js?v=f46a0e70';
+import { settings } from './net.js?v=f662204d';
 const relayUrl = () => settings.proxy;
 
 export async function relayFetch(route, init = {}) { return relay(route, init); }
@@ -88,7 +88,7 @@ export async function readFile(path) {
 
 // Create or update a file with a commit. Retries once on a sha conflict by re-reading.
 // Permissions of this browser's access key (from the relay's /gh/ping). Old relays don't send them: treat as full access.
-export function perms() { try { const v = JSON.parse(localStorage.getItem('mc.perms') || 'null'); return v && Array.isArray(v.perms) ? v : { perms: ['review', 'write', 'queue', 'rapid'], label: '', legacy: true }; } catch { return { perms: [], label: '' }; } }
+export function perms() { try { const v = JSON.parse(localStorage.getItem('mc.perms') || 'null'); return v && Array.isArray(v.perms) ? v : { perms: ['review', 'write', 'queue', 'rapid', 'saved', 'play'], label: '', legacy: true }; } catch { return { perms: [], label: '' }; } }
 export const hasPerm = (p) => perms().perms.includes(p);
 export async function writeFile(path, text, message) {
   if (gh.viaRelay && !hasPerm('write')) throw new Error('Your access key can\'t save to GitHub (needs "write"). Ask the site administrator.');
@@ -116,7 +116,7 @@ export async function listDir(path, { fresh = false } = {}) {
 export function clearDirCache() { dirCache.clear(); }
 
 export async function testAccess() {
-  if (gh.viaRelay) { const d = await relay('/gh/ping'); return { name: `${d.repo} (via relay)`, canPush: d.canPush, private: false, ai: d.ai, perms: d.perms, label: d.label, super: d.super }; }
+  if (gh.viaRelay) { const d = await relay('/gh/ping'); return { name: `${d.repo} (via relay)`, canPush: d.canPush, private: false, ai: d.ai, perms: d.perms, label: d.label, super: d.super, role: d.role || null, roles: !!d.roles }; }
   // Without a passphrase or a token there is nothing to test: an anonymous read would only ever look "read-only".
   if (!gh.token) throw new Error(gh.passphrase ? 'The relay address is missing on this browser. Reload the page, then enter your access key again and click Test GitHub.' : 'No access key is saved on this browser yet. Enter your name and the access key you were given (it starts with mc-) in the Passphrase box, then click Test GitHub.');
   const r = await ghFetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}`);

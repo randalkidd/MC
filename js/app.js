@@ -1,15 +1,16 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=f46a0e70';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=f46a0e70';
-import { settings, setSharedRelay } from './net.js?v=f46a0e70';
-import { ACCENTS, currentAccent } from './accents.js?v=f46a0e70';
-import { SIGN_TYPES, LIT, blankSign, blankSignCtx } from './signs.js?v=f46a0e70';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache, perms, hasPerm, relayFetch } from './github.js?v=f46a0e70';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=f46a0e70';
-import { CHECKLISTS } from './checklists.js?v=f46a0e70';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown, markupRows, rememberReviewer, rememberedReviewer } from './review.js?v=f46a0e70';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=f662204d';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=f662204d';
+import { settings, setSharedRelay } from './net.js?v=f662204d';
+import { ACCENTS, currentAccent } from './accents.js?v=f662204d';
+import { SIGN_TYPES, LIT, blankSign, blankSignCtx } from './signs.js?v=f662204d';
+import { PERM_INFO, PERM_ORDER, CAPS, CAP_IDS, ROLE_PAGES, boxRegistry, DEFAULT_ROLES, applyRole } from './roles.js?v=f662204d';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache, perms, hasPerm, relayFetch } from './github.js?v=f662204d';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=f662204d';
+import { CHECKLISTS } from './checklists.js?v=f662204d';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown, markupRows, rememberReviewer, rememberedReviewer } from './review.js?v=f662204d';
 let REF = null; // js/refdata.js (76 KB) loads the first time the Reference tab opens
-import { findPlatDoc } from './recorder.js?v=f46a0e70';
-import { loadAllSubdivisions } from './subdivisions.js?v=f46a0e70';
+import { findPlatDoc } from './recorder.js?v=f662204d';
+import { loadAllSubdivisions } from './subdivisions.js?v=f662204d';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -48,12 +49,13 @@ function renderBadge() {
   b.className = `badge ${unlocked ? 'ok' : 'no'}`;
   b.title = unlocked ? `${userName()} - Profile Page` : 'Not signed in: click to sign in with your name and passphrase';
 }
-const PERM_LIST = ['review', 'write', 'queue', 'rapid', 'admin'];
+const PERM_LIST = ['review', 'write', 'queue', 'rapid', 'admin', 'saved', 'play'];
 // ---------------- account type / user name ----------------
 function userName() { let n = ''; try { n = localStorage.getItem('mc.name') || ''; } catch {} const l = perms().label; return (l && l !== 'Super account' ? l : '') || n || l || 'Signed in'; }
 function accountType(pp = perms()) {
   const p = new Set(pp.perms || []);
   if (pp.super) return 'a Super Account';
+  if (pp.role && pp.role.name) return `the “${pp.role.name}” role`;
   if (p.has('admin')) return 'an Administrator account';
   if (['review', 'write', 'queue', 'rapid'].every(x => p.has(x))) return 'a Senior Reviewer account';
   if (['review', 'write', 'queue'].every(x => p.has(x)) && p.size === 3) return 'a Reviewer account';
@@ -73,10 +75,18 @@ function applyAccess(on) {
   if (!unlocked && GATED.includes(S.tab)) showTab('p-lookup');
   else if (S.tab && !tabAllowed(S.tab)) showTab('p-lookup');
   if (unlocked && hasPerm('admin')) renderKeys(false);
+  applyRole(S.previewRole || (unlocked ? perms().role : null));
+  try { $('#mct-go').disabled = !unlocked || !hasPerm('play'); } catch {}
 }
 function tabAllowed(id) { const b = document.querySelector(`.tab[data-tab="${id}"]`); const need = b && b.dataset.perm; if (!need) return true; if (need === 'settings') return unlocked && (hasPerm('admin') || !!perms().legacy); return unlocked && hasPerm(need); }
 function storePerms(r) {
-  try { if (r && Array.isArray(r.perms)) localStorage.setItem('mc.perms', JSON.stringify({ perms: r.perms, label: r.label || '', super: !!r.super })); else localStorage.removeItem('mc.perms'); } catch {}
+  try {
+    if (r && Array.isArray(r.perms)) {
+      // Relays before v23 don't know Saved Items / games permissions: a key that can review keeps both.
+      const p = r.roles ? r.perms.slice() : [...new Set([...r.perms, ...(r.perms.includes('review') ? ['saved'] : []), 'play'])];
+      localStorage.setItem('mc.perms', JSON.stringify({ perms: p, label: r.label || '', super: !!r.super, role: r.super ? null : (r.role || null) }));
+    } else localStorage.removeItem('mc.perms');
+  } catch {}
   // The name an administrator set for this key is the user's name everywhere (badge, reviewer, comment letter).
   if (r && r.label && r.label !== 'Super account') { try { if (localStorage.getItem('mc.name') !== r.label) { localStorage.setItem('mc.name', r.label); const who = rememberedReviewer(); rememberReviewer(r.label, who.email); if (S.review && (!S.review.reviewer || S.review.reviewer === who.name)) { S.review.reviewer = r.label; saveDraft(S.review); } } } catch {} }
 }
@@ -97,7 +107,7 @@ async function checkAccess() {
 let verifying = null;
 function verifyAccess() {
   if (verifying) return verifying;
-  return (verifying = testAccess().then((r) => { const okay = Array.isArray(r.perms) ? r.perms.length > 0 : r.canPush; if (!okay) return revokeAccess(); const before = JSON.stringify(perms().perms); storePerms(r); if (JSON.stringify(perms().perms) !== before) applyAccess(true); })
+  return (verifying = testAccess().then((r) => { const okay = Array.isArray(r.perms) ? r.perms.length > 0 : r.canPush; if (!okay) return revokeAccess(); const before = JSON.stringify([perms().perms, perms().role]); storePerms(r); if (JSON.stringify([perms().perms, perms().role]) !== before) applyAccess(true); })
     .catch((e) => { if (/passphrase|token|GitHub \d|not the relay|old code/i.test(e.message)) { revokeAccess(); toast(`Locked staff tools: ${e.message}`, 'error'); } }) // offline → keep the tested state
     .finally(() => { verifying = null; }));
 }
@@ -111,7 +121,7 @@ function showTab(id) {
   try { localStorage.setItem('mc.tab', id); } catch {}
   if (id === 'p-lookup' && S.map) setTimeout(() => { S.map.invalidateSize(); S.map2?.invalidateSize(); if (S.mapRefit) refitMap(); }, 50);
   if (id === 'p-saved') renderSaved();
-  if (id === 'p-review') { renderQueued(); (window.requestIdleCallback || setTimeout)(() => { import('./freeread.js?v=f46a0e70').catch(() => {}); import('./siteplan.js?v=f46a0e70').catch(() => {}); }); }
+  if (id === 'p-review') { renderQueued(); (window.requestIdleCallback || setTimeout)(() => { import('./freeread.js?v=f662204d').catch(() => {}); import('./siteplan.js?v=f662204d').catch(() => {}); }); }
   if (id === 'p-signin') renderSignin();
   if (id === 'p-profile') renderProfile();
   if (id === 'p-games') renderGames();
@@ -447,12 +457,12 @@ $('#report').addEventListener('click', async (e) => {
 $('#rep-copy').addEventListener('click', () => copy(S.md));
 $('#rep-dl').addEventListener('click', () => download(`${S.R.apn}.md`, S.md));
 $('#rep-save').addEventListener('click', async () => {
-  try { const qm = await import('./queue.js?v=f46a0e70'); await qm.putMine(`parcels/${S.R.apn}.md`, S.md + '\n'); toast('Saved to your Saved Items (private)', 'ok'); } catch (e) { toast(e.message, 'error'); }
+  try { const qm = await import('./queue.js?v=f662204d'); await qm.putMine(`parcels/${S.R.apn}.md`, S.md + '\n'); toast('Saved to your Saved Items (private)', 'ok'); } catch (e) { toast(e.message, 'error'); }
 });
 $('#rep-pdf').addEventListener('click', async (e) => {
   const b = e.currentTarget; if (b.disabled || !S.md) return;
   b.disabled = true; const label = b.textContent; b.textContent = 'Building PDF…';
-  try { const { reportPDF } = await import('./pdf.js?v=f46a0e70'); await reportPDF(S.md, { apn: S.R.apn }); toast('PDF saved', 'ok'); }
+  try { const { reportPDF } = await import('./pdf.js?v=f662204d'); await reportPDF(S.md, { apn: S.R.apn }); toast('PDF saved', 'ok'); }
   catch (err) { toast(`PDF failed: ${err.message}`, 'error'); }
   finally { b.disabled = false; b.textContent = label; }
 });
@@ -737,7 +747,7 @@ function bindReview() {
       const info = { apn: s.apn, permit: s.permit, date: s.date, plan: s.planTitle, type: CHECKLISTS[s.type]?.label || s.type,
         address: [p.PropertyFullStreetAddress, p.PropertyCity].filter(Boolean).join(', ') || P.site_address || '', owner: p.OwnerName || P.owner_name || '',
         district: s.district, reviewer: s.reviewer || who.name, email: s.reviewerEmail || who.email };
-      const { commentLetterPDF } = await import('./commentletter.js?v=f46a0e70');
+      const { commentLetterPDF } = await import('./commentletter.js?v=f662204d');
       const out = await commentLetterPDF({ rows: markupRows(s).rows, info });
       toast(`Comment letter saved — ${out.count} comment${out.count === 1 ? '' : 's'}`, 'ok');
     } catch (err) { toast(err.message, 'error'); }
@@ -747,7 +757,7 @@ function bindReview() {
   $('#rv-dl').addEventListener('click', () => renderOutput() || download(`review-${S.review.apn || 'plan'}-${S.review.date}.md`, $('#rv-md').value));
   $('#rv-save').addEventListener('click', async () => {
     renderOutput();
-    try { const qm = await import('./queue.js?v=f46a0e70'); const base = `reviews/${(S.review.apn || 'no-apn').replace(/[^A-Za-z0-9-]/g, '')}-${S.review.date}-${S.review.type}`; await qm.putMine(`${base}.md`, $('#rv-md').value + '\n'); const { ai, ...pub } = S.review; await qm.putMine(`${base}.json`, JSON.stringify(pub, null, 2) + '\n'); toast('Review saved to your Saved Items (private)', 'ok'); } catch (e) { toast(e.message, 'error'); }
+    try { const qm = await import('./queue.js?v=f662204d'); const base = `reviews/${(S.review.apn || 'no-apn').replace(/[^A-Za-z0-9-]/g, '')}-${S.review.date}-${S.review.type}`; await qm.putMine(`${base}.md`, $('#rv-md').value + '\n'); const { ai, ...pub } = S.review; await qm.putMine(`${base}.json`, JSON.stringify(pub, null, 2) + '\n'); toast('Review saved to your Saved Items (private)', 'ok'); } catch (e) { toast(e.message, 'error'); }
   });
 }
 
@@ -827,7 +837,7 @@ async function renderSaved() {
   if (!unlocked) { el.innerHTML = '<p class="sub">Sign in to see your saved items.</p>'; return; }
   el.innerHTML = '<p class="sub">Loading…</p>';
   try {
-    const qm = await import('./queue.js?v=f46a0e70');
+    const qm = await import('./queue.js?v=f662204d');
     const files = await qm.listMine();
     const parcels = files.filter(f => f.path.startsWith('parcels/')), reviews = files.filter(f => f.path.startsWith('reviews/') && f.path.endsWith('.md'));
     const li = (f) => `<li data-path="${esc(f.path)}"><span>${esc(f.path.replace(/^(parcels|reviews)\//, '').replace(/\.md$/, ''))}</span><span class="actions"><button class="btn sm" type="button" data-sv="open">Open</button></span></li>`;
@@ -840,7 +850,7 @@ async function renderSaved() {
   $('#saved-list').addEventListener('click', async (e) => {
     const li = e.target.closest('[data-path]'); if (!li || !e.target.closest('[data-sv=open]')) return;
     cur = li.dataset.path; $('#sv-title').textContent = cur.replace(/^(parcels|reviews)\//, ''); $('#sv-text').textContent = 'Loading…'; dlg.showModal();
-    try { text = await (await import('./queue.js?v=f46a0e70')).getMine(cur); $('#sv-text').textContent = text; } catch (err) { $('#sv-text').textContent = err.message; }
+    try { text = await (await import('./queue.js?v=f662204d')).getMine(cur); $('#sv-text').textContent = text; } catch (err) { $('#sv-text').textContent = err.message; }
   });
   $('#sv-close').addEventListener('click', () => dlg.close());
   $('#sv-dl').addEventListener('click', () => { if (dlg.dataset.admin) return download(dlg.dataset.admin.split('/').pop(), $('#sv-text').textContent); if (cur) download(cur.split('/').pop(), text); });
@@ -848,14 +858,14 @@ async function renderSaved() {
   $('#sv-del').addEventListener('click', async () => {
     if (dlg.dataset.admin) { const path = dlg.dataset.admin; if (!confirm(`Remove ${path}?`)) return; try { await relayFetch('/admin/del', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path }) }); dlg.close(); toast('Removed', 'ok'); renderFolder(); } catch (err) { toast(err.message, 'error'); } return; }
     if (!cur || !confirm(`Delete ${cur.split('/').pop()} from your Saved Items?`)) return;
-    try { const qm = await import('./queue.js?v=f46a0e70'); await qm.delMine(cur); if (cur.endsWith('.md') && cur.startsWith('reviews/')) await qm.delMine(cur.replace(/\.md$/, '.json')).catch(() => {}); dlg.close(); toast('Deleted', 'ok'); renderSaved(); } catch (err) { toast(err.message, 'error'); }
+    try { const qm = await import('./queue.js?v=f662204d'); await qm.delMine(cur); if (cur.endsWith('.md') && cur.startsWith('reviews/')) await qm.delMine(cur.replace(/\.md$/, '.json')).catch(() => {}); dlg.close(); toast('Deleted', 'ok'); renderSaved(); } catch (err) { toast(err.message, 'error'); }
   });
 }
 
 // ---------------- reference ----------------
 let refP = null;
 function renderReference() {
-  return (refP ||= import('./refdata.js?v=f46a0e70').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
+  return (refP ||= import('./refdata.js?v=f662204d').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
 }
 function fillReference() {
   const { DIRECTIVES, MCSR_QUICK, REG_DOCS, REG_LOOKUP } = REF;
@@ -1072,7 +1082,7 @@ function renderSitePlan() {
 }
 // Shared by both readers: look up the parcel, check the deed, compare, fill the form.
 async function finishRead(res, meta, st, file = SP.file) {
-  const sp = await import('./siteplan.js?v=f46a0e70');
+  const sp = await import('./siteplan.js?v=f662204d');
   const planApn = normalizeApn(res.parcel && res.parcel.apn);
   let R = S.R && S.review.apn && S.R.apn === normalizeApn(S.review.apn) ? S.R : null, lookupError = '';
   const target = normalizeApn(S.review.apn) || planApn;
@@ -1090,9 +1100,9 @@ async function finishRead(res, meta, st, file = SP.file) {
   S.review.ai = { file: file.name, at: new Date().toISOString(), ...meta, result: res, compare, deedNames: deed, apn: R ? R.apn : null, lookupError };
   S.review.verified = {}; // a new read starts a new verification
   saveDraft(S.review); renderReview();
-  import('./planviewer.js?v=f46a0e70').then(m => m.savePdf(file)).catch(() => {});
+  import('./planviewer.js?v=f662204d').then(m => m.savePdf(file)).catch(() => {});
   // Keep what was read in the private plan-review database (45 days). Queued reads are already stored by the routine.
-  if (unlocked && meta.engine !== 'queued') import('./queue.js?v=f46a0e70').then(qm => qm.saveRecord({ source: meta.engine === 'free' ? 'superficial' : 'rapid', file: file.name, apn: (R && R.apn) || normalizeApn(res.parcel && res.parcel.apn) || '', type: S.review.type, model: meta.model, result: res, compare })).catch(e => console.warn('private db', e));
+  if (unlocked && meta.engine !== 'queued') import('./queue.js?v=f662204d').then(qm => qm.saveRecord({ source: meta.engine === 'free' ? 'superficial' : 'rapid', file: file.name, apn: (R && R.apn) || normalizeApn(res.parcel && res.parcel.apn) || '', type: S.review.type, model: meta.model, result: res, compare })).catch(e => console.warn('private db', e));
   return compare.filter(c => c[3] === 'deficient').length;
 }
 // Three ways to read a plan: Superficial (free, in this browser), In-Depth (Claude API through the relay, ~1 min),
@@ -1105,7 +1115,7 @@ async function runFreeRead() {
   SP.busy = true; spButtons();
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'Superficial Review: reading the PDF text in your browser…';
   try {
-    const fr = await import('./freeread.js?v=f46a0e70');
+    const fr = await import('./freeread.js?v=f662204d');
     const out = await fr.freeReadSitePlan(SP.file, S.review.type);
     if (out.quality === 'none') { st.className = 'status warn'; st.textContent = 'Superficial Review couldn\'t read this plan: the PDF has no selectable text (a scan or flattened drawing). Use Queued Review or In-Depth Review.'; return; }
     const bad = await finishRead(out.result, { engine: 'free', model: 'Superficial Review (in-browser text reader)', quality: out.quality, found: out.found, missing: out.missing }, st);
@@ -1119,7 +1129,7 @@ async function runSitePlan() {
   SP.busy = true; spButtons();
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'In-Depth Review: sending the PDF to Claude — reading every sheet usually takes 30–90 seconds…';
   try {
-    const sp = await import('./siteplan.js?v=f46a0e70');
+    const sp = await import('./siteplan.js?v=f662204d');
     const d = await sp.readSitePlan(SP.file, S.review.type);
     const bad = await finishRead(d.result || {}, { engine: 'claude', relay: d.relay || null, model: d.model, usage: d.usage, truncated: !!d.truncated }, st);
     st.className = `status ${bad ? 'warn' : 'ok'}`; st.textContent = `In-Depth Review done — the form is filled in from the plan.${bad ? ` ${bad} record mismatch${bad > 1 ? 'es' : ''} found (see below).` : ''} Verify every value before issuing comments.`;
@@ -1132,10 +1142,10 @@ async function runQueued() {
   SP.busy = true; spButtons();
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'Queued Review: uploading the plan to the private queue…';
   try {
-    const qm = await import('./queue.js?v=f46a0e70');
+    const qm = await import('./queue.js?v=f662204d');
     // Every queued plan carries its APN, so recalling it from Plan Queue fills this tab and Parcel Lookup.
     let apn = normalizeApn(S.review.apn) || '';
-    if (!apn) { st.textContent = 'Queued Review: finding the APN on the plan…'; try { const fr = await import('./freeread.js?v=f46a0e70'); const o = await fr.freeReadSitePlan(SP.file, S.review.type); apn = normalizeApn(o.result && o.result.parcel && o.result.parcel.apn) || ''; } catch {} }
+    if (!apn) { st.textContent = 'Queued Review: finding the APN on the plan…'; try { const fr = await import('./freeread.js?v=f662204d'); const o = await fr.freeReadSitePlan(SP.file, S.review.type); apn = normalizeApn(o.result && o.result.parcel && o.result.parcel.apn) || ''; } catch {} }
     if (!apn) { const a = prompt(`What is the APN for ${SP.file.name}? (It's attached to the queued plan so it can be recalled with its parcel.)`, ''); if (a === null) { st.className = 'status warn'; st.textContent = 'Queued Review cancelled.'; return; } apn = normalizeApn(a) || ''; if (a.trim() && !apn) { st.className = 'status err'; st.textContent = `“${a}” isn't an APN (e.g. 304-88-146 or 401-52-034C). Queued Review cancelled.`; return; } }
     st.textContent = `Queued Review: uploading the plan${apn ? ` (APN ${apn})` : ''} to the private queue…`;
     const m = await qm.queuePlan(SP.file, { apn, type: S.review.type, reviewer: S.review.reviewer });
@@ -1165,7 +1175,7 @@ async function renderQueued(force = false) {
   if (qBusy) return; qBusy = true;
   el.innerHTML = '<p class="sub">Loading…</p>';
   try {
-    const qm = await import('./queue.js?v=f46a0e70');
+    const qm = await import('./queue.js?v=f662204d');
     const items = await qm.listQueue();
     const st = (m) => m.status === 'done' ? (m.hasResult ? '✅ Ready' : '✅ Done (data expired)') : m.status === 'failed' ? `⚠ ${esc(m.note || 'Could not be read')}` : m.status === 'processing' ? '⏳ Processing' : '🕛 Queued — processed ~12 AM';
     el.innerHTML = items.length ? `<ul class="qfiles">${items.map(m => `<li data-id="${esc(m.id)}" class="q-${esc(m.status)}">
@@ -1181,7 +1191,7 @@ async function renderQueued(force = false) {
 async function loadQueued(m) {
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = `Loading the queued review of ${m.file}…`;
   try {
-    const qm = await import('./queue.js?v=f46a0e70');
+    const qm = await import('./queue.js?v=f662204d');
     const rec = await qm.getRecord(m.db || `db/${m.id}.json`);
     const file = m.hasPdf ? await qm.getPdf(m.id).then(f => new File([f], m.file, { type: 'application/pdf' })) : new File([], m.file);
     if (m.hasPdf) SP.file = file;
@@ -1195,7 +1205,7 @@ async function loadQueued(m) {
 }
 async function openPlanViewer(focus) {
   const a = S.review.ai; if (!a || !a.result) { if (focus) toast('Read a plan first to see it here.', 'error'); return; }
-  const pv = await import('./planviewer.js?v=f46a0e70');
+  const pv = await import('./planviewer.js?v=f662204d');
   const blob = SP.file && SP.file.name === a.file ? SP.file : await pv.loadPdf(a.file);
   if (!blob) { toast(`Choose ${a.file} again above (it isn't stored in this browser), then open the viewer.`, 'error'); return; }
   pv.openViewer(blob, a, S.review, computeFindings(S.review).F, a.file, typeof focus === 'string' ? focus : '');
@@ -1204,14 +1214,14 @@ $('#sp-out').addEventListener('click', (e) => { if (e.target.closest('#sp-view')
 // ---------------- Review Verification (one item at a time, in its own window) ----------------
 
 async function renderVerifyCard() {
-  S.vfMod = S.vfMod || await import('./verify.js?v=f46a0e70');
+  S.vfMod = S.vfMod || await import('./verify.js?v=f662204d');
   const p = S.vfMod.progress(S.review);
   $('#vf-prog i').style.width = `${p.total ? (p.done / p.total) * 100 : 0}%`;
   $('#vf-stat').innerHTML = !p.total ? 'Pick a submittal type to build the list.' : p.done === 0 ? `${p.total} items to verify · <b>${p.flagged}</b> flagged${S.review.ai ? ' by the plan reader' : ''} or not yet reviewed.` : p.done >= p.total ? `✅ All ${p.total} items verified.` : `${p.done} of ${p.total} verified · <b>${p.open}</b> flagged item${p.open === 1 ? '' : 's'} left.`;
   $('#vf-start').textContent = p.done === 0 ? 'Start Verification' : p.done >= p.total ? 'Review Again' : 'Resume Verification';
 }
 async function startVerify(flaggedOnly) {
-  S.vfMod = S.vfMod || await import('./verify.js?v=f46a0e70');
+  S.vfMod = S.vfMod || await import('./verify.js?v=f662204d');
   let t;
   S.vfMod.openVerify(S.review, {
     flaggedOnly,
@@ -1242,7 +1252,7 @@ $('#sp-qrefresh').addEventListener('click', () => renderQueued(true));
 $('#sp-qlist').addEventListener('click', async (e) => {
   const tr = e.target.closest('[data-id]'); if (!tr) return; const m = (S.qItems || []).find(x => x.id === tr.dataset.id); if (!m) return;
   if (e.target.closest('[data-qload]')) loadQueued(m);
-  if (e.target.closest('[data-qdel]')) { if (!confirm(`Delete ${m.file} and its review data from the private queue now?`)) return; try { (await import('./queue.js?v=f46a0e70')).removeQueued(m).then(() => renderQueued(true)); } catch (err) { toast(err.message, 'error'); } }
+  if (e.target.closest('[data-qdel]')) { if (!confirm(`Delete ${m.file} and its review data from the private queue now?`)) return; try { (await import('./queue.js?v=f662204d')).removeQueued(m).then(() => renderQueued(true)); } catch (err) { toast(err.message, 'error'); } }
 });
 { const dz = $('#sp-drop');
   ['dragenter', 'dragover'].forEach(t => dz.addEventListener(t, (e) => { e.preventDefault(); dz.classList.add('over'); }));
@@ -1259,32 +1269,34 @@ async function renderKeys(fresh = true) {
   el.innerHTML = '<p class="sub">Loading…</p>';
   try {
     const d = await relayFetch('/admin/keys');
+    if (!RO.loaded) { try { await loadRoles(); RO.loaded = true; roleKeyOptions(); renderRoles(false); } catch {} }
     el.dataset.loaded = '1';
     el.innerHTML = `<ul class="keylist"><li data-key="super"><div><b>${esc(d.superName || 'Super account')}</b> <span class="sub">— super account: the passphrase (SITE_KEY in Cloudflare). Change it there to rotate.</span><div>${PERM_LIST.map(p => `<span class="pill">${p}</span>`).join('')}</div></div><span class="actions"><button class="btn sm ghost" type="button" data-rename>Edit name</button></span></li>${(d.keys || []).map(k => {
       const exp = k.expires ? new Date(k.expires) : null; const dead = exp && exp < new Date();
-      return `<li data-key="${esc(k.id)}"><div><b>${esc(k.label)}</b> <span class="sub">— created ${esc(new Date(k.created).toLocaleDateString())}${k.createdBy ? ` by ${esc(k.createdBy)}` : ''}${exp ? ` · ${dead ? 'EXPIRED' : 'expires'} ${esc(exp.toLocaleDateString())}` : ''}</span><div>${(k.perms || []).map(p => `<span class="pill">${esc(p)}</span>`).join('')}</div></div><span class="actions"><button class="btn sm ghost" type="button" data-rename>Edit name</button><button class="btn sm ghost" type="button" data-revoke>Revoke</button></span></li>`; }).join('')}</ul>${(d.keys || []).length ? '' : '<p class="sub">No other keys yet.</p>'}`;
+      return `<li data-key="${esc(k.id)}"><div><b>${esc(k.label)}</b> <span class="sub">— created ${esc(new Date(k.created).toLocaleDateString())}${k.createdBy ? ` by ${esc(k.createdBy)}` : ''}${exp ? ` · ${dead ? 'EXPIRED' : 'expires'} ${esc(exp.toLocaleDateString())}` : ''}</span><div>${k.role ? `<span class="pill" title="Role">role: ${esc((RO.roles.find(r => r.id === k.role) || {}).name || k.role)}</span> ` : ''}${(k.perms || []).map(p => `<span class="pill">${esc(p)}</span>`).join('')}</div></div><span class="actions">${RO.roles.length ? `<select data-keyrole aria-label="Role"><option value="">No role (own permissions)</option>${RO.roles.map(r => `<option value="${esc(r.id)}" ${k.role === r.id ? 'selected' : ''}>${esc(r.name)}</option>`).join('')}</select>` : ''}<button class="btn sm ghost" type="button" data-rename>Edit name</button><button class="btn sm ghost" type="button" data-revoke>Revoke</button></span></li>`; }).join('')}</ul>${(d.keys || []).length ? '' : '<p class="sub">No other keys yet.</p>'}`;
   } catch (e) { el.innerHTML = `<p class="bad">${esc(e.message)}</p>`; }
 }
 {
   const f = $('#st-keys-form');
   const setBoxes = (list) => $$('input[name=p]', f).forEach(b => { b.checked = list.includes(b.value); });
-  f.role.addEventListener('change', () => { if (ROLES[f.role.value]) setBoxes(ROLES[f.role.value]); });
+  f.role.addEventListener('change', (e) => { if (e.isTrusted) f.role.dataset.touched = '1'; const r = f.role.value.startsWith('role:') && RO.roles.find(x => `role:${x.id}` === f.role.value); if (r) setBoxes(r.perms); else if (ROLES[f.role.value]) setBoxes(ROLES[f.role.value]); $$('input[name=p]', f).forEach(b => (b.disabled = !!r)); });
   $$('input[name=p]', f).forEach(b => b.addEventListener('change', () => { f.role.value = 'custom'; }));
   setBoxes(ROLES.reviewer);
   f.addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = f.querySelector('button[type=submit]'); btn.disabled = true;
     try {
-      const body = { label: f.label.value.trim(), perms: $$('input[name=p]:checked', f).map(b => b.value), days: +f.days.value || 0 };
+      const body = { label: f.label.value.trim(), perms: $$('input[name=p]:checked', f).map(b => b.value), days: +f.days.value || 0, ...(f.role.value.startsWith('role:') ? { role: f.role.value.slice(5) } : {}) };
       const d = await relayFetch('/admin/keys/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const box = $('#st-newkey'); box.hidden = false;
       box.innerHTML = `<b>Key for ${esc(d.record.label)}</b> — copy it now; it won't be shown again:<div class="newkey">${esc(d.key)}</div><div class="actions"><button class="btn sm" type="button" id="st-newkey-copy">Copy key</button><button class="btn sm ghost" type="button" id="st-newkey-hide">Done</button></div><p class="sub">They open ${esc(location.origin + location.pathname)}, click <b>Sign In</b>, enter their name, paste this as the <b>Passphrase</b>, click Save, then Test GitHub.</p>`;
       $('#st-newkey-copy').onclick = () => copy(d.key); $('#st-newkey-hide').onclick = () => { box.hidden = true; box.innerHTML = ''; };
-      f.reset(); setBoxes(ROLES.reviewer); renderKeys(true);
+      f.reset(); setBoxes(ROLES.reviewer); roleKeyOptions(); renderKeys(true);
     } catch (err) { toast(err.message, 'error'); }
     finally { btn.disabled = false; }
   });
   $('#st-keys-refresh').addEventListener('click', () => renderKeys(true));
+  $('#st-keys-list').addEventListener('change', async (e) => { const s = e.target.closest('[data-keyrole]'); if (!s) return; const li = s.closest('[data-key]'); try { await jpost('/admin/keys/role', { id: li.dataset.key, role: s.value }); toast('Role changed — it takes effect for that user within a minute', 'ok'); renderKeys(true); renderRoles(true); } catch (err) { toast(err.message, 'error'); renderKeys(true); } });
   $('#st-keys-list').addEventListener('click', async (e) => {
     const li = e.target.closest('[data-key]'); if (!li) return;
     if (e.target.closest('[data-rename]')) {
@@ -1299,6 +1311,74 @@ async function renderKeys(fresh = true) {
 }
 
 
+// ---------------- Admin: roles & permissions ----------------
+const RO = { roles: [], perms: PERM_ORDER, edit: null };
+const jpost = (route, body) => relayFetch(route, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+async function loadRoles() {
+  const d = await relayFetch('/admin/roles'); RO.roles = d.roles || []; RO.perms = PERM_ORDER.filter(p => (d.perms || PERM_ORDER).includes(p)); return RO.roles;
+}
+async function renderRoles(fresh = true) {
+  const el = $('#ro-list');
+  try {
+    if (fresh || !RO.loaded) { el.innerHTML = '<p class="sub">Loading…</p>'; await loadRoles(); RO.loaded = true; }
+    el.innerHTML = RO.roles.map(r => `<button type="button" class="ro-chip${RO.edit && RO.edit.id === r.id ? ' on' : ''}" data-role="${esc(r.id)}"><b>${esc(r.name)}</b><small>${esc(r.description || '—')}</small><small>${r.perms.length} permission${r.perms.length === 1 ? '' : 's'} · ${r.caps.length}/${CAP_IDS.length} capabilities · ${r.hidden.length} hidden box${r.hidden.length === 1 ? '' : 'es'} · ${r.keys || 0} key${r.keys === 1 ? '' : 's'}</small></button>`).join('')
+      || `<p class="sub">No roles yet. <button class="btn sm" type="button" id="ro-defaults">Add the starting roles</button> (Viewer, Reviewer, Senior Reviewer, Administrator) or click <b>+ New role</b>.</p>`;
+    roleKeyOptions();
+  } catch (e) { el.innerHTML = `<p class="bad">${esc(/Not found/i.test(e.message) ? 'Deploy relay v23 in Cloudflare to use roles.' : e.message)}</p>`; }
+}
+function roleForm(r) {
+  RO.edit = r; const f = $('#ro-form'); f.hidden = false;
+  f.name.value = r.name || ''; f.description.value = r.description || '';
+  const perms = new Set(r.perms || []), caps = new Set(r.caps || CAP_IDS), hidden = new Set(r.hidden || []);
+  $('#ro-perms').innerHTML = RO.perms.map(p => `<label><input type="checkbox" data-perm-box="${p}" ${perms.has(p) ? 'checked' : ''}><span><b>${p}</b><small>${esc(PERM_INFO[p] || '')}</small></span></label>`).join('');
+  const pages = [...new Set(CAPS.map(c => c[1]))];
+  $('#ro-caps').innerHTML = pages.map(pg => `<fieldset class="ro-group"><legend>${esc(pg)}<button type="button" class="link ro-all" data-all="cap">all</button> · <button type="button" class="link ro-all" data-none="cap">none</button></legend><div class="ro-grid">${CAPS.filter(c => c[1] === pg).map(([id, , label, , need]) => `<label><input type="checkbox" data-cap-box="${id}" data-need="${need || ''}" ${caps.has(id) ? 'checked' : ''}><span>${esc(label)}${need ? ` <span class="ro-need" data-need-note="${need}">needs “${need}”</span>` : ''}</span></label>`).join('')}</div></fieldset>`).join('');
+  $('#ro-boxes').innerHTML = boxRegistry().map(g => `<fieldset class="ro-group"><legend>${esc(g.page)}<button type="button" class="link ro-all" data-all="box">all</button> · <button type="button" class="link ro-all" data-none="box">none</button></legend><div class="ro-grid">${g.boxes.map(b => `<label><input type="checkbox" data-box-box="${esc(b.id)}" ${hidden.has(b.id) ? '' : 'checked'}><span>${esc(b.label)}</span></label>`).join('')}</div></fieldset>`).join('');
+  $('#ro-delete').hidden = !r.id; syncNeeds();
+  $$('#ro-list .ro-chip').forEach(c => c.classList.toggle('on', c.dataset.role === r.id));
+  f.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+// A capability whose permission is off can't work: say so next to it.
+function syncNeeds() { const on = new Set($$('#ro-perms [data-perm-box]:checked').map(b => b.dataset.permBox)); $$('#ro-caps [data-need-note]').forEach(n => (n.hidden = on.has(n.dataset.needNote))); }
+function readRoleForm() {
+  const f = $('#ro-form');
+  return { id: RO.edit && RO.edit.id, name: f.name.value.trim(), description: f.description.value.trim(),
+    perms: $$('#ro-perms [data-perm-box]:checked').map(b => b.dataset.permBox), caps: $$('#ro-caps [data-cap-box]:checked').map(b => b.dataset.capBox),
+    hidden: $$('#ro-boxes [data-box-box]').filter(b => !b.checked).map(b => b.dataset.boxBox) };
+}
+$('#ro-refresh').addEventListener('click', () => renderRoles(true));
+$('#ro-new').addEventListener('click', () => roleForm({ name: '', description: '', perms: ['review', 'saved', 'play'], caps: CAP_IDS.slice(), hidden: [] }));
+$('#ro-list').addEventListener('click', async (e) => {
+  if (e.target.closest('#ro-defaults')) { try { for (const r of DEFAULT_ROLES) await jpost('/admin/roles/save', { role: r }); toast('Starting roles added', 'ok'); renderRoles(true); } catch (err) { toast(err.message, 'error'); } return; }
+  const c = e.target.closest('[data-role]'); if (c) roleForm(RO.roles.find(r => r.id === c.dataset.role));
+});
+$('#ro-form').addEventListener('change', (e) => { if (e.target.dataset.permBox) syncNeeds(); });
+$('#ro-form').addEventListener('click', (e) => { const b = e.target.closest('[data-all],[data-none]'); if (!b) return; const on = !!b.dataset.all; b.closest('.ro-group').querySelectorAll('input[type=checkbox]').forEach(x => (x.checked = on)); });
+$('#ro-form').addEventListener('submit', async (e) => {
+  e.preventDefault(); const role = readRoleForm(); if (!role.name) { toast('Give the role a name.', 'error'); return; }
+  try { const d = await jpost('/admin/roles/save', { role }); RO.edit = d.role; toast(`Saved “${d.role.name}” — keys with this role pick it up within a minute`, 'ok'); await renderRoles(true); roleForm(RO.roles.find(r => r.id === d.role.id) || d.role); verifyAccess(); } catch (err) { toast(err.message, 'error'); }
+});
+$('#ro-cancel').addEventListener('click', () => { $('#ro-form').hidden = true; RO.edit = null; $$('#ro-list .ro-chip').forEach(c => c.classList.remove('on')); });
+$('#ro-delete').addEventListener('click', async () => {
+  if (!RO.edit || !RO.edit.id || !confirm(`Delete the role “${RO.edit.name}”?`)) return;
+  try { await jpost('/admin/roles/delete', { id: RO.edit.id }); toast('Role deleted', 'ok'); $('#ro-form').hidden = true; RO.edit = null; renderRoles(true); } catch (err) { toast(err.message, 'error'); }
+});
+// Preview: see the site as a role on this browser only (permissions stay yours; only what's shown changes).
+function setPreview(role) {
+  S.previewRole = role; applyRole(role || (unlocked ? perms().role : null));
+  let b = document.getElementById('role-banner');
+  if (role) { if (!b) { b = document.createElement('div'); b.id = 'role-banner'; b.className = 'role-banner'; document.body.prepend(b); } b.innerHTML = `Previewing the <b>${esc(role.name || 'new')}</b> role — boxes and features are shown as that role sees them. <button class="btn sm" type="button" id="role-banner-stop">Stop preview</button>`; $('#role-banner-stop').onclick = () => setPreview(null); }
+  else if (b) b.remove();
+}
+$('#ro-preview').addEventListener('click', () => { const r = readRoleForm(); setPreview({ ...r, id: r.id || 'preview' }); toast('Preview on — switch tabs to see each page. Settings stay visible.', 'ok'); });
+// Access Keys: pick a role when creating a key, or change a key's role.
+function roleKeyOptions() {
+  const sel = $('#st-keys-form').role; if (!sel) return;
+  sel.querySelectorAll('option[data-saved-role]').forEach(o => o.remove());
+  const first = sel.querySelector('option');
+  for (const r of RO.roles.slice().reverse()) { const o = document.createElement('option'); o.value = `role:${r.id}`; o.dataset.savedRole = '1'; o.textContent = `${r.name}${r.description ? ` — ${r.description.slice(0, 60)}` : ''}`; sel.insertBefore(o, first); }
+  if (RO.roles.length && !sel.dataset.touched) { sel.value = `role:${RO.roles[0].id}`; sel.dispatchEvent(new Event('change')); }
+}
 // ---------------- collapsible boxes ----------------
 // "sp": Read a site plan PDF + Plan Queue collapse together (remembered). "allsubs": All Subdivisions, collapsed by default;
 // its countywide list loads the first time it is opened.
@@ -1439,10 +1519,10 @@ const fmtNum = (n) => Number(n || 0).toLocaleString('en-US');
 async function renderGames() {
   const cats = $('#mct .mct-cats');
   if (!cats.childElementCount) {
-    const { CATS } = await import('./games.js?v=f46a0e70');
+    const { CATS } = await import('./games.js?v=f662204d');
     cats.innerHTML = CATS.map(([k, l]) => `<button class="btn sm" type="button" role="radio" data-cat="${k}" aria-checked="${k === GM.cat}">${l}</button>`).join('');
   }
-  $('#mct-go').disabled = !unlocked;
+  $('#mct-go').disabled = !unlocked || !hasPerm('play');
   $('#mct-lock').textContent = unlocked ? `Playing as ${userName()}` : 'Sign in with a key to play — anyone can watch the leaderboard.';
   renderBoard();
 }
@@ -1466,9 +1546,10 @@ async function finishRound(quit = false) {
 $('#mct .mct-cats').addEventListener('click', (e) => { const b = e.target.closest('[data-cat]'); if (!b) return; GM.cat = b.dataset.cat; $$('#mct .mct-cats [data-cat]').forEach(x => x.setAttribute('aria-checked', String(x === b))); });
 $('#mct-go').addEventListener('click', async () => {
   if (!unlocked) { toast('Sign in with a key to play.', 'error'); return; }
+  if (!hasPerm('play')) { toast('Your role doesn\'t include playing games.', 'error'); return; }
   const btn = $('#mct-go'); btn.disabled = true;
   try {
-    const [{ buildRound }, start] = await Promise.all([import('./games.js?v=f46a0e70'), relayFetch('/g/start', { method: 'POST' })]);
+    const [{ buildRound }, start] = await Promise.all([import('./games.js?v=f662204d'), relayFetch('/g/start', { method: 'POST' })]);
     Object.assign(GM, { round: await buildRound(GM.cat, start.questions || 10), i: 0, correct: 0, answered: 0, token: start.token, locked: false });
     $('#mct-start').hidden = true; $('#mct-done').hidden = true; $('#mct-play').hidden = false; showQuestion();
   } catch (e) { toast(/Not found|404/.test(e.message) ? 'Games need relay v20 — ask the administrator to update the relay.' : e.message, 'error'); }

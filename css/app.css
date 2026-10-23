@@ -258,7 +258,8 @@ table.check td { vertical-align: middle; }
 
 /* Access-key permissions: elements marked data-perm show only when this browser's key has that permission */
 html:not(.perm-review) [data-perm="review"], html:not(.perm-write) [data-perm="write"], html:not(.perm-queue) [data-perm="queue"],
-html:not(.perm-rapid) [data-perm="rapid"], html:not(.perm-admin) [data-perm="admin"], html:not(.perm-settings) [data-perm="settings"] { display: none !important; }
+html:not(.perm-rapid) [data-perm="rapid"], html:not(.perm-admin) [data-perm="admin"], html:not(.perm-settings) [data-perm="settings"],
+html:not(.perm-saved) [data-perm="saved"], html:not(.perm-play) [data-perm="play"] { display: none !important; }
 .keys-form { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem .8rem; align-items: end; }
 .keys-form .perm-boxes, .keys-form .actions { grid-column: 1 / -1; }
 .perm-boxes { border: 1px solid var(--line); border-radius: 8px; padding: .4rem .7rem; display: grid; gap: .15rem; }
@@ -423,3 +424,24 @@ html.vf-open { overflow: hidden; }
 @media (max-width: 900px) { .cs-top { grid-template-columns: 1fr; } }
 .sg-chk { align-self: end; padding-bottom: .5rem; }
 #rv-signs select { min-width: 0; max-width: 100%; }
+
+/* Roles & Permissions (admin) */
+.ro-list { display: flex; flex-wrap: wrap; gap: .5rem; margin: .4rem 0 .8rem; }
+.ro-chip { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 10px; padding: .45rem .7rem; text-align: left; cursor: pointer; font: inherit; max-width: 280px; }
+.ro-chip b { display: block; } .ro-chip small { color: var(--muted); }
+.ro-chip.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.ro-form { border-top: 1px solid var(--line); padding-top: .8rem; }
+.ro-form .span2 { grid-column: span 2; }
+.ro-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: .25rem 1rem; }
+.ro-grid label { display: flex; gap: .45rem; align-items: flex-start; font-size: .9rem; }
+.ro-grid label small { color: var(--muted); display: block; }
+.ro-group { border: 1px solid var(--line); border-radius: 8px; padding: .5rem .7rem; margin-bottom: .6rem; }
+.ro-group legend { font-weight: 600; padding: 0 .3rem; }
+.ro-group .ro-all { font-size: .78rem; margin-left: .4rem; }
+.ro-need { color: var(--yellow); font-size: .78rem; }
+.role-banner { position: sticky; top: 0; z-index: 650; background: var(--accent); color: var(--accent-ink); text-align: center; padding: .4rem 1rem; font-size: .9rem; }
+.role-banner button { margin-left: .6rem; }
+@media (max-width: 560px) { .ro-form .span2 { grid-column: auto; } }
+.ro-grid > label { display: flex !important; flex-direction: row; align-items: flex-start; gap: .5rem; margin: 0; }
+.ro-grid > label > input[type=checkbox] { width: auto; flex: none; margin: .2rem 0 0; }
+.ro-grid > label > span { min-width: 0; }

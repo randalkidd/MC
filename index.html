@@ -7,14 +7,14 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https://gis.maricopa.gov https://server.arcgisonline.com https://*.arcgisonline.com https://unpkg.com; connect-src 'self' https://gis.maricopa.gov https://publicapi.recorder.maricopa.gov https://edms.maricopa.gov https://recorder.maricopa.gov https://api.github.com https://*.workers.dev; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="preconnect" href="https://gis.maricopa.gov" crossorigin>
-<script src="js/theme.js?v=f46a0e70"></script>
+<script src="js/theme.js?v=f662204d"></script>
 <title>Unofficial Maricopa County Zoning Hub</title>
 <meta name="description" content="Maricopa County parcel lookup, MCZO/MCSR standards, subdivision plat database and plan-review deficiency builder.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%232ec4b6'/><path d='M7 24V9l9 7 9-7v15' fill='none' stroke='%2304161a' stroke-width='3' stroke-linejoin='round'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/app.css?v=f46a0e70">
-<link rel="modulepreload" href="js/app.js?v=f46a0e70"><link rel="modulepreload" href="js/lookup.js?v=f46a0e70"><link rel="modulepreload" href="js/report.js?v=f46a0e70"><link rel="modulepreload" href="js/net.js?v=f46a0e70"><link rel="modulepreload" href="js/github.js?v=f46a0e70"><link rel="modulepreload" href="js/standards.js?v=f46a0e70"><link rel="modulepreload" href="js/checklists.js?v=f46a0e70"><link rel="modulepreload" href="js/review.js?v=f46a0e70"><link rel="modulepreload" href="js/recorder.js?v=f46a0e70"><link rel="modulepreload" href="js/subdivisions.js?v=f46a0e70">
+<link rel="stylesheet" href="css/app.css?v=f662204d">
+<link rel="modulepreload" href="js/app.js?v=f662204d"><link rel="modulepreload" href="js/lookup.js?v=f662204d"><link rel="modulepreload" href="js/report.js?v=f662204d"><link rel="modulepreload" href="js/net.js?v=f662204d"><link rel="modulepreload" href="js/github.js?v=f662204d"><link rel="modulepreload" href="js/standards.js?v=f662204d"><link rel="modulepreload" href="js/checklists.js?v=f662204d"><link rel="modulepreload" href="js/review.js?v=f662204d"><link rel="modulepreload" href="js/recorder.js?v=f662204d"><link rel="modulepreload" href="js/subdivisions.js?v=f662204d">
 </head>
 <body>
 <header class="top">
@@ -25,7 +25,7 @@
   <button class="tab" role="tab" data-tab="p-lookup">Parcel Lookup</button>
   <button class="tab gated" role="tab" data-tab="p-review" data-perm="review" hidden>Plan Review Hub</button>
   <button class="tab gated" role="tab" data-tab="p-subs" hidden>SubdivisionDB</button>
-  <button class="tab gated" role="tab" data-tab="p-saved" data-perm="review" hidden>Saved Items</button>
+  <button class="tab gated" role="tab" data-tab="p-saved" data-perm="saved" hidden>Saved Items</button>
   <button class="tab" role="tab" data-tab="p-ref">Reference</button>
   <button class="tab" role="tab" data-tab="p-games">Behind the Curtains</button>
   <button class="tab" role="tab" data-tab="p-signin">Sign In</button>
@@ -41,32 +41,32 @@
     <p class="sub">Staff tools (Plan Review Hub, SubdivisionDB with Land Division, and Saved Items) unlock after you sign in: open <b>Sign In</b>, enter your name and passphrase, click <b>Save</b>, then <b>Test GitHub</b>.</p>
     <div class="actions"><button class="btn primary" type="button" data-goto="p-signin">Sign In</button><button class="btn ghost" type="button" data-goto="p-ref">Browse the reference</button></div>
   </div>
-  <form id="lookup-form" class="searchbar">
+  <form id="lookup-form" class="searchbar" data-box="lookup-search" data-box-label="APN search box">
     <input id="lookup-apn" placeholder="APN — e.g. 304-88-146 or 30488146A" autocomplete="off" inputmode="text" required>
     <button class="btn primary">Look up</button>
     <button class="btn ghost" id="hub-clear" type="button" data-perm="review" title="Clear everything on Plan Review Hub: the review form, structures, checklist, markup table, the plan being reviewed and its verification">Clear</button>
   </form>
   <p class="hint">Runs the assessor record, every PlanNet layer (zoning, overlays, current and historic cases, districts, military), PLSS section lines and FEMA floodplain directly against county GIS, then fills the parcel-report template.</p>
   <div id="lookup-status" class="status" hidden></div>
-  <div id="maps" class="maps" hidden>
+  <div id="maps" class="maps" hidden data-box="lookup-maps" data-box-label="Aerial and parcel maps">
     <figure><figcaption>Aerial</figcaption><div id="map" class="map"></div></figure>
     <figure><figcaption>Parcel Boundaries <span class="sub">(County Assessor Parcels)</span></figcaption><div id="map2" class="map"></div></figure>
   </div>
-  <div id="report-actions" class="actions" hidden>
+  <div id="report-actions" class="actions" hidden data-box="lookup-report" data-box-label="Parcel report (and its buttons)">
     <button class="btn" id="rep-copy">Copy as Markdown</button>
     <button class="btn" id="rep-dl">Download .md</button>
-    <button class="btn" id="rep-save" data-perm="review" title="Save this report to your own Saved Items (private — only you can see it)">Save to Saved Items</button>
+    <button class="btn" id="rep-save" data-perm="saved" title="Save this report to your own Saved Items (private — only you can see it)">Save to Saved Items</button>
     <button class="btn" id="rep-pdf">Save PDF</button>
     <button class="btn ghost" id="rep-print">Print</button>
   </div>
-  <article id="report" class="report"></article>
+  <article id="report" class="report" data-box="lookup-report"></article>
 </section>
 
 <!-- PLAN REVIEW -->
 <section class="panel" id="p-review" hidden>
   <div class="hub-warn" role="alert"><b>⚠ Not for official use.</b> This feature is not approved to be used for official Maricopa County plan review at this time.</div>
   <div class="sp-grid">
-  <div class="card sp-card" id="sp-card">
+  <div class="card sp-card" id="sp-card" data-box="sp-card">
     <div class="cardhead"><h2>Read a Site Plan PDF <button class="collapse-btn" type="button" data-collapse="sp" aria-expanded="true" title="Collapse">▾</button></h2></div>
     <p class="sub">Pick the submittal type below, drop the applicant's site plan here, then click <b>Review ▾</b> and choose one. <b>Superficial Review</b> is free and instant: it reads the PDF's own text in your browser (CAD/Word exports, not scans). <b>Queued Review</b>: the plan goes to the private queue, which is processed once daily at about 12 AM (no API cost); results are listed under Plan Queue on the right. <b>In-Depth Review</b>: Claude reads every sheet now (about a minute, billed to the API key in your relay). Every review fills this page and checks the APN, owner, address, lot area, zoning and subdivision/lot against the Assessor record and recorded deed; the data read from plans is kept in the private repo for 45 days. <b>Verify every value against the plan.</b></p>
     <div class="sp-drop" id="sp-drop">
@@ -88,13 +88,13 @@
     <div id="sp-status" class="status" hidden></div>
     <div id="sp-out"></div>
   </div>
-  <aside class="card sp-qcard" id="sp-queued" data-perm="queue">
+  <aside class="card sp-qcard" id="sp-queued" data-perm="queue" data-box="sp-queued">
     <div class="cardhead"><h2>Plan Queue <button class="collapse-btn" type="button" data-collapse="sp" aria-expanded="true" title="Collapse">▾</button></h2><button class="btn sm" id="sp-qrefresh" type="button">Refresh</button></div>
     <p class="sub">Plans sent to the queue — plans are kept 14 days and their data 45 days in a private repository. The queue is processed once daily at ~12 AM.</p>
     <div id="sp-qlist" class="sp-qscroll"><p class="sub">Click Refresh to load.</p></div>
   </aside>
   </div>
-  <div class="card sp-vcard collapsible" id="sp-verify">
+  <div class="card sp-vcard collapsible" id="sp-verify" data-box="sp-verify">
     <div class="cardhead"><h2>Review Verification <button class="collapse-btn" type="button" data-collapse="sp-verify" aria-expanded="true" title="Collapse">▾</button></h2></div>
     <div class="vf-row">
       <p class="sub vf-what">Step through the checklist one item at a time in its own window — flagged items, measured setbacks, plan-vs-record mismatches and hard-to-read values — and confirm each. Results fill the Checklist and Markup Table below.</p>
@@ -105,7 +105,7 @@
       </div>
     </div>
   </div>
-  <div class="card" id="rv-submittal">
+  <div class="card" id="rv-submittal" data-box="rv-submittal">
     <h2>Submittal Information</h2>
     <div class="row4">
       <label class="span2">Type<select id="rv-type"></select></label>
@@ -128,7 +128,7 @@
     <p class="sub">Run a parcel lookup first to fill the APN, district, lot area and lot width × depth automatically (width × depth size the required rear/side yards). <span id="plat-hint"></span></p>
   </div>
 
-  <div class="card site-only" id="rv-coverage">
+  <div class="card site-only" id="rv-coverage" data-box="rv-coverage">
     <h2>Coverage &amp; Setbacks</h2>
     <div class="cs-top">
       <div>
@@ -160,7 +160,7 @@
     <ul id="rv-findings" class="findings"></ul>
   </div>
 
-  <div class="card sign-only" id="rv-signs-card" hidden>
+  <div class="card sign-only" id="rv-signs-card" hidden data-box="rv-signs-card">
     <h2>Sign Details</h2>
     <p class="sub">Checked against MCZO Chapter 11 (Dec 10, 2025) for the district above. Enter each sign's area for <b>one face</b> (identical double faces count once, §1101.3.2), overall height from grade, illumination, and its setback to the property line / right-of-way.</p>
     <div class="row4">
@@ -177,21 +177,21 @@
     <ul id="sg-findings" class="findings"></ul>
   </div>
 
-  <div class="card">
+  <div class="card" data-box="rv-checklist">
     <div class="cardhead"><h2>Checklist</h2><div><button class="btn sm ghost" id="rv-allok" type="button">Mark unset as OK</button></div></div>
     <div class="tw"><table class="edit check"><thead><tr><th>Item</th><th>Status</th><th>Plan shows</th><th>Required correction</th></tr></thead><tbody id="rv-check"></tbody></table></div>
   </div>
 
-  <div class="card">
+  <div class="card" data-box="rv-markup">
     <div class="cardhead"><h2>Markup Table</h2>
-      <div class="actions"><button class="btn" id="rv-copy">Copy</button><button class="btn" id="rv-dl">Download .md</button><button class="btn primary" id="rv-letter" title="Zoning Plan Review Comments letter (Maricopa County template) listing only the items that do not meet requirements">Comment letter (PDF)</button><button class="btn" id="rv-save" data-perm="review" title="Save this review to your own Saved Items (private — only you can see it)">Save to Saved Items</button><button class="btn ghost" id="rv-reset">New review</button></div></div>
+      <div class="actions"><button class="btn" id="rv-copy">Copy</button><button class="btn" id="rv-dl">Download .md</button><button class="btn primary" id="rv-letter" title="Zoning Plan Review Comments letter (Maricopa County template) listing only the items that do not meet requirements">Comment letter (PDF)</button><button class="btn" id="rv-save" data-perm="saved" title="Save this review to your own Saved Items (private — only you can see it)">Save to Saved Items</button><button class="btn ghost" id="rv-reset">New review</button></div></div>
     <textarea id="rv-md" class="md" rows="16" spellcheck="false"></textarea>
   </div>
 </section>
 
 <!-- SUBDIVISIONS DB -->
 <section class="panel" id="p-subs" hidden>
-  <div class="card">
+  <div class="card" data-box="subs-db">
     <div class="cardhead">
       <div><h2>SubdivisionDB Plats</h2><p class="sub"><span id="db-count"></span> · <span id="db-source"></span> <span id="db-dirty" class="pill warn-pill" hidden>Unsaved changes</span></p></div>
       <div class="actions"><button class="btn" id="db-new" data-perm="write">+ Add</button><button class="btn primary" id="db-save" data-perm="write">Save to GitHub</button><button class="btn ghost" id="db-reload">Reload</button><button class="btn ghost" id="db-export">Export JSON</button></div>
@@ -200,7 +200,7 @@
     <div class="tw db-scroll"><table><thead><tr><th>Subdivision</th><th>MCR</th><th>Plat</th><th>Lots</th><th>Recorded setbacks</th><th>Lot coverage</th><th>Last Updated</th><th></th></tr></thead><tbody id="db-body"></tbody></table></div>
     <p class="sub">Stored as <code>data/subdivision-plats.json</code> in your GitHub repo. A parcel lookup inside a listed subdivision uses its recorded setbacks and checks for cases dated after the plat.</p>
   </div>
-  <div class="card collapsible collapsed" id="allsubs">
+  <div class="card collapsible collapsed" id="allsubs" data-box="allsubs">
     <div class="cardhead">
       <div><h2>All Subdivisions <small>(Maricopa County GIS)</small> <button class="collapse-btn" type="button" data-collapse="allsubs" aria-expanded="false" title="Expand">▸</button></h2><p class="sub" id="as-meta">Type in the search below, or click ▸ to browse the countywide list.</p><p class="sub as-scope">ⓘ Search covers <b>every recorded subdivision countywide</b> — including those within incorporated cities and towns (their jurisdiction, not the County's). Check the parcel's jurisdiction before applying county standards.</p></div>
       <div class="actions"><button class="btn ghost" id="as-refresh" type="button">Refresh from county GIS</button><button class="btn ghost" id="as-export" type="button">Export CSV</button></div>
@@ -212,7 +212,7 @@
     <p class="sub">Countywide, including subdivisions inside cities and towns. The county's MCR numbers are book–page in the Recorder's map books. Plats link to the Recorder; <b>Add to waitlist</b> queues one for <b>Process with Claude</b> in the Plat Automation Waitlist below.</p>
   </div>
   <div id="land-division" class="ld-block" data-perm="review">
-  <div class="card collapsible collapsed" id="ls-card">
+  <div class="card collapsible collapsed" id="ls-card" data-box="ls-card">
     <div class="cardhead"><h2>Check an Existing Parcel — Was the Split Lawful? <button class="collapse-btn" type="button" data-collapse="ls-card" aria-expanded="false" title="Expand">▸</button></h2></div>
     <form id="ls-form" class="searchbar"><input id="ls-apn" placeholder="APN — e.g. 401-52-034C" autocomplete="off"><button class="btn primary">Check split</button></form>
     <div id="ld-out" class="ld-out-inline"></div>
@@ -221,7 +221,7 @@
     <div id="ls-out"></div>
   </div>
   <div>
-    <form id="ld-form" class="card collapsible collapsed">
+    <form id="ld-form" class="card collapsible collapsed" data-box="ld-form">
       <div class="cardhead"><h2>Classify a Land Division <button class="collapse-btn" type="button" data-collapse="ld-form" aria-expanded="false" title="Expand">▸</button></h2></div>
       <label>Number of resulting lots/parcels (including the remainder)<input name="lots" type="number" min="1" value="2"></label>
       <label>Smallest resulting parcel (acres, to the road/easement centerline)<input name="minAc" type="number" step="0.01" min="0"></label>
@@ -236,7 +236,7 @@
   </div>
   <p class="sub">Built from the MCSR (Jan 9, 2026 revision) definitions and procedures (§105.24, §105.37, §202–207) and DD-2013-10.</p>
   </div>
-  <div id="queue" class="card queue" data-perm="settings">
+  <div id="queue" class="card queue" data-perm="settings" data-box="queue">
     <div class="cardhead"><div><h2>Plat Automation Waitlist <span class="pill" id="queue-count">0</span></h2><p class="sub">Subdivisions found by a parcel lookup that aren't in SubdivisionDB yet. <b>Process with Claude</b> opens Claude with this list; Claude reads each plat in the Claude desktop app's browser on your computer, adds it to SubdivisionDB and clears it from this list.</p></div>
       <div class="actions"><button class="btn primary" id="queue-run" data-perm="write" type="button">✦ Process with Claude</button><button class="btn ghost" id="queue-copy" type="button">Copy request</button></div></div>
     <div class="tw"><table><thead><tr><th>Subdivision</th><th>MCR</th><th>Plat</th><th>Lots</th><th>Found from APN</th><th>First seen</th><th></th></tr></thead><tbody id="queue-body"></tbody></table></div>
@@ -250,33 +250,33 @@
 
 <!-- SAVED -->
 <section class="panel" id="p-saved" hidden>
-  <div class="card"><div class="cardhead"><h2>Saved Items</h2><button class="btn sm" id="saved-refresh" type="button">Refresh</button></div>
+  <div class="card" data-box="saved-list-card"><div class="cardhead"><h2>Saved Items</h2><button class="btn sm" id="saved-refresh" type="button">Refresh</button></div>
   <p class="sub">Parcel reports and plan reviews you saved. They are private to your sign-in — other users can't see them.</p>
   <div id="saved-list"><p class="sub">Loading…</p></div></div>
 </section>
 
 <!-- REFERENCE -->
 <section class="panel" id="p-ref" hidden>
-  <div class="card"><h2>MCZO District Standards <small>(Ch. 5 §502/504/506, Dec 10, 2025)</small></h2>
+  <div class="card" data-box="ref-districts-card"><h2>MCZO District Standards <small>(Ch. 5 §502/504/506, Dec 10, 2025)</small></h2>
     <div class="tw"><table id="ref-districts" class="dense"></table></div>
     <p class="sub">** R1-18 through R1-6: 10 ft front, but ≥ 18 ft to a front-facing garage plane. * "0 / 10" = none required / required when adjacent to a Rural or Residential district. Accessory interior side and rear 3 ft (detached ADU 5 ft). <a href="https://www.maricopa.gov/DocumentCenter/View/4785/P-18---Zoning-Ordinance-PDF?bidId=" target="_blank" rel="noopener">MCZO PDF</a></p>
     <h3>Accessory Structures</h3><ul id="ref-acc"></ul>
     <h3>Septic Minimum Setbacks (Sample Residential Site Plan; ESD Controls)</h3><table class="dense"><tbody id="ref-septic"></tbody></table>
   </div>
-  <div class="card"><h2>Subdivision Regulations — Quick Reference <small>(Jan 9, 2026 revision)</small></h2>
+  <div class="card" data-box="ref-mcsr-card"><h2>Subdivision Regulations — Quick Reference <small>(Jan 9, 2026 revision)</small></h2>
     <div class="tw"><table class="dense"><thead><tr><th>Topic</th><th>Standard</th><th>Cite</th></tr></thead><tbody id="ref-mcsr"></tbody></table></div></div>
-  <div class="card" id="ref-regs-card"><h2>County Codes, Ordinances &amp; Regulations <small>(status as of 10/22/2026)</small></h2>
+  <div class="card" id="ref-regs-card" data-box="ref-regs-card"><h2>County Codes, Ordinances &amp; Regulations <small>(status as of 10/22/2026)</small></h2>
     <div class="tw"><table class="dense"><thead><tr><th>Document</th><th>Edition / dates</th><th>Status</th><th>Links</th></tr></thead><tbody id="ref-regs"></tbody></table></div>
     <p class="sub">From the county's <a href="https://www.maricopa.gov/2271/Ordinances-Regulations-and-Codes" target="_blank" rel="noopener">Ordinances, Regulations and Codes</a> page. Superseded editions are listed only so they aren't mistaken for current ones.</p></div>
-  <div class="card" id="ref-lookup-card"><h2>Regulation Lookup</h2>
+  <div class="card" id="ref-lookup-card" data-box="ref-lookup-card"><h2>Regulation Lookup</h2>
     <div class="rl-bar"><input id="rl-q" class="filter" placeholder="Search: pool barrier, weeds, construction hours, noise, AD III, address number, shipping container, yard sale…" autocomplete="off"><select id="rl-doc" aria-label="Filter by document"><option value="">All documents</option></select></div>
     <div class="collapsible rl-results" id="rl-results">
       <div class="cardhead rl-head"><span class="sub" id="rl-count"></span><button class="collapse-btn" type="button" data-collapse="rl-results" aria-expanded="true" title="Collapse">▾</button></div>
       <div class="tw"><table class="dense"><thead><tr><th>Document</th><th>§</th><th>Topic</th><th>Rule</th></tr></thead><tbody id="rl-body"></tbody></table></div>
       <p class="sub">Condensed from the county PDFs (each row links to its source). Quote the PDF in formal comments. Historical staff interpretations predate the 2025 MCZO; confirm them first.</p>
     </div></div>
-  <div class="card" id="ref-dirs-card"><h2>Department Directives</h2><ul id="ref-dirs" class="cols"></ul></div>
-  <div class="card"><h2>County Tools</h2><ul class="cols">
+  <div class="card" id="ref-dirs-card" data-box="ref-dirs-card"><h2>Department Directives</h2><ul id="ref-dirs" class="cols"></ul></div>
+  <div class="card" data-box="ref-tools-card"><h2>County Tools</h2><ul class="cols">
     <li><a href="parcel-lookup/">Parcel Lookup (original page)</a></li>
     <li><a href="https://experience.arcgis.com/experience/905ef9d0a9b646739d6b4458f7eb2910/" target="_blank" rel="noopener">What's My Zoning?</a></li>
     <li><a href="https://maricopa.maps.arcgis.com/apps/webappviewer/index.html?id=f4c45e831c9d4a7ba70b0fadb3635f7b" target="_blank" rel="noopener">PlanNet zoning overlay map</a></li>
@@ -298,7 +298,7 @@
 <section class="panel" id="p-games" hidden>
   <div class="games-grid">
     <div class="games-left">
-      <div class="card game-card" id="mct">
+      <div class="card game-card" id="mct" data-box="mct">
         <div class="cardhead"><div><h2>MCTrained</h2><p class="sub">Multiple-choice rounds on the Zoning Ordinance, Local Additions &amp; Addenda, department directives and quick plan-review scenarios. 10 questions a round · 10 points per correct answer · +20 for a perfect round.</p></div></div>
         <div id="mct-start">
           <div class="mct-cats" role="radiogroup" aria-label="Category"></div>
@@ -313,12 +313,12 @@
         </div>
         <div id="mct-done" hidden></div>
       </div>
-      <div class="card game-card" id="trivia">
+      <div class="card game-card" id="trivia" data-box="trivia">
         <div class="cardhead"><h2>Trivia &amp; More</h2></div>
         <p class="sub">General trivia and other games are coming soon. Points from every game count toward the leaderboard.</p>
       </div>
     </div>
-    <aside class="card leaderboard" id="lb">
+    <aside class="card leaderboard" id="lb" data-box="lb">
       <div class="cardhead"><h2>Leaderboard</h2><button class="btn sm" id="lb-refresh" type="button">Refresh</button></div>
       <p class="sub">Top 20 players by total points.</p>
       <ol id="lb-list" class="lb-list"><li class="sub">Loading…</li></ol>
@@ -404,6 +404,21 @@
     <div id="st-newkey" class="warn" hidden></div>
     <div id="st-keys-list"><p class="sub">Click Refresh to load.</p></div>
   </div>
+  <div class="card" id="st-roles" data-perm="admin">
+    <div class="cardhead"><h2>Roles &amp; Permissions</h2><div class="actions"><button class="btn sm" id="ro-refresh" type="button">Refresh</button><button class="btn sm primary" id="ro-new" type="button">+ New role</button></div></div>
+    <p class="sub">A role bundles three things for every key assigned to it: <b>permissions</b> (enforced by the relay on every request), <b>capabilities</b> (finer page features shown or hidden), and <b>box visibility</b> on each page. Assign roles to keys under Access Keys. Keys without a role keep their own permissions and see everything. The super account always sees everything. Needs relay v23.</p>
+    <div id="ro-list" class="ro-list"><p class="sub">Click Refresh to load.</p></div>
+    <form id="ro-form" class="ro-form" hidden>
+      <div class="row3"><label>Role name<input name="name" maxlength="40" required placeholder="e.g. Intern"></label><label class="span2">Definition<input name="description" maxlength="300" placeholder="Who this role is for and what it allows"></label></div>
+      <h3>Permissions <small class="sub">— enforced by the relay</small></h3>
+      <div id="ro-perms" class="ro-grid"></div>
+      <h3>Capabilities <small class="sub">— features shown on each page</small></h3>
+      <div id="ro-caps"></div>
+      <h3>Box Visibility <small class="sub">— checked boxes are shown</small></h3>
+      <div id="ro-boxes"></div>
+      <div class="actions"><button class="btn primary" type="submit">Save role</button><button class="btn" id="ro-preview" type="button" title="See the site as this role on this browser (until you stop the preview)">Preview as this role</button><button class="btn ghost" id="ro-cancel" type="button">Cancel</button><span class="grow"></span><button class="btn danger" id="ro-delete" type="button">Delete role</button></div>
+    </form>
+  </div>
   <div class="card" id="st-folders" data-perm="admin">
     <div class="cardhead"><h2>User Folders</h2><button class="btn sm" id="sf-refresh" type="button">Refresh</button></div>
     <p class="sub">Open any user's Saved Items and the plans they submitted to the Plan Queue; download or remove files as needed.</p>
@@ -419,8 +434,8 @@
 <dialog id="saved-view" class="saved-view"><div class="cardhead"><h2 id="sv-title"></h2><button class="btn sm ghost" id="sv-close" type="button" aria-label="Close">✕</button></div><pre id="sv-text" class="sv-text"></pre><div class="actions"><button class="btn" id="sv-dl" type="button">Download</button><button class="btn danger" id="sv-del" type="button">Delete</button></div></dialog>
 </main>
 <footer class="foot">All information in this system is public and accessible to anyone; items saved here are stored in a public GitHub repository. Reference tool — verify findings against the adopted ordinance, recorded documents and case files before relying on them.
-<div class="build">Version <span id="build">10.23.26.061</span> · <span id="relay-ver" data-latest="22" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
+<div class="build">Version <span id="build">10.23.26.063</span> · <span id="relay-ver" data-latest="23" title="Checking the Cloudflare relay…">Relay …</span></div></footer>
 <div id="toasts" aria-live="polite"></div>
-<script type="module" src="js/app.js?v=f46a0e70"></script>
+<script type="module" src="js/app.js?v=f662204d"></script>
 </body>
 </html>
