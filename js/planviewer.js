@@ -1,6 +1,6 @@
 // Plan viewer: shows the site-plan PDF with Claude's issue/value locations drawn on top. Click an item in the list to
 // jump to it on the plan; click a box on the plan to find it in the list. Uses vendored pdf.js (same origin, lazy).
-import { CHECKLISTS } from './checklists.js?v=1687cb8b';
+import { CHECKLISTS } from './checklists.js?v=1a5e8ca6';
 
 const PDFJS = './js/vendor/pdfjs-3.2.146/';
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -65,7 +65,7 @@ export function buildItems(ai, review, F) {
   const items = [];
   const add = (group, sev, title, detail, boxes) => items.push({ group, sev, title, detail, boxes });
   // 1. plan vs. records
-  for (const [label, plan, rec, st, note] of ai.compare || []) if (st !== 'ok') add('Plan vs. records', st, `${label}: plan ≠ record`, `Plan: ${plan} · Record: ${rec}${note ? ` — ${note}` : ''}`, find(COMPARE_REF[label] || []));
+  for (const [label, plan, rec, st, note] of ai.compare || []) if (st !== 'ok') add('Plan vs. Records', st, `${label}: plan ≠ record`, `Plan: ${plan} · Record: ${rec}${note ? ` — ${note}` : ''}`, find(COMPARE_REF[label] || []));
   // 2. measured checks that fail (setbacks, height, coverage, accessory)
   for (const f of F || []) {
     if (f.status === 'ok') continue;
@@ -74,17 +74,17 @@ export function buildItems(ai, review, F) {
     const nm = (f.loc.match(/—\s*(.+)$/) || [])[1];
     const j = nm ? review.structures.findIndex(x => x.name === nm) : -1;
     if (!pr && j >= 0) { const k = /rear/.test(f.item) ? 'rear' : /side-interior/.test(f.item) ? 'side' : /side-street/.test(f.item) ? 'street' : /front/.test(f.item) ? 'front' : /height/.test(f.item) ? 'height' : ''; refs = k ? [`structure:${j}:${k}`, `structure:${j}`] : [`structure:${j}`]; prefix = !k; }
-    add('Setbacks, height & coverage', f.status, f.item, `Plan: ${f.shows} · Required: ${f.req}${f.fix && f.fix !== '—' ? ` — ${f.fix}` : ''}`, find(refs, prefix));
+    add('Setbacks, Height & Coverage', f.status, f.item, `Plan: ${f.shows} · Required: ${f.req}${f.fix && f.fix !== '—' ? ` — ${f.fix}` : ''}`, find(refs, prefix));
   }
   // 3. checklist (current reviewer statuses)
   const labels = Object.fromEntries((CHECKLISTS[review.type]?.items || []).map(i => [i[0], i[1]]));
   for (const [id, c] of Object.entries(review.checks || {})) if (labels[id] && (c.status === 'deficient' || c.status === 'verify')) add('Checklist', c.status, labels[id], [c.note, c.status === 'deficient' && c.fix].filter(Boolean).join(' — '), find([`checklist:${id}`]));
   // 4. other red-lines Claude found
-  (r.other_findings || []).forEach((f, i) => f && f.item && add('Other findings', f.status === 'deficient' ? 'deficient' : 'verify', f.item, [f.shows && `Plan: ${f.shows}`, f.required && `Required: ${f.required}`, f.correction].filter(Boolean).join(' · '), find([`finding:${i}`])));
+  (r.other_findings || []).forEach((f, i) => f && f.item && add('Other Findings', f.status === 'deficient' ? 'deficient' : 'verify', f.item, [f.shows && `Plan: ${f.shows}`, f.required && `Required: ${f.required}`, f.correction].filter(Boolean).join(' · '), find([`finding:${i}`])));
   // 5. hard-to-read values
-  (r.uncertain || []).forEach((u, i) => add('Hard to read — verify', 'verify', u, '', find([`uncertain:${i}`])));
+  (r.uncertain || []).forEach((u, i) => add('Hard to Read — Verify', 'verify', u, '', find([`uncertain:${i}`])));
   // 6. every other value Claude read, so each can be checked on the plan
-  for (const a of ann) if (!used.has(a)) add('Values read from the plan', 'info', refLabel(r, a.ref), [valueOf(r, a.ref), a.note].filter(Boolean).join(' — '), [a]);
+  for (const a of ann) if (!used.has(a)) add('Values Read from the Plan', 'info', refLabel(r, a.ref), [valueOf(r, a.ref), a.note].filter(Boolean).join(' — '), [a]);
   items.forEach((it, i) => (it.n = i + 1));
   return items;
 }

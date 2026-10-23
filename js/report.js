@@ -1,6 +1,6 @@
 // Renders a lookup result in the project's parcel-report-template structure (HTML + Markdown).
-import { LINKS } from './lookup.js?v=1687cb8b';
-import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=1687cb8b';
+import { LINKS } from './lookup.js?v=1a5e8ca6';
+import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=1a5e8ca6';
 
 // Only allow http(s) URLs into href attributes; everything else becomes "#".
 const safeUrl = (u) => { try { const x = new URL(String(u), location.href); return /^https?:$/.test(x.protocol) ? x.href : '#'; } catch { return '#'; } };
@@ -192,7 +192,7 @@ export function renderReportHTML(R, db) {
     const zk = normalizeDistrict(zones[0]); const loose = shown.flatMap(r => looserThanZoning(r, normalizeDistrict(r.district) || zk));
     if (loose.length) out.push(`<div class="note">Plat is less restrictive than base ${esc(zk || 'zoning')} for: ${esc([...new Set(loose)].join('; '))}. That is valid only through an approved RUPD/UPD or zoning case — confirm the controlling case${plat.controllingCases ? ` (${esc(plat.controllingCases)})` : ''}.</div>`);
     if (nc.list.length) out.push(`<div class="warn">⚠ ${nc.list.length} DMP / rezoning / CPA / overlay case(s) dated on or after the ${nc.y} plat: ${nc.list.map(c => esc(`${c.permit} (${c.date}, ${c.status || 'status ?'})`)).join(', ')}. Verify these plat figures are still current before relying on them.</div>`);
-    out.push('<h4>Standard zoning (MCZO) — baseline</h4>');
+    out.push('<h4>Standard Zoning (MCZO) — Baseline</h4>');
   }
   for (const z of zones) {
     const key = normalizeDistrict(z); const ov = overlaySuffixes(z);
@@ -241,7 +241,7 @@ export function renderReportHTML(R, db) {
 
   h('Zoning / Planning Cases');
   const caseTable = (list) => list.length ? table(list.map(c => [esc(c.type), permitHTML(c.permit), esc(dash(c.name)), esc(dash(c.status)), esc(dash(c.date)), esc(dash(c.request))]), ['Type', 'Permit #', 'Name', 'Status', 'Date', 'Request']) : out.push('<p>None found.</p>');
-  out.push('<h4>Current / pending</h4>'); caseTable(R.currentCases);
+  out.push('<h4>Current / Pending</h4>'); caseTable(R.currentCases);
   out.push('<h4>Historical (before June 2024)</h4>'); caseTable(R.historicCases);
 
   h('Additional Data');

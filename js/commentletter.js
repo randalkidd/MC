@@ -1,7 +1,7 @@
 // "Zoning Plan Review Comments" letter (the reviewer's 2026 BB Batch Summary template, assets/templates/): Maricopa
 // County P&D letterhead, reviewer box, NOTICE, then only the markups that do NOT meet requirements, grouped and
 // numbered, then the standard footer links. Built with the vendored jsPDF.
-import { loadJsPDF, runs, wrap, clean } from './pdf.js?v=1687cb8b';
+import { loadJsPDF, runs, wrap, clean } from './pdf.js?v=1a5e8ca6';
 
 const NAVY = [0, 0, 0], RED = [237, 28, 36], BLUE = [5, 99, 193], GREY = [90, 90, 90], LINE = [190, 190, 190];
 const RESUBMIT = 'https://www.maricopa.gov/DocumentCenter/View/95302/How-to-Resubmit-a-File';
@@ -102,7 +102,7 @@ export async function commentLetterPDF({ rows, info }) {
   para(`**${fails.length} comment${fails.length === 1 ? '' : 's'}** must be addressed before approval${nInc ? ` (${nInc} missing submittal item${nInc === 1 ? '' : 's'})` : ''}. Revise the documents to resolve each comment and resubmit. Only items that do not meet requirements are listed.`, { size: 8.6, gap: 6 });
 
   // Comments, grouped
-  const ORDER = ['Ownership & parcel information', 'Submittal requirements (completeness)', 'Zoning standards (setbacks, height, coverage)', 'Other comments'];
+  const ORDER = ['Ownership & Parcel Information', 'Submittal Requirements (Completeness)', 'Zoning Standards (Setbacks, Height, Coverage)', 'Other Comments'];
   const groups = [...new Set([...ORDER, ...fails.map(r => r.group)])].filter(g => fails.some(r => r.group === g));
   let n = 0;
   for (const g of groups) {

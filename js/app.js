@@ -1,13 +1,13 @@
-import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=1687cb8b';
-import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=1687cb8b';
-import { settings, setSharedRelay } from './net.js?v=1687cb8b';
-import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache, perms, hasPerm, relayFetch } from './github.js?v=1687cb8b';
-import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=1687cb8b';
-import { CHECKLISTS } from './checklists.js?v=1687cb8b';
-import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown, markupRows, rememberReviewer, rememberedReviewer } from './review.js?v=1687cb8b';
+import { lookupParcel, lookupRoads, lookupTSP, lookupSeptic, countSubdivisionLots, ping, LINKS, EP, normalizeApn, lookupSplit } from './lookup.js?v=1a5e8ca6';
+import { renderReportHTML, renderReportMD, findPlat, platSetbacks } from './report.js?v=1a5e8ca6';
+import { settings, setSharedRelay } from './net.js?v=1a5e8ca6';
+import { gh, readFile, writeFile, listDir, testAccess, storageWorks, clearDirCache, perms, hasPerm, relayFetch } from './github.js?v=1a5e8ca6';
+import { DISTRICTS, normalizeDistrict, ACCESSORY_RULES, SEPTIC_SAMPLE_SETBACKS, MCZO_URL } from './standards.js?v=1a5e8ca6';
+import { CHECKLISTS } from './checklists.js?v=1a5e8ca6';
+import { loadDraft, saveDraft, blankReview, computeFindings, checklistRows, buildMarkdown, markupRows, rememberReviewer, rememberedReviewer } from './review.js?v=1a5e8ca6';
 let REF = null; // js/refdata.js (76 KB) loads the first time the Reference tab opens
-import { findPlatDoc } from './recorder.js?v=1687cb8b';
-import { loadAllSubdivisions } from './subdivisions.js?v=1687cb8b';
+import { findPlatDoc } from './recorder.js?v=1a5e8ca6';
+import { loadAllSubdivisions } from './subdivisions.js?v=1a5e8ca6';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -63,6 +63,8 @@ function applyAccess(on) {
 function tabAllowed(id) { const b = document.querySelector(`.tab[data-tab="${id}"]`); const need = b && b.dataset.perm; if (!need) return true; if (need === 'settings') return unlocked && (hasPerm('admin') || !!perms().legacy); return unlocked && hasPerm(need); }
 function storePerms(r) {
   try { if (r && Array.isArray(r.perms)) localStorage.setItem('mc.perms', JSON.stringify({ perms: r.perms, label: r.label || '', super: !!r.super })); else localStorage.removeItem('mc.perms'); } catch {}
+  // The name an administrator set for this key is the user's name everywhere (badge, reviewer, comment letter).
+  if (r && r.label && r.label !== 'Super account') { try { if (localStorage.getItem('mc.name') !== r.label) { localStorage.setItem('mc.name', r.label); const who = rememberedReviewer(); rememberReviewer(r.label, who.email); if (S.review && (!S.review.reviewer || S.review.reviewer === who.name)) { S.review.reviewer = r.label; saveDraft(S.review); } } } catch {} }
 }
 async function grantAccess(r) {
   if (r) storePerms(r);
@@ -95,7 +97,7 @@ function showTab(id) {
   try { localStorage.setItem('mc.tab', id); } catch {}
   if (id === 'p-lookup' && S.map) setTimeout(() => { S.map.invalidateSize(); S.map2?.invalidateSize(); }, 50);
   if (id === 'p-saved') renderSaved();
-  if (id === 'p-review') { renderQueued(); (window.requestIdleCallback || setTimeout)(() => { import('./freeread.js?v=1687cb8b').catch(() => {}); import('./siteplan.js?v=1687cb8b').catch(() => {}); }); }
+  if (id === 'p-review') { renderQueued(); (window.requestIdleCallback || setTimeout)(() => { import('./freeread.js?v=1a5e8ca6').catch(() => {}); import('./siteplan.js?v=1a5e8ca6').catch(() => {}); }); }
   if (id === 'p-signin') renderSignin();
   if (id === 'p-ref') renderReference();
   if (id === 'p-subs') { if (!$('#allsubs').classList.contains('collapsed')) openAllSubs(); fitDbRows(); }
@@ -428,12 +430,12 @@ $('#report').addEventListener('click', async (e) => {
 $('#rep-copy').addEventListener('click', () => copy(S.md));
 $('#rep-dl').addEventListener('click', () => download(`${S.R.apn}.md`, S.md));
 $('#rep-save').addEventListener('click', async () => {
-  try { await writeFile(`data/parcels/${S.R.apn}.md`, S.md + '\n', `Parcel report ${S.R.apn} (${S.R.lookupDate})`); clearDirCache(); toast('Report saved to GitHub', 'ok'); } catch (e) { toast(e.message, 'error'); }
+  try { const qm = await import('./queue.js?v=1a5e8ca6'); await qm.putMine(`parcels/${S.R.apn}.md`, S.md + '\n'); toast('Saved to My Parcels (private)', 'ok'); } catch (e) { toast(e.message, 'error'); }
 });
 $('#rep-pdf').addEventListener('click', async (e) => {
   const b = e.currentTarget; if (b.disabled || !S.md) return;
   b.disabled = true; const label = b.textContent; b.textContent = 'Building PDF…';
-  try { const { reportPDF } = await import('./pdf.js?v=1687cb8b'); await reportPDF(S.md, { apn: S.R.apn }); toast('PDF saved', 'ok'); }
+  try { const { reportPDF } = await import('./pdf.js?v=1a5e8ca6'); await reportPDF(S.md, { apn: S.R.apn }); toast('PDF saved', 'ok'); }
   catch (err) { toast(`PDF failed: ${err.message}`, 'error'); }
   finally { b.disabled = false; b.textContent = label; }
 });
@@ -692,7 +694,7 @@ function bindReview() {
       const info = { apn: s.apn, permit: s.permit, date: s.date, plan: s.planTitle, type: CHECKLISTS[s.type]?.label || s.type,
         address: [p.PropertyFullStreetAddress, p.PropertyCity].filter(Boolean).join(', ') || P.site_address || '', owner: p.OwnerName || P.owner_name || '',
         district: s.district, reviewer: s.reviewer || who.name, email: s.reviewerEmail || who.email };
-      const { commentLetterPDF } = await import('./commentletter.js?v=1687cb8b');
+      const { commentLetterPDF } = await import('./commentletter.js?v=1a5e8ca6');
       const out = await commentLetterPDF({ rows: markupRows(s).rows, info });
       toast(`Comment letter saved — ${out.count} comment${out.count === 1 ? '' : 's'}`, 'ok');
     } catch (err) { toast(err.message, 'error'); }
@@ -702,7 +704,7 @@ function bindReview() {
   $('#rv-dl').addEventListener('click', () => renderOutput() || download(`review-${S.review.apn || 'plan'}-${S.review.date}.md`, $('#rv-md').value));
   $('#rv-save').addEventListener('click', async () => {
     renderOutput();
-    try { const p = `data/reviews/${S.review.apn || 'no-apn'}-${S.review.date}-${S.review.type}.md`; await writeFile(p, $('#rv-md').value + '\n', `Plan review ${S.review.apn} ${S.review.type}`); const { ai, ...pub } = S.review; await writeFile(p.replace(/\.md$/, '.json'), JSON.stringify(pub, null, 2), `Plan review data ${S.review.apn}`); /* data read from the plan stays in the private repo */ clearDirCache(); toast('Review saved to GitHub', 'ok'); } catch (e) { toast(e.message, 'error'); }
+    try { const qm = await import('./queue.js?v=1a5e8ca6'); const base = `reviews/${(S.review.apn || 'no-apn').replace(/[^A-Za-z0-9-]/g, '')}-${S.review.date}-${S.review.type}`; await qm.putMine(`${base}.md`, $('#rv-md').value + '\n'); const { ai, ...pub } = S.review; await qm.putMine(`${base}.json`, JSON.stringify(pub, null, 2) + '\n'); toast('Review saved to My Parcels (private)', 'ok'); } catch (e) { toast(e.message, 'error'); }
   });
 }
 
@@ -714,17 +716,17 @@ function classify() {
   const out = [];
   const R = (cls, proc, cites, warn = []) => out.push({ cls, proc, cites, warn });
   if (!lots) { $('#ld-out').innerHTML = '<p class="sub">Enter the number of resulting lots.</p>'; return; }
-  if (minAc != null && minAc >= 36 && !condo) R('Not a subdivision or minor land division', "Every resulting parcel is ≥ 36 ac (to the centerline of contiguous roads/easements), so it is outside both definitions. Deeds plus MCZO compliance.", 'MCSR §105.24, §105.37; A.R.S. 32-2101');
-  else if (ag) R('Excluded (agricultural lease/sale under A.R.S. 11-830)', 'Not regulated as a land division; confirm the A.R.S. 11-830 conditions.', 'MCSR §105.24');
+  if (minAc != null && minAc >= 36 && !condo) R('Not a Subdivision or Minor Land Division', "Every resulting parcel is ≥ 36 ac (to the centerline of contiguous roads/easements), so it is outside both definitions. Deeds plus MCZO compliance.", 'MCSR §105.24, §105.37; A.R.S. 32-2101');
+  else if (ag) R('Excluded (Agricultural Lease/Sale under A.R.S. 11-830)', 'Not regulated as a land division; confirm the A.R.S. 11-830 conditions.', 'MCSR §105.24');
   else if (inSub) {
     if (lots >= 6 || tract || street || aband) {
       const pre = street || aband || lots > 6;
-      R('Replat (amended final plat)', `${pre ? 'Preliminary plat (MCSR §202) + final plat (§203); the Director may waive the preliminary stage' : 'Process as a final plat (MCSR §203)'}.`, 'MCSR §204.1–3; DD-2013-10 ¶3',
+      R('Replat (Amended Final Plat)', `${pre ? 'Preliminary plat (MCSR §202) + final plat (§203); the Director may waive the preliminary stage' : 'Process as a final plat (MCSR §203)'}.`, 'MCSR §204.1–3; DD-2013-10 ¶3',
         [aband && 'Abandoning a street, alley or easement needs MCDOT/utility review; patent easements and open MCDOT rights-of-way are abandoned through MCDOT/MCRED instead (§204.3).', tract && 'Altering a tract designated for a specific use is a replat.', lots >= 4 && lots < 6 && 'MCSR §105.31 defines a replat as 4+ lots, but §204.1 uses 6+ — confirm with the Department.'].filter(Boolean));
-    } else R('Minor land division within a recorded subdivision', '5 or fewer adjoining lots. Done by deed; each lot must meet MCZO area, width and access; existing structures must meet setbacks to the new lines.', 'DD-2013-10 ¶3; MCSR §105.24');
+    } else R('Minor Land Division within a Recorded Subdivision', '5 or fewer adjoining lots. Done by deed; each lot must meet MCZO area, width and access; existing structures must meet setbacks to the new lines.', 'DD-2013-10 ¶3; MCSR §105.24');
   } else if (lots >= 6 || condo) R('Subdivision', 'Pre-application ($350) → preliminary plat (approved administratively by the Department; valid 24 mo; denial appealable to P&Z → Board within 30 days) → final plat (Department review; infrastructure permit ready to issue; BOS chairman signs, no hearing) → record. Assurances, 100-yr assured water (AMA), at least 2 points of access, improvements per MCSR Ch. 3.', 'MCSR §103, §105.37, §202–203, §302.2.d.5; A.R.S. 11-806.01',
     [condo && 'Residential condominiums count as a subdivision.', septicSmall && 'Lots < 1 net acre may not use individual on-lot septic (MCSR §302.4.b; DD-3018-01) — sewer, larger lots, or a waiver with an ESD Certificate of Geological Report.'].filter(Boolean));
-  else R('Minor land division (lot split)', 'Up to 5 lots, all < 36 ac. Done by recorded deeds; the MCSR does not apply, but each lot must meet MCZO lot area, width and legal access, and A.R.S. 11-831. Staff check Assessor history for serial splits at site-plan review.', 'MCSR §105.24; DD-2013-10 ¶2, ¶4; A.R.S. 11-831',
+  else R('Minor Land Division (Lot Split)', 'Up to 5 lots, all < 36 ac. Done by recorded deeds; the MCSR does not apply, but each lot must meet MCZO lot area, width and legal access, and A.R.S. 11-831. Staff check Assessor history for serial splits at site-plan review.', 'MCSR §105.24; DD-2013-10 ¶2, ¶4; A.R.S. 11-831',
     ['Count prior splits of the same parent / common promotional plan — 6+ in total makes it a subdivision.']);
   $('#ld-out').innerHTML = out.map(o => `<div class="card result"><h3>${esc(o.cls)}</h3><p>${esc(o.proc)}</p><p class="sub">Basis: ${esc(o.cites)}</p>${o.warn.map(w => `<p class="warn">${esc(w)}</p>`).join('')}</div>`).join('');
 }
@@ -751,9 +753,9 @@ async function checkSplit(apnIn) {
     const owners = [...new Set(ps.map(p => p.owner).filter(Boolean))];
     const findings = []; // [status, text]
     let verdict, cls; const noSplit = n <= 1 && !/[A-Z]$/.test(R.apn);
-    if (n <= 1 && !/[A-Z]$/.test(R.apn)) { verdict = 'No split detected'; cls = 'ok'; findings.push(['ok', `No other parcels share ${S2.base}; the Assessor record shows no split of this parcel.`]); }
-    else if (all36) { verdict = 'Exempt — all parcels are 36 acres or more'; cls = 'ok'; findings.push(['ok', `All ${n} parcels from ${S2.base} are ≥ 36 ac, so this is neither a subdivision nor a minor land division (MCSR §105.24/.38).`]); }
-    else if (n >= 6) { verdict = 'Possible illegal subdivision — refer for review'; cls = 'bad'; findings.push(['bad', `${n} parcels have been created from parent ${S2.base} and not all are ≥ 36 ac. Six or more lots requires a recorded subdivision plat (MCSR §103, §105.37; A.R.S. 32-2101).${platted ? ' Inside a recorded subdivision, 6+ adjoining lots requires a replat (MCSR §204).' : ''} Per DD-2013-10, no zoning approval unless ADRE confirms in writing that the split is lawful.`]); }
+    if (n <= 1 && !/[A-Z]$/.test(R.apn)) { verdict = 'No Split Detected'; cls = 'ok'; findings.push(['ok', `No other parcels share ${S2.base}; the Assessor record shows no split of this parcel.`]); }
+    else if (all36) { verdict = 'Exempt — All Parcels Are 36 Acres or More'; cls = 'ok'; findings.push(['ok', `All ${n} parcels from ${S2.base} are ≥ 36 ac, so this is neither a subdivision nor a minor land division (MCSR §105.24/.38).`]); }
+    else if (n >= 6) { verdict = 'Possible Illegal Subdivision — Refer for Review'; cls = 'bad'; findings.push(['bad', `${n} parcels have been created from parent ${S2.base} and not all are ≥ 36 ac. Six or more lots requires a recorded subdivision plat (MCSR §103, §105.37; A.R.S. 32-2101).${platted ? ' Inside a recorded subdivision, 6+ adjoining lots requires a replat (MCSR §204).' : ''} Per DD-2013-10, no zoning approval unless ADRE confirms in writing that the split is lawful.`]); }
     else { verdict = small.length ? 'Split count OK — but lot size problem' : 'Appears consistent with a lawful minor land division'; cls = small.length ? 'warn' : 'ok'; findings.push(['ok', `${n} parcel${n > 1 ? 's' : ''} from parent ${S2.base} — within the 5-lot minor land division limit (MCSR §105.24; DD-2013-10).`]); }
     if (d) {
       if (small.length) findings.push(['bad', `${small.length} parcel${small.length > 1 ? 's are' : ' is'} below the ${dk} minimum of ${d.area.toLocaleString()} sq ft: ${small.map(p => `${p.apn} (${p.sqft.toLocaleString()} sf)`).join(', ')}. A lot created below the minimum after zoning applied is not a lawful lot; one created earlier may be legal nonconforming — check the deed date.`]);
@@ -779,20 +781,36 @@ $('#ls-form').addEventListener('submit', (e) => { e.preventDefault(); checkSplit
 // ---------------- saved (GitHub) ----------------
 async function renderSaved() {
   const el = $('#saved-list');
-  if (!gh.owner || !gh.repo) { el.innerHTML = '<p class="sub">Connect your GitHub repo in Settings to list saved reports and reviews.</p>'; return; }
-  el.innerHTML = 'Loading…';
+  if (!unlocked) { el.innerHTML = '<p class="sub">Sign in to see your saved parcels.</p>'; return; }
+  el.innerHTML = '<p class="sub">Loading…</p>';
   try {
-    const [p, r] = await Promise.all([listDir('data/parcels'), listDir('data/reviews')]);
-    const pagesBase = location.origin + location.pathname.replace(/[^/]*$/, '');
-    const li = (f) => `<li><a href="${pagesBase}${f.path}" target="_blank" rel="noopener">${esc(f.name)}</a> · <a href="${f.html_url}" target="_blank" rel="noopener">GitHub</a></li>`;
-    el.innerHTML = `<h3>Parcel reports (${p.length})</h3><ul>${p.map(li).join('') || '<li class="sub">None yet</li>'}</ul><h3>Plan reviews (${r.filter(f => f.name.endsWith('.md')).length})</h3><ul>${r.filter(f => f.name.endsWith('.md')).map(li).join('') || '<li class="sub">None yet</li>'}</ul>`;
+    const qm = await import('./queue.js?v=1a5e8ca6');
+    const files = await qm.listMine();
+    const parcels = files.filter(f => f.path.startsWith('parcels/')), reviews = files.filter(f => f.path.startsWith('reviews/') && f.path.endsWith('.md'));
+    const li = (f) => `<li data-path="${esc(f.path)}"><span>${esc(f.path.replace(/^(parcels|reviews)\//, '').replace(/\.md$/, ''))}</span><span class="actions"><button class="btn sm" type="button" data-sv="open">Open</button></span></li>`;
+    el.innerHTML = `<h3>Parcel Reports (${parcels.length})</h3><ul class="saved-files">${parcels.map(li).join('') || '<li class="sub">None yet — use <b>Save to My Parcels</b> on a parcel lookup.</li>'}</ul><h3>Plan Reviews (${reviews.length})</h3><ul class="saved-files">${reviews.map(li).join('') || '<li class="sub">None yet — use <b>Save to My Parcels</b> in the Plan Review Hub.</li>'}</ul>`;
   } catch (e) { el.innerHTML = `<p class="bad">${esc(e.message)}</p>`; }
+}
+{
+  const dlg = $('#saved-view'); let cur = null, text = '';
+  $('#saved-refresh').addEventListener('click', renderSaved);
+  $('#saved-list').addEventListener('click', async (e) => {
+    const li = e.target.closest('[data-path]'); if (!li || !e.target.closest('[data-sv=open]')) return;
+    cur = li.dataset.path; $('#sv-title').textContent = cur.replace(/^(parcels|reviews)\//, ''); $('#sv-text').textContent = 'Loading…'; dlg.showModal();
+    try { text = await (await import('./queue.js?v=1a5e8ca6')).getMine(cur); $('#sv-text').textContent = text; } catch (err) { $('#sv-text').textContent = err.message; }
+  });
+  $('#sv-close').addEventListener('click', () => dlg.close());
+  $('#sv-dl').addEventListener('click', () => cur && download(cur.split('/').pop(), text));
+  $('#sv-del').addEventListener('click', async () => {
+    if (!cur || !confirm(`Delete ${cur.split('/').pop()} from your saved parcels?`)) return;
+    try { const qm = await import('./queue.js?v=1a5e8ca6'); await qm.delMine(cur); if (cur.endsWith('.md') && cur.startsWith('reviews/')) await qm.delMine(cur.replace(/\.md$/, '.json')).catch(() => {}); dlg.close(); toast('Deleted', 'ok'); renderSaved(); } catch (err) { toast(err.message, 'error'); }
+  });
 }
 
 // ---------------- reference ----------------
 let refP = null;
 function renderReference() {
-  return (refP ||= import('./refdata.js?v=1687cb8b').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
+  return (refP ||= import('./refdata.js?v=1a5e8ca6').then((m) => { REF = m; fillReference(); }).catch((e) => { refP = null; toast(`Couldn't load reference data: ${e.message}`, 'error'); }));
 }
 function fillReference() {
   const { DIRECTIVES, MCSR_QUICK, REG_DOCS, REG_LOOKUP } = REF;
@@ -960,18 +978,18 @@ function renderSitePlan() {
     <p class="meta">Read <b>${esc(a.file)}</b> with ${esc(a.engine === 'free' ? 'the free in-browser text reader' : (a.model || 'Claude'))} on ${esc(new Date(a.at).toLocaleString())}${u.input_tokens ? ` · ${u.input_tokens.toLocaleString()} in / ${(u.output_tokens || 0).toLocaleString()} out tokens` : ''}. The form below has been filled in — check each value against the plan.</p>
     ${a.truncated ? '<div class="warn">The answer was cut off (very large plan). Some items may be missing — verify the checklist.</div>' : ''}
     ${a.lookupError ? `<div class="warn">Couldn't look up the parcel for the record checks: ${esc(a.lookupError)}</div>` : ''}
-    <h3>Plan vs. Assessor record and recorded deed</h3>
+    <h3>Plan vs. Assessor Record and Recorded Deed</h3>
     <div class="tw"><table><thead><tr><th>Check</th><th>Plan shows</th><th>Record</th><th>Result</th></tr></thead><tbody>
     ${(a.compare || []).map(([c, plan, rec, st, note]) => `<tr><td>${esc(c)}</td><td>${esc(plan)}</td><td>${esc(rec)}</td><td>${spIcon(st)} ${esc(note || (st === 'ok' ? 'Matches' : ''))}</td></tr>`).join('')}
     </tbody></table></div>
-    <h3>What the plan shows</h3>
+    <h3>What the Plan Shows</h3>
     <div class="tw"><table><tbody>${facts.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('')}</tbody></table></div>
     ${(r.uncertain || []).length ? `<div class="warn"><b>Hard to read / inferred — verify:</b><ul>${r.uncertain.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
     ${r.summary ? `<p><b>Summary:</b> ${esc(r.summary)}</p>` : ''}`;
 }
 // Shared by both readers: look up the parcel, check the deed, compare, fill the form.
 async function finishRead(res, meta, st, file = SP.file) {
-  const sp = await import('./siteplan.js?v=1687cb8b');
+  const sp = await import('./siteplan.js?v=1a5e8ca6');
   const planApn = normalizeApn(res.parcel && res.parcel.apn);
   let R = S.R && S.review.apn && S.R.apn === normalizeApn(S.review.apn) ? S.R : null, lookupError = '';
   const target = normalizeApn(S.review.apn) || planApn;
@@ -988,9 +1006,9 @@ async function finishRead(res, meta, st, file = SP.file) {
   sp.applyToReview(S.review, res, compare, { merge: meta.engine === 'free' });
   S.review.ai = { file: file.name, at: new Date().toISOString(), ...meta, result: res, compare, deedNames: deed, apn: R ? R.apn : null, lookupError };
   saveDraft(S.review); renderReview();
-  import('./planviewer.js?v=1687cb8b').then(m => m.savePdf(file)).catch(() => {});
+  import('./planviewer.js?v=1a5e8ca6').then(m => m.savePdf(file)).catch(() => {});
   // Keep what was read in the private plan-review database (45 days). Queued reads are already stored by the routine.
-  if (unlocked && meta.engine !== 'queued') import('./queue.js?v=1687cb8b').then(qm => qm.saveRecord({ source: meta.engine === 'free' ? 'superficial' : 'rapid', file: file.name, apn: (R && R.apn) || normalizeApn(res.parcel && res.parcel.apn) || '', type: S.review.type, model: meta.model, result: res, compare })).catch(e => console.warn('private db', e));
+  if (unlocked && meta.engine !== 'queued') import('./queue.js?v=1a5e8ca6').then(qm => qm.saveRecord({ source: meta.engine === 'free' ? 'superficial' : 'rapid', file: file.name, apn: (R && R.apn) || normalizeApn(res.parcel && res.parcel.apn) || '', type: S.review.type, model: meta.model, result: res, compare })).catch(e => console.warn('private db', e));
   return compare.filter(c => c[3] === 'deficient').length;
 }
 // Three ways to read a plan: Superficial (free, in this browser), Rapid (Claude API through the relay, ~1 min),
@@ -1001,7 +1019,7 @@ async function runFreeRead() {
   SP.busy = true; spButtons();
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'Superficial Review: reading the PDF text in your browser…';
   try {
-    const fr = await import('./freeread.js?v=1687cb8b');
+    const fr = await import('./freeread.js?v=1a5e8ca6');
     const out = await fr.freeReadSitePlan(SP.file, S.review.type);
     if (out.quality === 'none') { st.className = 'status warn'; st.textContent = 'Superficial Review couldn\'t read this plan: the PDF has no selectable text (a scan or flattened drawing). Use Rapid Review or Queued Review.'; return; }
     const bad = await finishRead(out.result, { engine: 'free', model: 'Superficial Review (in-browser text reader)', quality: out.quality, found: out.found, missing: out.missing }, st);
@@ -1015,7 +1033,7 @@ async function runSitePlan() {
   SP.busy = true; spButtons();
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'Rapid Review: sending the PDF to Claude — reading every sheet usually takes 30–90 seconds…';
   try {
-    const sp = await import('./siteplan.js?v=1687cb8b');
+    const sp = await import('./siteplan.js?v=1a5e8ca6');
     const d = await sp.readSitePlan(SP.file, S.review.type);
     const bad = await finishRead(d.result || {}, { engine: 'claude', relay: d.relay || null, model: d.model, usage: d.usage, truncated: !!d.truncated }, st);
     st.className = `status ${bad ? 'warn' : 'ok'}`; st.textContent = `Rapid Review done — the form is filled in from the plan.${bad ? ` ${bad} record mismatch${bad > 1 ? 'es' : ''} found (see below).` : ''} Verify every value before issuing comments.`;
@@ -1028,7 +1046,7 @@ async function runQueued() {
   SP.busy = true; spButtons();
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = 'Queued Review: uploading the plan to the private queue…';
   try {
-    const qm = await import('./queue.js?v=1687cb8b');
+    const qm = await import('./queue.js?v=1a5e8ca6');
     const m = await qm.queuePlan(SP.file, { apn: normalizeApn(S.review.apn) || '', type: S.review.type, reviewer: S.review.reviewer });
     st.className = 'status ok'; st.textContent = `Queued ${m.file}. It will be read on LONDON at 12:15 AM (Sunday–Thursday nights); the results appear under Plan Queue on the right. The plan is kept 14 days, its data 45 days.`;
     renderQueued(true);
@@ -1044,7 +1062,7 @@ async function renderQueued(force = false) {
   if (qBusy) return; qBusy = true;
   el.innerHTML = '<p class="sub">Loading…</p>';
   try {
-    const qm = await import('./queue.js?v=1687cb8b');
+    const qm = await import('./queue.js?v=1a5e8ca6');
     const items = await qm.listQueue();
     const st = (m) => m.status === 'done' ? (m.hasResult ? '✅ Ready' : '✅ Done (data expired)') : m.status === 'failed' ? `⚠ ${esc(m.note || 'Could not be read')}` : m.status === 'processing' ? '⏳ Processing' : '🕛 Queued for 12:15 AM';
     el.innerHTML = items.length ? `<ul class="qfiles">${items.map(m => `<li data-id="${esc(m.id)}" class="q-${esc(m.status)}">
@@ -1060,7 +1078,7 @@ async function renderQueued(force = false) {
 async function loadQueued(m) {
   const st = $('#sp-status'); st.hidden = false; st.className = 'status'; st.textContent = `Loading the queued review of ${m.file}…`;
   try {
-    const qm = await import('./queue.js?v=1687cb8b');
+    const qm = await import('./queue.js?v=1a5e8ca6');
     const rec = await qm.getRecord(m.db || `db/${m.id}.json`);
     const file = m.hasPdf ? await qm.getPdf(m.id).then(f => new File([f], m.file, { type: 'application/pdf' })) : new File([], m.file);
     if (m.hasPdf) SP.file = file;
@@ -1072,7 +1090,7 @@ async function loadQueued(m) {
 }
 async function openPlanViewer() {
   const a = S.review.ai; if (!a || !a.result) return;
-  const pv = await import('./planviewer.js?v=1687cb8b');
+  const pv = await import('./planviewer.js?v=1a5e8ca6');
   const blob = SP.file && SP.file.name === a.file ? SP.file : await pv.loadPdf(a.file);
   if (!blob) { toast(`Choose ${a.file} again above (it isn't stored in this browser), then open the viewer.`, 'error'); return; }
   pv.openViewer(blob, a, S.review, computeFindings(S.review).F, a.file);
@@ -1086,7 +1104,7 @@ $('#sp-qrefresh').addEventListener('click', () => renderQueued(true));
 $('#sp-qlist').addEventListener('click', async (e) => {
   const tr = e.target.closest('[data-id]'); if (!tr) return; const m = (S.qItems || []).find(x => x.id === tr.dataset.id); if (!m) return;
   if (e.target.closest('[data-qload]')) loadQueued(m);
-  if (e.target.closest('[data-qdel]')) { if (!confirm(`Delete ${m.file} and its review data from the private queue now?`)) return; try { (await import('./queue.js?v=1687cb8b')).removeQueued(m).then(() => renderQueued(true)); } catch (err) { toast(err.message, 'error'); } }
+  if (e.target.closest('[data-qdel]')) { if (!confirm(`Delete ${m.file} and its review data from the private queue now?`)) return; try { (await import('./queue.js?v=1a5e8ca6')).removeQueued(m).then(() => renderQueued(true)); } catch (err) { toast(err.message, 'error'); } }
 });
 { const dz = $('#sp-drop');
   ['dragenter', 'dragover'].forEach(t => dz.addEventListener(t, (e) => { e.preventDefault(); dz.classList.add('over'); }));
@@ -1098,15 +1116,15 @@ $('#sp-qlist').addEventListener('click', async (e) => {
 const ROLES = { viewer: ['review'], reviewer: ['review', 'write', 'queue'], senior: ['review', 'write', 'queue', 'rapid'], admin: ['review', 'write', 'queue', 'rapid', 'admin'] };
 async function renderKeys(fresh = true) {
   const el = $('#st-keys-list'); if (!el || !hasPerm('admin')) return;
-  $('#st-keys-who').textContent = perms().super ? '— you are signed in with the super account' : `— signed in as “${perms().label}”`;
+  $('#st-keys-who').textContent = perms().super ? `— you are signed in with the super account${perms().label && perms().label !== 'Super account' ? ` (${perms().label})` : ''}` : `— signed in as “${perms().label}”`;
   if (!fresh && el.dataset.loaded) return;
   el.innerHTML = '<p class="sub">Loading…</p>';
   try {
     const d = await relayFetch('/admin/keys');
     el.dataset.loaded = '1';
-    el.innerHTML = `<ul class="keylist"><li><div><b>Super account</b> <span class="sub">— your passphrase (SITE_KEY in Cloudflare). Change it there to rotate.</span><div>${PERM_LIST.map(p => `<span class="pill">${p}</span>`).join('')}</div></div></li>${(d.keys || []).map(k => {
+    el.innerHTML = `<ul class="keylist"><li data-key="super"><div><b>${esc(d.superName || 'Super account')}</b> <span class="sub">— super account: the passphrase (SITE_KEY in Cloudflare). Change it there to rotate.</span><div>${PERM_LIST.map(p => `<span class="pill">${p}</span>`).join('')}</div></div><span class="actions"><button class="btn sm ghost" type="button" data-rename>Edit name</button></span></li>${(d.keys || []).map(k => {
       const exp = k.expires ? new Date(k.expires) : null; const dead = exp && exp < new Date();
-      return `<li data-key="${esc(k.id)}"><div><b>${esc(k.label)}</b> <span class="sub">— created ${esc(new Date(k.created).toLocaleDateString())}${k.createdBy ? ` by ${esc(k.createdBy)}` : ''}${exp ? ` · ${dead ? 'EXPIRED' : 'expires'} ${esc(exp.toLocaleDateString())}` : ''}</span><div>${(k.perms || []).map(p => `<span class="pill">${esc(p)}</span>`).join('')}</div></div><button class="btn sm ghost" type="button" data-revoke>Revoke</button></li>`; }).join('')}</ul>${(d.keys || []).length ? '' : '<p class="sub">No other keys yet.</p>'}`;
+      return `<li data-key="${esc(k.id)}"><div><b>${esc(k.label)}</b> <span class="sub">— created ${esc(new Date(k.created).toLocaleDateString())}${k.createdBy ? ` by ${esc(k.createdBy)}` : ''}${exp ? ` · ${dead ? 'EXPIRED' : 'expires'} ${esc(exp.toLocaleDateString())}` : ''}</span><div>${(k.perms || []).map(p => `<span class="pill">${esc(p)}</span>`).join('')}</div></div><span class="actions"><button class="btn sm ghost" type="button" data-rename>Edit name</button><button class="btn sm ghost" type="button" data-revoke>Revoke</button></span></li>`; }).join('')}</ul>${(d.keys || []).length ? '' : '<p class="sub">No other keys yet.</p>'}`;
   } catch (e) { el.innerHTML = `<p class="bad">${esc(e.message)}</p>`; }
 }
 {
@@ -1122,7 +1140,7 @@ async function renderKeys(fresh = true) {
       const body = { label: f.label.value.trim(), perms: $$('input[name=p]:checked', f).map(b => b.value), days: +f.days.value || 0 };
       const d = await relayFetch('/admin/keys/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const box = $('#st-newkey'); box.hidden = false;
-      box.innerHTML = `<b>Key for ${esc(d.record.label)}</b> — copy it now; it won't be shown again:<div class="newkey">${esc(d.key)}</div><div class="actions"><button class="btn sm" type="button" id="st-newkey-copy">Copy key</button><button class="btn sm ghost" type="button" id="st-newkey-hide">Done</button></div><p class="sub">They open ${esc(location.origin + location.pathname)}, click <b>Sign in</b>, enter their name, paste this as the <b>Passphrase</b>, click Save, then Test GitHub.</p>`;
+      box.innerHTML = `<b>Key for ${esc(d.record.label)}</b> — copy it now; it won't be shown again:<div class="newkey">${esc(d.key)}</div><div class="actions"><button class="btn sm" type="button" id="st-newkey-copy">Copy key</button><button class="btn sm ghost" type="button" id="st-newkey-hide">Done</button></div><p class="sub">They open ${esc(location.origin + location.pathname)}, click <b>Sign In</b>, enter their name, paste this as the <b>Passphrase</b>, click Save, then Test GitHub.</p>`;
       $('#st-newkey-copy').onclick = () => copy(d.key); $('#st-newkey-hide').onclick = () => { box.hidden = true; box.innerHTML = ''; };
       f.reset(); setBoxes(ROLES.reviewer); renderKeys(true);
     } catch (err) { toast(err.message, 'error'); }
@@ -1130,7 +1148,13 @@ async function renderKeys(fresh = true) {
   });
   $('#st-keys-refresh').addEventListener('click', () => renderKeys(true));
   $('#st-keys-list').addEventListener('click', async (e) => {
-    const li = e.target.closest('[data-key]'); if (!li || !e.target.closest('[data-revoke]')) return;
+    const li = e.target.closest('[data-key]'); if (!li) return;
+    if (e.target.closest('[data-rename]')) {
+      const current = li.querySelector('b').textContent; const label = prompt('Name for this user:', current === 'Super account' ? '' : current); if (label == null || !label.trim()) return;
+      try { await relayFetch('/admin/keys/rename', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: li.dataset.key, label: label.trim() }) }); toast('Name updated — it shows for that user at their next page load.', 'ok'); renderKeys(true); if (li.dataset.key === 'super' && perms().super || li.dataset.key === perms().id) verifyAccess(); } catch (err) { toast(err.message, 'error'); }
+      return;
+    }
+    if (!e.target.closest('[data-revoke]')) return;
     if (!confirm('Revoke this key? Anyone using it loses access within a minute.')) return;
     try { await relayFetch('/admin/keys/revoke', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: li.dataset.key }) }); toast('Key revoked', 'ok'); renderKeys(true); } catch (err) { toast(err.message, 'error'); }
   });

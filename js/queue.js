@@ -3,8 +3,8 @@
 //   queue/<id>.pdf   the queued plan            — deleted after 14 days
 //   queue/<id>.json  { id, file, size, apn, type, reviewer, submitted, status, note?, processedAt?, db? }
 //   db/<id>.json     data read from a plan       — deleted 45 days after `inserted`
-import { gh } from './github.js?v=1687cb8b';
-import { settings } from './net.js?v=1687cb8b';
+import { gh } from './github.js?v=1a5e8ca6';
+import { settings } from './net.js?v=1a5e8ca6';
 
 export const PDF_DAYS = 14, DATA_DAYS = 45;
 const DAY = 86400000;
@@ -68,3 +68,14 @@ export async function saveRecord({ id, source, file, apn, type, model, result, c
   await putJson(`db/${rid}.json`, { id: rid, inserted: new Date().toISOString(), expires: new Date(Date.now() + DATA_DAYS * DAY).toISOString(), source, file, apn: apn || '', type, model: model || '', result, compare: compare || [] }, `Plan data ${rid} (${source})`);
   return rid;
 }
+
+// ---------------- personal Saved Parcels (relay v18: /u/*) ----------------
+// Saved parcel reports and plan reviews live in the signed-in user's own private folder; nobody else can list them.
+const UPGRADE = 'Saved Parcels needs relay v18 — paste the latest relay code into Cloudflare and Deploy.';
+export async function listMine() { try { return (await q('/u/list')).files; } catch (e) { if (/out of date|Not found/i.test(e.message)) throw new Error(UPGRADE); throw e; } }
+export async function getMine(path) { const r = await q(`/u/raw?path=${encodeURIComponent(path)}`, {}, { raw: true }); return r.text(); }
+export async function putMine(path, content) {
+  try { return await q(`/u/put?path=${encodeURIComponent(path)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) }); }
+  catch (e) { if (/out of date|Not found/i.test(e.message)) throw new Error(UPGRADE); throw e; }
+}
+export async function delMine(path) { return q(`/u/del?path=${encodeURIComponent(path)}`, { method: 'POST' }); }

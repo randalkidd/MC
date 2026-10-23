@@ -258,5 +258,10 @@ html:not(.perm-rapid) [data-perm="rapid"], html:not(.perm-admin) [data-perm="adm
 .sp-grid.collapsed > .card .cardhead { margin-bottom: 0; }
 .collapsible.collapsed > :not(.cardhead) { display: none !important; }
 .collapsible.collapsed .cardhead .actions { display: none; }
-.ld-block { margin: 1rem 0; }
-.ld-title { margin: 1.4rem 0 .6rem; }
+.ld-block { display: flex; flex-direction: column; gap: 1rem; margin: 0; }
+.ld-block > .grid2, .ld-block > .card, .ld-block > p { margin: 0; }
+
+.saved-view { width: min(900px, calc(100vw - 32px)); }
+.sv-text { white-space: pre-wrap; font: .82rem/1.45 var(--mono); max-height: 60vh; overflow: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: .7rem; }
+.saved-files { list-style: none; padding: 0; margin: .3rem 0 1rem; display: grid; gap: .3rem; }
+.saved-files li { display: flex; justify-content: space-between; align-items: center; gap: .5rem; border: 1px solid var(--line); border-radius: 8px; padding: .4rem .6rem; background: var(--surface); }

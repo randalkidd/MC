@@ -1,6 +1,6 @@
 // Plan review: measurement checks (setbacks, coverage, height) + checklist → markup table (Markdown).
-import { DISTRICTS, normalizeDistrict, MCZO_URL } from './standards.js?v=1687cb8b';
-import { CHECKLISTS } from './checklists.js?v=1687cb8b';
+import { DISTRICTS, normalizeDistrict, MCZO_URL } from './standards.js?v=1a5e8ca6';
+import { CHECKLISTS } from './checklists.js?v=1a5e8ca6';
 
 const DD2021 = 'https://www.maricopa.gov/6459/Lot-Coverage-Calculations---DD-2021-01';
 const DD3012 = 'https://www.maricopa.gov/6353/Accessory-Structures-Equipment-and-Setba';
@@ -117,9 +117,9 @@ export function checklistRows(s) {
 export function markupRows(s) {
   const { F, key, d } = computeFindings(s);
   const out = [];
-  for (const r of checklistRows(s).filter(r => r.status && r.status !== 'na')) out.push({ group: 'Submittal requirements (completeness)', loc: 'Submittal', item: r.item, shows: r.note || (r.status === 'ok' ? 'Shown' : 'Not shown'), req: 'Per checklist', cite: r.cite, status: r.status === 'deficient' ? 'incomplete' : r.status, fix: r.fix });
-  for (const f of F) out.push({ group: 'Zoning standards (setbacks, height, coverage)', loc: f.loc, item: f.item, shows: f.shows, req: f.req, cite: f.cite, status: f.status, fix: f.fix });
-  for (const e of s.extra || []) if (e.item) out.push({ group: /record/i.test(e.item) ? 'Ownership & parcel information' : 'Other comments', loc: e.loc || '—', item: e.item, shows: e.shows || '—', req: e.req || '—', cite: e.cite || '—', status: e.status, fix: e.fix || '—' });
+  for (const r of checklistRows(s).filter(r => r.status && r.status !== 'na')) out.push({ group: 'Submittal Requirements (Completeness)', loc: 'Submittal', item: r.item, shows: r.note || (r.status === 'ok' ? 'Shown' : 'Not shown'), req: 'Per checklist', cite: r.cite, status: r.status === 'deficient' ? 'incomplete' : r.status, fix: r.fix });
+  for (const f of F) out.push({ group: 'Zoning Standards (Setbacks, Height, Coverage)', loc: f.loc, item: f.item, shows: f.shows, req: f.req, cite: f.cite, status: f.status, fix: f.fix });
+  for (const e of s.extra || []) if (e.item) out.push({ group: /record/i.test(e.item) ? 'Ownership & Parcel Information' : 'Other Comments', loc: e.loc || '—', item: e.item, shows: e.shows || '—', req: e.req || '—', cite: e.cite || '—', status: e.status, fix: e.fix || '—' });
   return { rows: out, district: key, section: d ? d.section : null };
 }
 

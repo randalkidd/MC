@@ -13,7 +13,7 @@
 //   ANTHROPIC_API_KEY = sk-ant-...  (optional; enables Plan review → "Read a site plan PDF" via POST /ai/siteplan)
 //   ANTHROPIC_MODEL   = optional Text variable to override the model (default below)
 
-const RELAY_VERSION = '17';
+const RELAY_VERSION = '18';
 // Settings. Defaults below; each can be overridden by a Cloudflare variable (Worker → Settings → Variables and
 // Secrets, Type: Text) or, for local `wrangler dev`, by worker/.dev.vars (never committed — see .dev.vars.example).
 //   ALLOWED_ORIGIN = https://randalkidd.github.io   (comma-separate to add e.g. http://localhost:8000 for local testing)
@@ -84,17 +84,17 @@ async function tokenProblem(env, status) {
 //   admin  — manage access keys
 const PERMS = ['review', 'write', 'queue', 'rapid', 'admin'];
 const KEYS_PATH = 'access/keys.json';
-let keyCache = { t: 0, list: null, sha: null };
+let keyCache = { t: 0, list: null, sha: null, superName: '' };
 const sha256hex = async (s) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
 async function loadKeys(env, fresh = false) {
   if (!fresh && keyCache.list && Date.now() - keyCache.t < 60000) return keyCache;
   const r = await ghq(env, `contents/${KEYS_PATH}`);
-  if (r.status === 404) { keyCache = { t: Date.now(), list: [], sha: null }; return keyCache; }
+  if (r.status === 404) { keyCache = { t: Date.now(), list: [], sha: null, superName: '' }; return keyCache; }
   if (!r.ok) { if (keyCache.list) return keyCache; throw new Error(`GitHub ${r.status} reading access keys`); }
   const d = await r.json();
   const txt = new TextDecoder().decode(Uint8Array.from(atob(String(d.content).replace(/\n/g, '')), c => c.charCodeAt(0)));
-  let list = []; try { list = JSON.parse(txt).keys || []; } catch {}
-  keyCache = { t: Date.now(), list, sha: d.sha }; return keyCache;
+  let list = [], superName = ''; try { const j = JSON.parse(txt); list = j.keys || []; superName = j.superName || ''; } catch {}
+  keyCache = { t: Date.now(), list, sha: d.sha, superName }; return keyCache;
 }
 // Failed-passphrase throttle: 10 misses in 10 minutes from one IP → that IP gets 429 for the rest of the window.
 const FAILS = new Map();
@@ -110,7 +110,7 @@ async function authenticate(req, env) {
   return who;
 }
 async function authenticateKey(k, env) {
-  if (env.SITE_KEY && sameKey(k, env.SITE_KEY)) return { id: 'super', label: 'Super account', perms: PERMS.slice(), super: true };
+  if (env.SITE_KEY && sameKey(k, env.SITE_KEY)) { let name = ''; try { if (env.GITHUB_TOKEN) name = (await loadKeys(env)).superName; } catch {} return { id: 'super', label: name || 'Super account', perms: PERMS.slice(), super: true }; }
   if (!env.GITHUB_TOKEN || k.length < 16) return null;
   let keys; try { keys = (await loadKeys(env)).list; } catch { return null; }
   const h = await sha256hex(k); const now = Date.now();
@@ -122,14 +122,14 @@ const denied = (origin, perm) => json({ error: `Your access key doesn't allow th
 async function handleAdmin(req, env, origin, route, who) {
   if (!can(who, 'admin')) return denied(origin, 'admin');
   if (!env.GITHUB_TOKEN) return json({ error: 'Relay is missing GITHUB_TOKEN.' }, 500, origin);
-  const save = async (list, sha, message) => {
-    const body = JSON.stringify({ schema: 1, updated: new Date().toISOString(), keys: list }, null, 2) + '\n';
+  const save = async (list, sha, message, superName = keyCache.superName || '') => {
+    const body = JSON.stringify({ schema: 1, updated: new Date().toISOString(), superName, keys: list }, null, 2) + '\n';
     const put = await ghq(env, `contents/${KEYS_PATH}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message, content: b64(body), ...(sha ? { sha } : {}) }) });
     if (!put.ok) throw new Error(`GitHub ${put.status} saving access keys${put.status === 404 ? ` — check that ${QUEUE_REPO} exists and the token can write to it` : ''}`);
     keyCache = { t: 0, list: null, sha: null };
   };
   const pub = (x) => ({ id: x.id, label: x.label, perms: x.perms, created: x.created, createdBy: x.createdBy, expires: x.expires || null, disabled: !!x.disabled });
-  if (route === '/admin/keys' && req.method === 'GET') { const { list } = await loadKeys(env, true); return json({ ok: true, keys: list.map(pub) }, 200, origin); }
+  if (route === '/admin/keys' && req.method === 'GET') { const { list, superName } = await loadKeys(env, true); return json({ ok: true, superName: superName || '', keys: list.map(pub) }, 200, origin); }
   let body = {}; try { body = await req.json(); } catch {}
   if (route === '/admin/keys/create' && req.method === 'POST') {
     const label = String(body.label || '').trim().slice(0, 60); if (!label) return json({ error: 'Give the key a name (who it is for).' }, 400, origin);
@@ -140,9 +140,18 @@ async function handleAdmin(req, env, origin, route, who) {
     const key = 'mc-' + [...raw].map(b => alphabet[b % alphabet.length]).join('').replace(/(.{5})(?=.)/g, '$1-');
     const { list, sha } = await loadKeys(env, true);
     if (list.length >= 200) return json({ error: 'Too many keys — revoke unused ones first.' }, 400, origin);
-    const rec = { id: `k${Date.now().toString(36)}`, label, perms, hash: await sha256hex(key), created: new Date().toISOString(), createdBy: who.label, ...(days ? { expires: new Date(Date.now() + days * 86400000).toISOString() } : {}) };
+    const rec = { id: `k${Date.now().toString(36)}${[...crypto.getRandomValues(new Uint8Array(3))].map(b => b.toString(36)).join('')}`, label, perms, hash: await sha256hex(key), created: new Date().toISOString(), createdBy: who.label, ...(days ? { expires: new Date(Date.now() + days * 86400000).toISOString() } : {}) };
     await save([...list, rec], sha, `Access key added: ${label}`);
     return json({ ok: true, key, record: pub(rec) }, 200, origin);
+  }
+  if (route === '/admin/keys/rename' && req.method === 'POST') {
+    // Edit a user's name (an access key's label), or the super account's name (id "super").
+    const label = String(body.label || '').trim().slice(0, 60); if (!label) return json({ error: 'Enter a name.' }, 400, origin);
+    const { list, sha, superName } = await loadKeys(env, true);
+    if (body.id === 'super') { await save(list, sha, 'Super account name changed', label); return json({ ok: true }, 200, origin); }
+    const k = list.find(x => x.id === body.id); if (!k) return json({ error: 'No such key.' }, 404, origin);
+    k.label = label; await save(list, sha, `Access key renamed: ${label}`, superName);
+    return json({ ok: true }, 200, origin);
   }
   if (route === '/admin/keys/revoke' && req.method === 'POST') {
     const { list, sha } = await loadKeys(env, true);
@@ -358,6 +367,53 @@ async function handleQueue(req, env, origin, route, url, who) {
   return json({ error: 'Not found' }, 404, origin);
 }
 
+// ---------------- personal saved files (Saved Parcels) ----------------
+// Each signed-in user (super account or access key) has a private folder users/<id>/ in QUEUE_REPO. The folder comes
+// from the key, never from the request, so nobody can read or change another person's saved parcels and reviews.
+const UPATH = /^(parcels|reviews)\/[A-Za-z0-9._-]{1,120}\.(md|json)$/;
+async function handleUser(req, env, origin, route, url, who) {
+  if (!env.GITHUB_TOKEN) return json({ error: 'Relay is missing GITHUB_TOKEN.' }, 500, origin);
+  if (!who) return json({ error: 'Wrong passphrase.' }, 401, origin);
+  if (!can(who, 'review')) return denied(origin, 'review');
+  const base = `users/${String(who.id).replace(/[^A-Za-z0-9_-]/g, '')}/`;
+  if (route === '/u/list') {
+    const r = await ghq(env, 'git/trees/main?recursive=1');
+    if (r.status === 409) return json({ ok: true, files: [] }, 200, origin);
+    if (!r.ok) return json({ error: `GitHub ${r.status} on ${QUEUE_REPO}` }, 502, origin);
+    const files = ((await r.json()).tree || []).filter(t => t.type === 'blob' && t.path.startsWith(base) && UPATH.test(t.path.slice(base.length))).map(t => ({ path: t.path.slice(base.length), size: t.size }));
+    return json({ ok: true, files }, 200, origin);
+  }
+  const rel = url.searchParams.get('path') || '';
+  if (!UPATH.test(rel) || rel.includes('..')) return json({ error: 'Bad path.' }, 400, origin);
+  const full = base + rel;
+  if (route === '/u/raw' && req.method === 'GET') {
+    const r = await ghq(env, `contents/${full}`, { headers: { Accept: 'application/vnd.github.raw' } });
+    if (r.status === 404) return json({ error: 'Not found.' }, 404, origin);
+    if (!r.ok) return json({ error: `GitHub ${r.status}` }, 502, origin);
+    return new Response(r.body, { status: 200, headers: { ...cors(origin), 'Content-Type': rel.endsWith('.json') ? 'application/json' : 'text/markdown; charset=utf-8', 'Cache-Control': 'no-store' } });
+  }
+  if (route === '/u/put' && req.method === 'POST') {
+    let body; try { body = await req.json(); } catch { return json({ error: 'Bad JSON' }, 400, origin); }
+    if (typeof body.content !== 'string' || body.content.length > 900000) return json({ error: 'Missing or oversized content.' }, 400, origin);
+    let put, out = {};
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const cur = await ghq(env, `contents/${full}`); const sha = cur.ok ? (await cur.json()).sha : undefined;
+      put = await ghq(env, `contents/${full}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: `Saved by ${who.label}: ${rel}`.slice(0, 200), content: b64(body.content), ...(sha ? { sha } : {}) }) });
+      out = await put.json().catch(() => ({}));
+      if (put.status !== 409 && put.status !== 422) break;
+      await new Promise(r => setTimeout(r, 400 * (attempt + 1)));
+    }
+    return put.ok ? json({ ok: true }, 200, origin) : json({ error: `GitHub ${put.status}: ${out.message || 'save failed'}` }, 502, origin);
+  }
+  if (route === '/u/del' && req.method === 'POST') {
+    const cur = await ghq(env, `contents/${full}`); if (cur.status === 404) return json({ ok: true }, 200, origin);
+    const sha = (await cur.json()).sha;
+    const del = await ghq(env, `contents/${full}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: `Removed by ${who.label}: ${rel}`.slice(0, 200), sha }) });
+    return del.ok ? json({ ok: true }, 200, origin) : json({ error: `GitHub ${del.status}` }, 502, origin);
+  }
+  return json({ error: 'Not found' }, 404, origin);
+}
+
 export default {
   async fetch(req, env, ctxW) {
     configure(env);
@@ -367,7 +423,7 @@ export default {
     if (origin && !allowed(origin)) return new Response('Forbidden origin', { status: 403, headers: cors(origin) });
     if (!['GET', 'POST'].includes(req.method)) return new Response('Method not allowed', { status: 405, headers: cors(origin) });
     const u0 = new URL(req.url);
-    if (/^\/(gh|q|ai|admin)\//.test(u0.pathname) && throttled(req)) return json({ error: 'Too many wrong passphrases from this network — wait 10 minutes and try again.' }, 429, origin);
+    if (/^\/(gh|q|ai|admin|u)\//.test(u0.pathname) && throttled(req)) return json({ error: 'Too many wrong passphrases from this network — wait 10 minutes and try again.' }, 429, origin);
     if (u0.pathname.startsWith('/gh/')) {
       if (!allowed(origin)) return json({ error: 'Saving is only allowed from the site.' }, 403, origin);
       return handleGitHub(req, env, origin, u0.pathname, await authenticate(req, env));
@@ -376,6 +432,10 @@ export default {
       if (!allowed(origin)) return json({ error: 'Only the site may use this.' }, 403, origin);
       const who = await authenticate(req, env); if (!who) return json({ error: 'Wrong passphrase.' }, 401, origin);
       try { return await handleAdmin(req, env, origin, u0.pathname, who); } catch (e) { return json({ error: e.message }, 502, origin); }
+    }
+    if (u0.pathname.startsWith('/u/')) {
+      if (!allowed(origin)) return json({ error: 'Only the site may use this.' }, 403, origin);
+      return handleUser(req, env, origin, u0.pathname, u0, await authenticate(req, env));
     }
     if (u0.pathname.startsWith('/q/')) {
       if (!allowed(origin)) return json({ error: 'Only the site may use this.' }, 403, origin);
