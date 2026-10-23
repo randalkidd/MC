@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated": "2026-10-23T19:56:33.239Z",
+  "updated": "2026-10-23T20:19:06.404Z",
   "items": [
     {
       "name": "ANTHEM UNIT 15",
@@ -64,6 +64,22 @@
       "lastSeen": "2026-10-23",
       "status": "pending",
       "note": "Added from All Subdivisions (no parcel lookup yet)"
+    },
+    {
+      "name": "HORSESHOE TRLS AMD",
+      "displayName": "Horseshoe Trls Amd",
+      "mcr": "408-43",
+      "rec": "",
+      "recorded": "",
+      "totalLots": 512,
+      "baseZoning": "RU-43",
+      "controllingCases": "",
+      "apns": [
+        "506-44-077N"
+      ],
+      "firstSeen": "2026-10-23",
+      "lastSeen": "2026-10-23",
+      "status": "pending"
     }
   ]
 }
