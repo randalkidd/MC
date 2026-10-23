@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated": "2026-10-23T18:41:59.525Z",
+  "updated": "2026-10-23T19:56:33.239Z",
   "items": [
     {
       "name": "ANTHEM UNIT 15",
@@ -49,6 +49,21 @@
       "firstSeen": "2026-10-23",
       "lastSeen": "2026-10-23",
       "status": "pending"
+    },
+    {
+      "name": "PENDERGAST WEST AMD",
+      "displayName": "Pendergast West Amd",
+      "mcr": "143-04",
+      "rec": "",
+      "recorded": "",
+      "totalLots": 63,
+      "baseZoning": "",
+      "controllingCases": "",
+      "apns": [],
+      "firstSeen": "2026-10-23",
+      "lastSeen": "2026-10-23",
+      "status": "pending",
+      "note": "Added from All Subdivisions (no parcel lookup yet)"
     }
   ]
 }
