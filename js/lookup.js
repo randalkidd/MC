@@ -1,5 +1,5 @@
 // Parcel lookup — ports reference/workflow-standards.md to in-browser REST calls.
-import { arcgis, request } from './net.js?v=e59c2bd9';
+import { arcgis, request } from './net.js?v=cae01958';
 
 const GIS = 'https://gis.maricopa.gov/arcgis/rest/services';
 export const EP = {
@@ -175,6 +175,7 @@ export async function lookupParcel(apnInput, { onStep = () => {} } = {}) {
     rings2223: rings,
   };
   R.parcel.areaAcres = +(R.parcel.areaSqFt / 43560).toFixed(3);
+  { const d = lotDims(rings); if (d) { R.parcel.lotWidth = d[0]; R.parcel.lotDepth = d[1]; } }
   for (const [k, s] of Object.entries({ PlanNet: idf, 'Section lines': trs, 'Floodplain (effective)': fe, 'Floodplain (preliminary)': fp, 'Elevation certificates': ec })) if (!s.ok) R.errors.push(`${k}: ${s.e}`);
 
   // Section / midsection lines
@@ -391,4 +392,16 @@ function pabEasement(h, related) {
   return { kind: related ? 'Patent easement abandonment — same parent parcel' : (h.open ? 'Patent easement abandonment — in progress' : rec ? 'Patent easement abandoned (MCDOT)' : 'Patent easement abandonment — not completed'),
     detail: `PAB-${h.pab}: ${what}. Tracker lists APN ${h.apn}${h.location ? ` (${h.location})` : ''}${related ? ' — another split of the same parent; confirm whether it covers this lot' : ''}`,
     source: 'MCDOT Patent Easement Abandonment Tracker', rec, pab: true, abandoned: !!rec && !h.open, related };
+}
+
+// Lot width × depth (ft) estimated from the parcel outline: the rectangle aligned with its longest edge.
+// Good for ordinary rectangular lots; irregular lots should be measured on the plan.
+export function lotDims(rings) {
+  const r = rings && rings[0]; if (!r || r.length < 4) return null;
+  let best = 0, ang = 0;
+  for (let i = 1; i < r.length; i++) { const dx = r[i][0] - r[i - 1][0], dy = r[i][1] - r[i - 1][1], L = Math.hypot(dx, dy); if (L > best) { best = L; ang = Math.atan2(dy, dx); } }
+  const c = Math.cos(-ang), s = Math.sin(-ang); let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const [x, y] of r) { const u = x * c - y * s, v = x * s + y * c; x0 = Math.min(x0, u); x1 = Math.max(x1, u); y0 = Math.min(y0, v); y1 = Math.max(y1, v); }
+  const a = x1 - x0, b = y1 - y0; if (!(a > 0 && b > 0)) return null;
+  return [Math.round(Math.min(a, b)), Math.round(Math.max(a, b))];
 }

@@ -1,6 +1,6 @@
 // Plan review: measurement checks (setbacks, coverage, height) + checklist → markup table (Markdown).
-import { DISTRICTS, normalizeDistrict, MCZO_URL } from './standards.js?v=e59c2bd9';
-import { CHECKLISTS } from './checklists.js?v=e59c2bd9';
+import { DISTRICTS, normalizeDistrict, MCZO_URL } from './standards.js?v=cae01958';
+import { CHECKLISTS } from './checklists.js?v=cae01958';
 
 const DD2021 = 'https://www.maricopa.gov/6459/Lot-Coverage-Calculations---DD-2021-01';
 const DD3012 = 'https://www.maricopa.gov/6353/Accessory-Structures-Equipment-and-Setba';
@@ -14,7 +14,7 @@ export function rememberedReviewer() {
 export function rememberReviewer(name, email) { try { localStorage.setItem('mc.reviewer', JSON.stringify({ name, email })); } catch {} }
 export function blankReview() {
   return {
-    type: 'residential', apn: '', district: '', adjRes: false, lotArea: '', planTitle: '', permit: '', reviewer: rememberedReviewer().name, reviewerEmail: rememberedReviewer().email, date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10),
+    type: 'residential', apn: '', district: '', adjRes: false, lotArea: '', lotW: '', lotD: '', planTitle: '', permit: '', reviewer: rememberedReviewer().name, reviewerEmail: rememberedReviewer().email, date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10),
     platSetbacks: { front: '', rear: '', side: '', street: '' },
     primary: { front: '', rear: '', sideA: '', sideB: '', street: '', height: '', garage: '' },
     structures: [
@@ -100,8 +100,35 @@ export function computeFindings(s) {
     if (num(x.front) == null && num(x.rear) == null && num(x.side) == null) push(`Site plan — ${nm}`, `${nm} setbacks`, 'not shown', '2 setback dimensions to lot lines', 'Residential Site Plan Checklist item 9', false, `Dimension at least two setbacks from the ${nm.toLowerCase()} to the property lines.`);
   }
 
-  // Required-yard coverage (30%) — manual flag
-  if (s.structures.some(x => x.kind !== 'primary' && x.inYard)) F.push({ loc: 'Site plan — rear/side yard', item: 'Accessory coverage of any required yard', shows: 'Structures in required yard', req: '≤ 30% of that required yard', cite: `${cite('806.2')}`, status: 'verify', fix: 'Compute accessory footprint ÷ required-yard area for each yard; reduce if over 30%.' });
+  // Required rear and side yards (MCZO §806.2, §810.4): detached accessory buildings may sit in a required rear/side yard but
+  // may cover ≤ 30% of it and stay ≥ 3 ft from the line (checked above); none in a corner lot's street-side yard; the rest of
+  // each required yard stays open to the sky (eaves, sills, chimneys may project ≤ 2 ft). Yards are computed from the
+  // effective setbacks (recorded plat wins) and the lot's width × depth.
+  const yc = `${cite('806.2')}; ${cite('810.4')}`;
+  const rearReq = minOf(rearMin, s.platSetbacks.rear), sideReq = minOf(sideMin, s.platSetbacks.side), frontReq = minOf(d.front, s.platSetbacks.front), streetReq = minOf(d.street, s.platSetbacks.street);
+  const W = num(s.lotW), D = num(s.lotD);
+  const acc = s.structures.filter(x => x.kind !== 'primary');
+  const nm = (x) => x.name || (x.kind === 'adu' ? 'ADU' : 'Accessory structure');
+  const inRear = acc.filter(x => rearReq && num(x.rear) != null && num(x.rear) < rearReq);
+  const inSide = acc.filter(x => !inRear.includes(x) && sideReq && num(x.side) != null && num(x.side) < sideReq);
+  const yard = (label, list, area, areaTxt) => {
+    if (!list.length) return;
+    const missing = list.filter(x => num(x.sf) == null);
+    const fp = list.reduce((t2, x) => t2 + (num(x.sf) || 0), 0);
+    const names = list.map(x => `${nm(x)}${num(x.sf) != null ? ` ${num(x.sf).toLocaleString()} sf` : ''}`).join(' + ');
+    if (!area || missing.length) { F.push({ loc: `Site plan — ${label} yard`, item: `Accessory coverage of the required ${label} yard`, shows: `${names} in the required ${label} yard${!area ? ' — lot width/depth not entered' : ' — square footage missing'}`, req: '≤ 30% of the required yard', cite: yc, status: 'verify', fix: `Enter the lot width × depth and each structure's square footage (or measure on the plan), then confirm the accessory footprint is ≤ 30% of the required ${label} yard.` }); return; }
+    const pct = fp / area * 100;
+    push(`Site plan — ${label} yard`, `Accessory coverage of the required ${label} yard`, `${pct.toFixed(1)}% (${names} ÷ ${areaTxt})`, '≤ 30% of the required yard', yc, pct <= 30, `Reduce the accessory footprint in the required ${label} yard by ${Math.ceil(fp - area * 0.3).toLocaleString()} sf (to ≤ 30%), or move structures out of the yard.`);
+  };
+  yard('rear', inRear, W && rearReq ? W * rearReq : null, `${W || '?'} ft × ${rearReq} ft yard`);
+  // Side yards run between the front and rear yards; structures are counted against one side yard (conservative).
+  const sideLen = D && frontReq != null && rearReq != null ? D - frontReq - rearReq : null;
+  yard('side', inSide, sideLen > 0 && sideReq ? sideLen * sideReq : null, `${sideLen > 0 ? sideLen : '?'} ft × ${sideReq} ft yard`);
+  // Corner lots: no accessory building in the street-side yard (§806.2.2).
+  for (const x of acc) { const v = num(x.street); if (v != null && streetReq && v < streetReq) push(`Site plan — ${nm(x)}`, `${nm(x)} in the corner lot's street-side yard`, fmt(v), `Not within the ${streetReq} ft street-side yard`, cite('806.2'), false, `Move the ${nm(x).toLowerCase()} out of the street-side yard (≥ ${streetReq} ft from the side-street lot line).`); }
+  // Anything flagged "in yard" by hand that the numbers didn't place: confirm on the plan.
+  const manual = acc.filter(x => x.inYard && !inRear.includes(x) && !inSide.includes(x));
+  if (manual.length) F.push({ loc: 'Site plan — rear/side yard', item: 'Accessory coverage of the required rear/side yard', shows: `${manual.map(nm).join(', ')} marked as in a required yard (setbacks not entered)`, req: '≤ 30% of that required yard', cite: yc, status: 'verify', fix: 'Dimension the setbacks of each structure in a required yard and confirm its footprint is ≤ 30% of that yard.' });
   return { F: applyVerified(s, F), key, d };
 }
 // Reviewer decisions from Review Verification override the computed status of a measured check.

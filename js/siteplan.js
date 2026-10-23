@@ -1,11 +1,11 @@
 // Plan review → "Read a site plan PDF": sends the PDF through the relay to Claude (POST /ai/siteplan), maps the
 // structured result onto the review form, and checks the plan's APN / owner / address / lot area / zoning against
 // the Assessor record and the recorded deed.
-import { relayFetch } from './github.js?v=e59c2bd9';
-import { request } from './net.js?v=e59c2bd9';
-import { EP, normalizeApn } from './lookup.js?v=e59c2bd9';
-import { CHECKLISTS } from './checklists.js?v=e59c2bd9';
-import { normalizeDistrict } from './standards.js?v=e59c2bd9';
+import { relayFetch } from './github.js?v=cae01958';
+import { request } from './net.js?v=cae01958';
+import { EP, normalizeApn } from './lookup.js?v=cae01958';
+import { CHECKLISTS } from './checklists.js?v=cae01958';
+import { normalizeDistrict } from './standards.js?v=cae01958';
 
 export const MAX_PDF_MB = 30;
 const b64 = (str) => { const b = new TextEncoder().encode(str); let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); };
@@ -105,6 +105,9 @@ export function applyToReview(s, res, compare, { merge = false } = {}) {
   if (title) s.planTitle = title;
   if (!s.apn && P.apn) s.apn = normalizeApn(P.apn) || P.apn;
   if (!s.lotArea && P.lot_area_sf) s.lotArea = String(Math.round(P.lot_area_sf));
+  // Lot width × depth from the plan ("100' x 200'"), used for the required-yard check; a parcel lookup's estimate is kept if present.
+  { const m = String(P.lot_dimensions || '').replace(/,/g, '').match(/(\d+(?:\.\d+)?)\s*(?:'|ft|feet)?\s*[x×X]\s*(\d+(?:\.\d+)?)/);
+    if (m) { const a = +m[1], b = +m[2]; if (a >= 10 && b >= 10) { if (!s.lotW) s.lotW = String(Math.round(Math.min(a, b))); if (!s.lotD) s.lotD = String(Math.round(Math.max(a, b))); } } }
   if (!s.district && P.zoning_shown) s.district = normalizeDistrict(P.zoning_shown) || s.district;
   const P2 = { front: n(pr.front), rear: n(pr.rear), sideA: n(pr.side_a), sideB: n(pr.side_b), street: n(pr.side_street), height: n(pr.height), garage: n(pr.garage_plane) };
   // The free reader only fills what it found and keeps what the reviewer already entered.

@@ -3,8 +3,8 @@
 // each plan-vs-record mismatch or other finding, and each value the reader marked hard to read.
 // Decisions are written straight into the review (checklist statuses/notes/corrections, reviewer overrides of the
 // measured checks in s.verified, and markup rows in s.extra), so the Checklist box and Markup Table fill as you go.
-import { CHECKLISTS } from './checklists.js?v=e59c2bd9';
-import { computeFindings } from './review.js?v=e59c2bd9';
+import { CHECKLISTS } from './checklists.js?v=cae01958';
+import { computeFindings } from './review.js?v=cae01958';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const yn = (v) => (v === true ? 'Yes' : v === false ? 'No' : null);
@@ -37,8 +37,8 @@ function evidence(id, s) {
   if (/row|streets|access|sight|dw/.test(key)) add('Streets / ROW', (r.streets || []).map(x => [x.name, x.row_width && `ROW ${x.row_width}`, x.jurisdiction].filter(Boolean).join(' ')).join('; ') || (s.ai ? 'none shown' : null));
   if (/adj/.test(key)) add('Adjacent uses', (r.adjacent_uses || []).join('; ') || (s.ai ? 'none labeled' : null));
   if (/future/.test(key)) add('Invalidating notes', (pl.invalidating_notes || []).join('; ') || (s.ai ? 'none found' : null));
-  if (/setall|existing/.test(key)) add('Residence setbacks read', ['front', 'rear', 'side_a', 'side_b', 'side_street'].map(k => pr[k] != null ? `${k.replace('_', ' ')} ${pr[k]} ft` : null).filter(Boolean).join(', ') || null);
-  if (/bldg|num/.test(key)) add('Structures read', (r.structures || []).map(x => [x.name, x.sqft && `${x.sqft} sf`].filter(Boolean).join(' ')).join('; ') || null);
+  if (/setall|existing|yards/.test(key)) add('Residence setbacks read', ['front', 'rear', 'side_a', 'side_b', 'side_street'].map(k => pr[k] != null ? `${k.replace('_', ' ')} ${pr[k]} ft` : null).filter(Boolean).join(', ') || null);
+  if (/bldg|num|yards/.test(key)) add('Structures read', (r.structures || []).map(x => [x.name, x.sqft && `${x.sqft} sf`].filter(Boolean).join(' ')).join('; ') || null);
   if (/cov/.test(key)) add('Coverage shown on plan', cv.lot_coverage_pct_shown != null ? `${cv.lot_coverage_pct_shown}%${cv.total_covered_sf_shown ? ` (${(+cv.total_covered_sf_shown).toLocaleString()} sf)` : ''}` : (s.ai ? 'not shown' : null));
   if (/water|septic|wells|aws/.test(key)) add('Water / wastewater', [P.water_source, P.wastewater].filter(Boolean).join(' / ') || null);
   if (/legal|id$|lot$/.test(key)) add('Legal description', P.legal_description);
