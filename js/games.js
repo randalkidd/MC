@@ -1,7 +1,7 @@
 // Behind the Curtains — game center. MCTrained: 10-question multiple-choice rounds built from the site's own reference data
 // (MCZO Ch. 5 tables, Local Additions & Addenda, department directives) plus quick setback / coverage scenarios computed
 // from the same tables, so every answer key comes from the data the site already uses. Scores go through the relay.
-import { DISTRICTS, MCZO_URL } from './standards.js?v=74a299e3';
+import { DISTRICTS, MCZO_URL } from './standards.js?v=cccb7524';
 
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const shuffle = (a) => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
@@ -99,7 +99,7 @@ function qLaa(regs) {
 
 export const CATS = [['mixed', 'Mixed'], ['MCZO', 'MCZO standards'], ['LA&A', 'LA&A'], ['Directives', 'Directives'], ['Scenario', 'Quick scenarios']];
 export async function buildRound(cat = 'mixed', n = 10) {
-  const ref = await import('./refdata.js?v=74a299e3');
+  const ref = await import('./refdata.js?v=cccb7524');
   const gens = { MCZO: qMczo, Scenario: qScenario, Directives: () => qDirective(ref.DIRECTIVES), 'LA&A': () => qLaa(ref.REG_LOOKUP) };
   const order = cat === 'mixed' ? ['MCZO', 'Scenario', 'Directives', 'LA&A'] : [cat];
   const out = []; const seen = new Set(); let guard = 0;

@@ -454,6 +454,10 @@ html.vf-open { overflow: hidden; }
 .leaflet-tooltip.sec-label::before { display: none; }
 .sec-swatch.mid { border-top: 2px dashed #ff8787; }
 .leaflet-tooltip.sec-label.mid { background: #ff8787; color: #3a0a0a; }
+.sec-box { background: none; border: 0; }
+.sec-box .sec-label { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); white-space: nowrap; background: #e03131; color: #fff; font: 600 .72rem/1.35 system-ui, sans-serif; padding: 1px 6px; border-radius: 3px; box-shadow: 0 1px 4px rgb(0 0 0 / .35); pointer-events: none; }
+.sec-box .sec-label.mid { background: #ff8787; color: #3a0a0a; }
+.leaflet-tooltip.sec-label.mid.sm { font-size: .64rem; font-weight: 500; padding: 1px 5px; line-height: 1.35; }
 
 /* Historical Aerials viewer */
 dialog.hist { width: min(1100px, calc(100vw - 24px)); max-width: none; height: min(820px, calc(100vh - 24px)); max-height: none; padding: 0; display: none; flex-direction: column; overflow: hidden; }

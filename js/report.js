@@ -1,6 +1,6 @@
 // Renders a lookup result in the project's parcel-report-template structure (HTML + Markdown).
-import { LINKS } from './lookup.js?v=74a299e3';
-import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=74a299e3';
+import { LINKS } from './lookup.js?v=cccb7524';
+import { DISTRICTS, normalizeDistrict, overlaySuffixes, MCZO_URL } from './standards.js?v=cccb7524';
 
 // Only allow http(s) URLs into href attributes; everything else becomes "#".
 const safeUrl = (u) => { try { const x = new URL(String(u), location.href); return /^https?:$/.test(x.protocol) ? x.href : '#'; } catch { return '#'; } };
@@ -267,6 +267,9 @@ export function renderReportHTML(R, db) {
     if (rc.owner && rc.easements && rc.easements.length) out.push(`<p class="sub">Recorder searched for easements recorded by <b>${esc(rc.owner.label)}</b> since the deed — ${rc.easements.length} found (listed above; name match, confirm each covers this parcel).</p>`);
   }
   { const sr = sectionRows(R); if (sr.length) { out.push('<h4>Section Lines</h4>'); table(sr.map(([k, v]) => [esc(k), esc(v)]), ['Section line', 'Distance / note']); } }
+  out.push('<h4>Roads &amp; Corridor Projects</h4>');
+  table([['Roads (RIT)', `<span id="roads-cell"><button class="link" data-act="roads">Look up frontage roads</button></span>`],
+    ['TSP2040 corridor projects', `<span id="tsp-cell"><button class="link" data-act="tsp">Check</button></span>`]]);
   out.push(`<p class="sub">Also checked: ${esc(alsoChecked(R).join('; '))}. Public utility, shared-well, ingress/egress and other private easements are not mapped — check the deed, the title report and the recorded plat.</p>`);
 
   h('Zoning / Planning Cases');
@@ -298,8 +301,6 @@ export function renderReportHTML(R, db) {
     .filter((x, i, arr) => !NOISE.includes(x.layerId) || arr.findIndex(y => y.layerId === x.layerId) === i);
   rows.push(['Natural resource', dl(R.natural)], ['Military', lines(military)]);
   rows.push(['Septic', `<span id="septic-cell">Not yet checked — <button class="link" data-act="septic">check EDMS</button> (needs relay) · ${a('Septic Search', LINKS.septic)} · ${a('Permit Center (6/15/2024+)', LINKS.permitCenter)}</span>`]);
-  rows.push(['Roads (RIT)', `<span id="roads-cell"><button class="link" data-act="roads">Look up frontage roads</button></span>`]);
-  rows.push(['TSP2040 corridor projects', `<span id="tsp-cell"><button class="link" data-act="tsp">Check</button></span>`]);
   table(rows);
   return out.join('');
 }
@@ -353,6 +354,8 @@ export function renderReportMD(R, db, extras = {}) {
     const rc = R.recorder || {}; const d = rc.deed; if (d) L.push(deedSentence(d).replace(`Deed #${d.rec}`, `Deed ${mdLink(`#${d.rec}`, LINKS.recDoc(d.rec))}`), '');
     if (rc.owner && rc.easements && rc.easements.length) L.push(`Recorder: ${rc.easements.length} easement(s) recorded by ${rc.owner.label} since the deed (listed above; confirm each covers this parcel).`, '');
     const sr = sectionRows(R); if (sr.length) { L.push('**Section lines**', ''); t(sr, ['Section line', 'Distance / note']); }
+    const rd = [extras.roads && ['Roads (RIT)', extras.roads], extras.tsp && ['TSP2040 corridor projects', extras.tsp]].filter(Boolean);
+    if (rd.length) { L.push('**Roads & corridor projects**', ''); t(rd); }
     L.push(`_Also checked: ${alsoChecked(R).join('; ')}._`, ''); }
   H('Zoning / Planning Cases'); L.push('**Current / pending:**', '');
   const pmd = (n) => { const k = permitLink(n); return k ? mdLink(n, k.url) : dash(n); };
@@ -363,8 +366,6 @@ export function renderReportMD(R, db, extras = {}) {
   const add = [];
   if (R.flood.hit) add.push(['Floodplain', `Hit${R.flood.floodway ? ' (FLOODWAY)' : ''}: ${R.flood.effective.map(x => x.FloodZoneCode).join(', ')} — ${mdLink('Floodplain and Elevation Certificate Viewer', LINKS.flood)}`]);
   add.push(['Septic', extras.septic || `Not checked — ${mdLink('Septic Search', LINKS.septic)}`]);
-  if (extras.roads) add.push(['Roads (RIT)', extras.roads]);
-  if (extras.tsp) add.push(['TSP2040', extras.tsp]);
   for (const g of groupDistricts(R.district)) add.push([g.label, g.items.map(it => (g.ids.length > 1 ? `${it.layer}: ${it.value}` : it.value)).join('; ')]);
   t(add);
   L.push('---', '', '## Compliance-ready summary', '');
