@@ -1,0 +1,15 @@
+[Unit]
+Description=MC queue run (%i)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=mcq
+Environment=HOME=/home/mcq
+Environment=PATH=/home/mcq/.local/bin:/usr/local/bin:/usr/bin:/bin
+# Optional: /home/mcq/.mcq.env can hold CLAUDE_CODE_OAUTH_TOKEN=… (see server/README.md, step 6)
+EnvironmentFile=-/home/mcq/.mcq.env
+ExecStart=/home/mcq/MC/server/run-queue.sh %i
+TimeoutStartSec=5h
+Nice=5

@@ -3,6 +3,7 @@
 Run by the scheduled task **"Plan review queue"** at 12:15 AM Sunday–Thursday (America/Phoenix) on the user's computer LONDON, or when the user asks to process the queue now. It reads each plan sent with **Queued Review** on the Plan review tab of https://randalkidd.github.io/MC/ and stores what it found, so the website can load the result. It runs on the user's Claude plan (no Anthropic API key).
 
 ## What the session needs
+- **On the queue server** (`server/`, run by `server/run-queue.sh`): follow `server/SERVER-NOTES.md`, which replaces the browser and repo-attach steps below.
 - **Push access to the PRIVATE repo `randalkidd/MC-queue`** (branch `main`). In a cloud session, attach it first (`add_repo` owner `randalkidd`, repo `MC-queue`, access `push`) and clone it.
 - **Read access to `randalkidd/MC`** for the instructions: the prompt and output schema are in `worker/cors-proxy.js` (`sitePlanPrompt()` and `SITE_PLAN_TOOL`), and the checklist items are in `js/checklists.js`.
 - Never copy plans, owner names or any data from `MC-queue` into the public repo `randalkidd/MC`, a public page, or a reply beyond the short summary below. Never commit tokens or passphrases.

@@ -5,6 +5,7 @@ This is the routine for Claude. Run it when the user clicks **Process with Claud
 Each subdivision on the review list was found by a parcel lookup and isn't in SubdivisionDB yet. For each one, read its recorded plat, add a full record to SubdivisionDB, and remove it from the review list.
 
 ## What the session needs
+- **On the queue server** (`server/`, run by `server/run-queue.sh`): follow `server/SERVER-NOTES.md`, which replaces the browser and repo-attach steps below.
 - **Push access to `randalkidd/MC`** (branch `main`). In a cloud session, attach the repo first.
 - **The built-in browser in the Claude desktop app on the user's computer.** The County Recorder and county GIS refuse requests from the cloud sandbox, so do every Recorder and GIS step in that browser, not with the shell or WebFetch. If the browser can't be reached, stop and tell the user. Change nothing.
 - Data is public record, and the repo is public. Never commit tokens or passphrases.

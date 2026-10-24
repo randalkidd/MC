@@ -1,0 +1,10 @@
+[Unit]
+Description=Plan review queue — 12:15 AM Sunday–Thursday, Arizona time
+
+[Timer]
+OnCalendar=Sun..Thu *-*-* 00:15:00 America/Phoenix
+Persistent=true
+Unit=mc-queue@plan.service
+
+[Install]
+WantedBy=timers.target

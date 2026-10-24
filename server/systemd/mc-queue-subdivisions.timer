@@ -1,0 +1,10 @@
+[Unit]
+Description=SubdivisionDB review list — 1:45 AM daily, Arizona time
+
+[Timer]
+OnCalendar=*-*-* 01:45:00 America/Phoenix
+Persistent=true
+Unit=mc-queue@subdivisions.service
+
+[Install]
+WantedBy=timers.target
