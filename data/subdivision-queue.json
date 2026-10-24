@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated": "2026-10-24T06:41:26.685Z",
+  "updated": "2026-10-24T06:41:41.153Z",
   "items": [
     {
       "name": "ANTHEM UNIT 15",
@@ -89,7 +89,7 @@
       "recorded": "",
       "totalLots": 176,
       "baseZoning": "RU-43",
-      "controllingCases": "CPA2004003 (6/24/2004, Remove); CPA2023014 (9/13/2023, Approved)",
+      "controllingCases": "CPA2023014 (9/13/2023, Approved); CPA2004003 (6/24/2004, Remove)",
       "apns": [
         "502-64-137"
       ],
