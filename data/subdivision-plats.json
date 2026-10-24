@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "source": "Migrated from project doc reference/subdivision-plats.md on 2026-10-22",
-  "updated": "2026-10-23T07:08:55.000Z",
+  "updated": "2026-10-24T07:16:16.000Z",
   "subdivisions": [
     {
       "name": "Rancho Cabrillo Parcel D",
@@ -851,6 +851,161 @@
       ],
       "easements": "10 ft PUE along street frontages (typical lot detail); underground public utility & drainage easements, widths as shown; wall maintenance (WME), non-vehicular access (NVAE) and landscape (LE) easements where shown",
       "autoAdded": false
+    },
+    {
+      "name": "Anthem Unit 15",
+      "mcr": "535-06",
+      "docType": "PLAT MAP",
+      "rec": "20000438783",
+      "recorded": "2000-06-09",
+      "totalLots": 155,
+      "baseZoning": "R1-7 (plat: R1-6 N.U.P.D. per Z95-53A as amended)",
+      "controllingCases": "CPA1994002 (12:00:00 AM, Remove); CPA2019010 (8/28/2019, Approved); DMP1994006 (12:00:00 AM, Approved); DMP2005011 (8/29/2005, Approved); DMP2000008 (8/22/2000, Approved); Z01-134 (10/29/2001, APPROVED); Z95-53 (12/11/1995, APPROVED); Z00-98 (8/22/2000, APPROVED); Z95-53i (8/7/1998, APPROVED); Z95-53T (9/30/1999, APPROVED); Z95-53B (3/25/1998, APPROVED); Z95-53C (4/9/1998, APPROVED)",
+      "setbacks": "14 ft / 17.5 ft / 3.5 ft / 7 ft (Front / Rear / Side / Street-side)",
+      "setbackTable": [
+        {
+          "lots": "All",
+          "district": "R1-6 NUPD",
+          "front": 14,
+          "rear": 17.5,
+          "side": 3.5,
+          "street": 7,
+          "height": "39 ft / 2 stories",
+          "coverage": "52%",
+          "coverageNow": "",
+          "coverageBy": "",
+          "width": 42,
+          "other": "Min. lot 4,200 sf; avg. lot area 6,000 sf/du; min. 7 ft between buildings"
+        }
+      ],
+      "height": "39 ft / 2 stories",
+      "easements": "10 ft PUE along front lot lines (typ.); 25 ft x 25 ft sight distance triangles (SDT) at intersections, 12 ft corner radius; wall maintenance easements (WME) shown on lot sheets",
+      "notes": "Read by Claude from plat sheets 1–2 on 2026-10-24. Indexed at the Recorder as \"ANTHEM UNIT FIFTEEN\". Sheet 1 Development Standard table: R1-6 N.U.P.D. approved standards per Z95-53A as amended — avg lot 6,000 sf, min lot 4,200 sf, min width 42 ft, max coverage 52%, front 14 ft, rear 17.5 ft, side 3.5 ft, street side 7 ft, 7 ft min between buildings, 39 ft / 2 stories. Tracts D and E: park; Tracts A, B, C, F: drainage, landscaping, open space (Anthem Community Council). Plat note: 149 lots in Unit 15 (lots 127–275); queue shows 155 — verify. CES stipulation: final construction clearances held pending acceptance of Anthem water/wastewater campus. WME width not confirmed — check lot sheets 2–4.\n⚠ Z01-134 (10/29/2001), DMP2005011 (8/29/2005) and CPA2019010 (2019) postdate this plat and may amend the Z95-53A standards; verify before relying on them.\n⚠ Assessor zoning is R1-7 but the plat table cites R1-6 N.U.P.D.; confirm which applies.",
+      "parcelsChecked": [
+        "203-01-865"
+      ],
+      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=20000438783&suffix=",
+      "platControls": false,
+      "autoAdded": false,
+      "lastUpdated": "2026-10-24"
+    },
+    {
+      "name": "Beautiful Arizona Estates Sub",
+      "mcr": "99-38",
+      "docType": "PLAT MAP",
+      "rec": "19620153711",
+      "recorded": "1962-07-03",
+      "totalLots": 287,
+      "baseZoning": "R1-35",
+      "controllingCases": "CPA1989003 (12:00:00 AM, Remove); CPA2023014 (9/13/2023, Approved); CPA2004003 (6/24/2004, Remove)",
+      "setbacks": "None on plat — MCZO governs",
+      "setbackTable": [],
+      "height": "",
+      "easements": "20 ft public utility and drainage easement on each side of rear lot lines (40 ft total where rear lines meet); short 8 ft and 10 ft easements at some lot corners as dimensioned",
+      "notes": "Read by Claude from plat sheet 1 (single sheet) on 2026-10-24. 1962 plat (Phoenix Title and Trust Co., Trustee); dedicates streets and easements. No building setback lines or development standards on plat — MCZO R1-35 governs. Plat note: lots 204, 223 and 283 are not included in this plat. Tract \"A\" shown; use not stated on plat.",
+      "parcelsChecked": [
+        "502-70-145A"
+      ],
+      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=19620153711&suffix=",
+      "platControls": false,
+      "autoAdded": false,
+      "lastUpdated": "2026-10-24"
+    },
+    {
+      "name": "Sun City West 36  Lot 1-315 Tr A-D",
+      "mcr": "310-35",
+      "docType": "PLAT MAP",
+      "rec": "19870285968",
+      "recorded": "1987-05-07",
+      "totalLots": 319,
+      "baseZoning": "R1-7",
+      "controllingCases": "CPA2023014 (9/13/2023, Approved); CPA2004003 (6/24/2004, Remove); DMP1977003 (12:00:00 AM, Approved); DMP1990003 (12/19/1990, ?); DMP1994001 (7/7/1994, ?); Z85-133 (7/11/1985, APPROVED)",
+      "setbacks": "20 ft / 25 ft / 5 ft / 10 ft (Front / Rear / Side / Street-side)",
+      "setbackTable": [
+        {
+          "lots": "All",
+          "district": "R1-7",
+          "front": 20,
+          "rear": 25,
+          "side": 5,
+          "street": 10,
+          "height": "",
+          "coverage": "",
+          "coverageNow": "",
+          "coverageBy": "",
+          "width": null,
+          "other": ""
+        }
+      ],
+      "height": "",
+      "easements": "16 ft underground PUE and drainage along all rear lot lines (8 ft each side); 10 ft underground PUE and drainage along all side lot lines (5 ft each side), unless otherwise noted or dimensioned",
+      "notes": "Read by Claude from plat sheet 1 of 3 on 2026-10-24. Sheet 1 \"Typical lots showing building setback lines\": front 20, rear 25, side 5, street side 10. No height or coverage on plat. Drainage note: Tracts A and B partly used for storm-water retention (changes to lakes/grading need Flood Control District approval); Tracts C and D convey storm water, owned/maintained by Del E. Webb Development Co. L.P. until taken over by a government agency. Deed restrictions recorded separately (instrument number noted on sheet 1). PDF link returned 404; read from PNG page images.\n⚠ DMP1990003 (12/19/1990) and DMP1994001 (7/7/1994) postdate this plat and may change standards; verify.",
+      "parcelsChecked": [
+        "232-17-152"
+      ],
+      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=19870285968&suffix=",
+      "platControls": false,
+      "autoAdded": false,
+      "lastUpdated": "2026-10-24"
+    },
+    {
+      "name": "Horseshoe Trls Amd",
+      "mcr": "408-43",
+      "docType": "PLAT MAP",
+      "rec": "19960019326",
+      "recorded": "1996-01-10",
+      "totalLots": 512,
+      "baseZoning": "RU-43",
+      "controllingCases": "",
+      "setbacks": "None on plat — MCZO governs",
+      "setbackTable": [],
+      "height": "",
+      "easements": "33 ft roadway and utility easements granted on plat along parcel lines (typ.); 30 ft electric line easement per Docket 4359; Hassayampa–Salome Highway 200 ft right-of-way (Book 12 of Road Maps, p. 82)",
+      "notes": "Read by Claude from plat sheets 1–2 of 10 on 2026-10-24. This is a Record of Survey (Horseshoe Trails Amended), not a lot-and-block subdivision: dedication grants roadway and utility easements to the public over large-acreage parcels (e.g. Parcel 6, 77.6 ac; Parcel 16, 40.0 ac). No building setback lines — MCZO RU-43 governs. Sheets 3–10 (other parcels) not read in detail; check the sheet covering the parcel for any parcel-specific easements.",
+      "parcelsChecked": [
+        "506-44-077N"
+      ],
+      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=19960019326&suffix=",
+      "platControls": false,
+      "autoAdded": false,
+      "lastUpdated": "2026-10-24"
+    },
+    {
+      "name": "Litchfield Farms 2",
+      "mcr": "587-28",
+      "docType": "PLAT MAP",
+      "rec": "20020278135",
+      "recorded": "2002-03-19",
+      "totalLots": 176,
+      "baseZoning": "RU-43",
+      "controllingCases": "CPA2023014 (9/13/2023, Approved); CPA2004003 (6/24/2004, Remove)",
+      "setbacks": "40 ft / 40 ft / 30 ft / 20 ft (Front / Rear / Side / Street-side)",
+      "setbackTable": [
+        {
+          "lots": "All",
+          "district": "RU-43",
+          "front": 40,
+          "rear": 40,
+          "side": 30,
+          "street": 20,
+          "height": "",
+          "coverage": "",
+          "coverageNow": "",
+          "coverageBy": "",
+          "width": null,
+          "other": ""
+        }
+      ],
+      "height": "",
+      "easements": "8 ft PUE along lot frontages (per setback detail); 25 ft x 25 ft sight visibility easements (SVE) at intersections, kept clear above 2 ft; drainage easements as dimensioned on lot sheets; vehicular non-access easements (VNAE) where shown",
+      "notes": "Read by Claude from plat sheet 1 of 6 on 2026-10-24. Recorded as \"LITCHFIELD FARMS II\"; M.C. case S2001-053; zoning box: Rural-43, 238.06 ac gross. Sheet 1 Building Setback Line Detail: front 40, rear 40, side 30, street side 20. Tract A: private streets (1,082,140 sf), maintained by HOA. Notes: noise attenuation (25 dB reduction, MCZO §2203-D); military airport vicinity notice required for buyers and in CC&Rs; no structures except removable fencing/paving in PUEs; no above-grade structures in drainage easements. Preliminary plat case number on Note 1 read as \"S20010-026\" — verify.\n⚠ Later plats indexed as \"LITCHFIELD FARMS II\" (MCR 680-47 replat, MCR 699-41) may supersede parts of this plat; check whether the parcel is in a replat.",
+      "parcelsChecked": [
+        "502-64-137"
+      ],
+      "platUrl": "https://recorder.maricopa.gov/recording/document-details.html?recordingNumber=20020278135&suffix=",
+      "platControls": false,
+      "autoAdded": false,
+      "lastUpdated": "2026-10-24"
     }
   ]
 }
