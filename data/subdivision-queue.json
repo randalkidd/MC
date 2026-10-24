@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated": "2026-10-23T20:19:06.404Z",
+  "updated": "2026-10-24T06:41:26.685Z",
   "items": [
     {
       "name": "ANTHEM UNIT 15",
@@ -79,6 +79,22 @@
       ],
       "firstSeen": "2026-10-23",
       "lastSeen": "2026-10-23",
+      "status": "pending"
+    },
+    {
+      "name": "LITCHFIELD FARMS 2",
+      "displayName": "Litchfield Farms 2",
+      "mcr": "587-28",
+      "rec": "",
+      "recorded": "",
+      "totalLots": 176,
+      "baseZoning": "RU-43",
+      "controllingCases": "CPA2004003 (6/24/2004, Remove); CPA2023014 (9/13/2023, Approved)",
+      "apns": [
+        "502-64-137"
+      ],
+      "firstSeen": "2026-10-24",
+      "lastSeen": "2026-10-24",
       "status": "pending"
     }
   ]
